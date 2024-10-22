@@ -26,3 +26,5 @@ yarn-error.log*
 out/
 
 commit.sh
+
+repopack-output.txt
