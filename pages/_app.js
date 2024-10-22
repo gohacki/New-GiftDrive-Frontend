@@ -1,5 +1,5 @@
 import React from "react";
-import ReactDOM from "react-dom";
+import { createRoot } from 'react-dom/client';
 import App from "next/app";
 import Head from "next/head";
 import Router from "next/router";
@@ -9,26 +9,43 @@ import PageChange from "components/PageChange/PageChange.js";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "styles/tailwind.css";
 
-Router.events.on("routeChangeStart", (url) => {
+let root = null; // Store the root instance
+
+Router.events.on('routeChangeStart', (url) => {
   console.log(`Loading: ${url}`);
-  document.body.classList.add("body-page-transition");
-  ReactDOM.render(
-    <PageChange path={url} />,
-    document.getElementById("page-transition")
-  );
+  document.body.classList.add('body-page-transition');
+
+  const container = document.getElementById('page-transition');
+  
+  if (!root) {
+    root = createRoot(container); // Initialize the root if it doesn't exist
+  }
+
+  root.render(<PageChange path={url} />);
 });
-Router.events.on("routeChangeComplete", () => {
-  ReactDOM.unmountComponentAtNode(document.getElementById("page-transition"));
-  document.body.classList.remove("body-page-transition");
+
+Router.events.on('routeChangeComplete', () => {
+  safelyUnmountRoot(); // Safely unmount root on route change completion
+  document.body.classList.remove('body-page-transition');
 });
-Router.events.on("routeChangeError", () => {
-  ReactDOM.unmountComponentAtNode(document.getElementById("page-transition"));
-  document.body.classList.remove("body-page-transition");
+
+Router.events.on('routeChangeError', () => {
+  safelyUnmountRoot(); // Safely unmount root on route change error
+  document.body.classList.remove('body-page-transition');
 });
+
+// Helper function to safely unmount the root
+function safelyUnmountRoot() {
+  const container = document.getElementById('page-transition');
+  if (root && container) {
+    root.unmount(); // Unmount the root if it exists
+    root = null; // Reset root to avoid further updates to unmounted root
+  }
+}
 
 export default class MyApp extends App {
   componentDidMount() {
-    let comment = document.createComment(`
+    const comment = document.createComment(`
 
 =========================================================
 * Notus NextJS - v1.1.0 based on Tailwind Starter Kit by Creative Tim
@@ -49,6 +66,7 @@ export default class MyApp extends App {
 `);
     document.insertBefore(comment, document.documentElement);
   }
+
   static async getInitialProps({ Component, router, ctx }) {
     let pageProps = {};
 
@@ -58,9 +76,9 @@ export default class MyApp extends App {
 
     return { pageProps };
   }
+
   render() {
     const { Component, pageProps } = this.props;
-
     const Layout = Component.layout || (({ children }) => <>{children}</>);
 
     return (
