@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import App from "next/app";
 import Head from "next/head";
 import Router from "next/router";
+import { AuthProvider } from '../contexts/AuthContext';
+import { CartProvider } from '../contexts/CartContext';
 
 import PageChange from "components/PageChange/PageChange.js";
 
@@ -88,12 +90,16 @@ export default class MyApp extends App {
             name="viewport"
             content="width=device-width, initial-scale=1, shrink-to-fit=no"
           />
-          <title>Notus NextJS by Creative Tim</title>
+          <title>GiftDrive.org</title>
           <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_KEY_HERE"></script>
         </Head>
-        <Layout>
-          <Component {...pageProps} />
-        </Layout>
+        <AuthProvider>
+          <CartProvider>
+            <Layout>
+              <Component {...pageProps} />
+            </Layout>
+          </CartProvider>
+        </AuthProvider>
       </React.Fragment>
     );
   }

@@ -28,3 +28,5 @@ out/
 commit.sh
 
 repopack-output.txt
+
+.env

@@ -1,10 +1,10 @@
-// components/Cards/CardBarChart.js
+// components/Cards/CardPieChart.js
 
 import React, { useEffect, useRef } from "react";
 import Chart from "chart.js";
 import PropTypes from "prop-types";
 
-export default function CardBarChart({ title, subtitle, data, labels, backgroundColor }) {
+export default function CardPieChart({ title, data, labels, colors }) {
   const chartRef = useRef(null);
 
   useEffect(() => {
@@ -13,19 +13,16 @@ export default function CardBarChart({ title, subtitle, data, labels, background
       chartRef.current.destroy();
     }
 
-    const ctx = document.getElementById(`bar-chart-${title}`).getContext("2d");
+    const ctx = document.getElementById(`pie-chart-${title}`).getContext("2d");
     chartRef.current = new Chart(ctx, {
-      type: "bar",
+      type: "pie",
       data: {
         labels: labels,
         datasets: [
           {
-            label: subtitle,
             data: data,
-            backgroundColor: backgroundColor || "#ed64a6",
-            borderColor: backgroundColor || "#ed64a6",
-            borderWidth: 1,
-            barThickness: 8,
+            backgroundColor: colors || ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"],
+            hoverBackgroundColor: colors || ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"],
           },
         ],
       },
@@ -34,41 +31,20 @@ export default function CardBarChart({ title, subtitle, data, labels, background
         responsive: true,
         plugins: {
           legend: {
-            labels: {
-              color: "rgba(0,0,0,.4)",
-            },
-            align: "end",
             position: "bottom",
+            labels: {
+              color: "#4a5568",
+            },
           },
           tooltip: {
-            mode: "index",
-            intersect: false,
             callbacks: {
               label: function (context) {
-                return `$${context.parsed.y}`;
+                const label = context.label || "";
+                const value = context.parsed;
+                const total = context.chart._metasets[context.datasetIndex].total;
+                const percentage = ((value / total) * 100).toFixed(2);
+                return `${label}: ${value} (${percentage}%)`;
               },
-            },
-          },
-        },
-        scales: {
-          x: {
-            display: false,
-            grid: {
-              display: false,
-            },
-          },
-          y: {
-            display: true,
-            ticks: {
-              color: "rgba(0,0,0,.4)",
-            },
-            grid: {
-              borderDash: [2],
-              borderDashOffset: [2],
-              color: "rgba(33, 37, 41, 0.3)",
-              zeroLineColor: "rgba(33, 37, 41, 0.3)",
-              zeroLineBorderDash: [2],
-              zeroLineBorderDashOffset: [2],
             },
           },
         },
@@ -81,7 +57,7 @@ export default function CardBarChart({ title, subtitle, data, labels, background
         chartRef.current.destroy();
       }
     };
-  }, [data, labels, backgroundColor, title, subtitle]);
+  }, [data, labels, colors, title]);
 
   return (
     <>
@@ -90,18 +66,16 @@ export default function CardBarChart({ title, subtitle, data, labels, background
           <div className="flex flex-wrap items-center">
             <div className="relative w-full max-w-full flex-grow flex-1">
               <h6 className="uppercase text-blueGray-400 mb-1 text-xs font-semibold">
-                {subtitle}
-              </h6>
-              <h2 className="text-blueGray-700 text-xl font-semibold">
                 {title}
-              </h2>
+              </h6>
+              {/* Add more headers if needed */}
             </div>
           </div>
         </div>
         <div className="p-4 flex-auto">
           {/* Chart */}
           <div className="relative h-350-px">
-            <canvas id={`bar-chart-${title}`}></canvas>
+            <canvas id={`pie-chart-${title}`}></canvas>
           </div>
         </div>
       </div>
@@ -109,10 +83,9 @@ export default function CardBarChart({ title, subtitle, data, labels, background
   );
 }
 
-CardBarChart.propTypes = {
+CardPieChart.propTypes = {
   title: PropTypes.string.isRequired,
-  subtitle: PropTypes.string,
   data: PropTypes.arrayOf(PropTypes.number).isRequired,
   labels: PropTypes.arrayOf(PropTypes.string).isRequired,
-  backgroundColor: PropTypes.string,
+  colors: PropTypes.arrayOf(PropTypes.string),
 };
