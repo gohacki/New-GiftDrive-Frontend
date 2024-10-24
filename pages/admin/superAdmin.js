@@ -11,7 +11,7 @@ import Navbar from 'components/Navbars/AuthNavbar';
 
 
 const OrganizationsAdminPage = () => {
-  const { user, logout } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   const router = useRouter();
 
   const [organizations, setOrganizations] = useState([]);

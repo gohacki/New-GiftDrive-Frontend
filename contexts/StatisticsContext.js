@@ -1,6 +1,7 @@
 // contexts/StatisticsContext.js
 
 import React, { createContext, useState } from 'react';
+import PropTypes from 'prop-types'; // Import PropTypes
 
 // Create the StatisticsContext
 export const StatisticsContext = createContext();
@@ -14,4 +15,9 @@ export const StatisticsProvider = ({ children }) => {
       {children}
     </StatisticsContext.Provider>
   );
+};
+
+// Add prop validation
+StatisticsProvider.propTypes = {
+  children: PropTypes.node.isRequired, // Validates that children is a React node
 };

@@ -188,7 +188,7 @@ export default function Landing() {
               <div className="w-full lg:w-6/12 px-4">
                 <h2 className="text-4xl font-semibold text-white">Drive Types We Support</h2>
                 <p className="text-lg leading-relaxed mt-4 mb-4 text-blueGray-400">
-                  Choose from a variety of drive types to suit your organization's needs. Click on a drive type to learn more about it.
+                  Choose from a variety of drive types to suit your organization&apos;s needs. Click on a drive type to learn more about it.
                 </p>
               </div>
             </div>
@@ -283,7 +283,7 @@ export default function Landing() {
                       Outstanding Support
                     </h4>
                     <p className="text-md font-light mt-2 text-blueGray-500">
-                      "The support team was incredibly responsive and helped us set up our first drive seamlessly. Highly recommend!"
+                      &quot;The support team was incredibly responsive and helped us set up our first drive seamlessly. Highly recommend!&quot;
                     </p>
                   </blockquote>
                 </div>
@@ -307,7 +307,7 @@ export default function Landing() {
                       User-Friendly Interface
                     </h4>
                     <p className="text-md font-light mt-2 text-blueGray-500">
-                      "Managing our drives has never been easier. The intuitive design allows us to focus more on our mission."
+                      &quot;Managing our drives has never been easier. The intuitive design allows us to focus more on our mission.&quot;
                     </p>
                   </blockquote>
                 </div>
@@ -331,7 +331,7 @@ export default function Landing() {
                       Increased Reach
                     </h4>
                     <p className="text-md font-light mt-2 text-blueGray-500">
-                      "Our drives have reached a much wider audience thanks to the platform's extensive network."
+                      &quot;Our drives have reached a much wider audience thanks to the platform&apos;s extensive network.&quot;
                     </p>
                   </blockquote>
                 </div>
