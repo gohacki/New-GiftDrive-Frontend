@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect, useCallback } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Auth from 'layouts/Auth.js';
@@ -16,8 +16,15 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  // Use useCallback to prevent re-creation of mergeCarts on each render
-  const mergeCarts = useCallback(async () => {
+  const handleGoogleLogin = () => {
+    window.location.href = `${apiUrl}/api/auth/google`;
+  };
+
+  const handleFacebookLogin = () => {
+    window.location.href = `${apiUrl}/api/auth/facebook`;
+  };
+
+  const mergeCarts = async () => {
     const localCartItems = getLocalCartItems();
     if (localCartItems.length > 0) {
       try {
@@ -27,32 +34,27 @@ export default function Login() {
             account_id: user.account_id,
             items: localCartItems,
           },
-          { withCredentials: true }
+          {
+            withCredentials: true,
+          }
         );
         setLocalCartItems([]);
       } catch (err) {
         console.error('Error merging carts:', err);
       }
     }
-  }, [user]);
+  };
 
   useEffect(() => {
     if (user && user.account_id) {
       mergeCarts();
       router.push('../visible/account');
     }
-  }, [user, router, mergeCarts]);
-
-  const handleGoogleLogin = () => {
-    window.location.href = `${apiUrl}/api/auth/google`;
-  };
-
-  const handleFacebookLogin = () => {
-    window.location.href = `${apiUrl}/api/auth/facebook`;
-  };
+  }, [user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
       await login({ email, password });
     } catch (err) {

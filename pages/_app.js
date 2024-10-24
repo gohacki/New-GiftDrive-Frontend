@@ -5,7 +5,7 @@ import Head from "next/head";
 import Router from "next/router";
 import { AuthProvider } from '../contexts/AuthContext';
 import { CartProvider } from '../contexts/CartContext';
-import { StatisticsProvider } from "../contexts/StatisticsContext";
+import { StatisticsProvider } from '../contexts/StatisticsContext';
 
 import PageChange from "components/PageChange/PageChange.js";
 
@@ -14,11 +14,13 @@ import "styles/tailwind.css";
 
 const MyApp = ({ Component, pageProps }) => {
   const [loading, setLoading] = useState(false);
+  const [currentPath, setCurrentPath] = useState('');
 
   useEffect(() => {
     const handleRouteChangeStart = (url) => {
       console.log(`Loading: ${url}`);
       setLoading(true);
+      setCurrentPath(url);
       document.body.classList.add('body-page-transition');
     };
 
@@ -44,6 +46,9 @@ const MyApp = ({ Component, pageProps }) => {
     };
   }, []);
 
+  // Determine the layout to use
+  const Layout = Component.layout || (({ children }) => <>{children}</>);
+
   return (
     <React.Fragment>
       <Head>
@@ -56,8 +61,10 @@ const MyApp = ({ Component, pageProps }) => {
       <AuthProvider>
         <CartProvider>
           <StatisticsProvider>
-            {loading && <PageChange path={Router.asPath} />}
-            <Component {...pageProps} />
+            {loading && <PageChange path={currentPath} />}
+            <Layout>
+              <Component {...pageProps} />
+            </Layout>
           </StatisticsProvider>
         </CartProvider>
       </AuthProvider>
