@@ -1,19 +1,20 @@
 // src/pages/superadmin/organizations.js
-
-import { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
-import { AuthContext } from '../../contexts/AuthContext';
-import { useRouter } from 'next/router';
 import React from 'react';
 import { FaTrash, FaSync } from 'react-icons/fa'; // Optional: For icons
 
 import Navbar from 'components/Navbars/AuthNavbar';
 
+import { useState, useEffect, useContext, useCallback } from 'react';
+import axios from 'axios';
+import { AuthContext } from '../../contexts/AuthContext';
+import { useRouter } from 'next/router';
 
 const OrganizationsAdminPage = () => {
   const { user } = useContext(AuthContext);
   const router = useRouter();
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
+  // State variables
   const [organizations, setOrganizations] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
@@ -31,19 +32,8 @@ const OrganizationsAdminPage = () => {
   const [loading, setLoading] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
-  useEffect(() => {
-    if (!user) {
-      router.push('/login');
-    } else if (!user.is_super_admin) {
-      router.push('/');
-    } else {
-      fetchOrganizations();
-    }
-  }, [user]);
-
-  const fetchOrganizations = async () => {
+  // Fetch organizations with useCallback to prevent re-creation
+  const fetchOrganizations = useCallback(async () => {
     setLoading(true);
     try {
       const response = await axios.get(`${apiUrl}/api/organizations`, { withCredentials: true });
@@ -55,29 +45,39 @@ const OrganizationsAdminPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiUrl]);
 
+  // Handle authentication and fetch organizations on user change
+  useEffect(() => {
+    if (!user) {
+      router.push('/login');
+    } else if (!user.is_super_admin) {
+      router.push('/');
+    } else {
+      fetchOrganizations();
+    }
+  }, [user, router, fetchOrganizations]);
+
+  // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleFileChange = (e) => {
-    setFormData({ ...formData, photo: e.target.files[0] });
+    setFormData((prev) => ({ ...prev, photo: e.target.files[0] }));
   };
 
+  // Handle adding a new organization
   const handleAddOrganization = async (e) => {
     e.preventDefault();
-
     if (!formData.name) {
       setErrorMessage('Organization name is required.');
       return;
     }
 
     const submitData = new FormData();
-    Object.keys(formData).forEach((key) => {
-      submitData.append(key, formData[key]);
-    });
+    Object.keys(formData).forEach((key) => submitData.append(key, formData[key]));
 
     setLoading(true);
     try {
@@ -105,6 +105,7 @@ const OrganizationsAdminPage = () => {
     }
   };
 
+  // Handle deleting an organization
   const handleDeleteOrganization = async (org_id) => {
     if (confirm('Are you sure you want to delete this organization?')) {
       setLoading(true);
@@ -120,6 +121,7 @@ const OrganizationsAdminPage = () => {
     }
   };
 
+  // Handle product tracking
   const handleTrackProduct = async () => {
     if (!productUrl.trim()) {
       setSyncMessage('Please enter a valid product URL.');

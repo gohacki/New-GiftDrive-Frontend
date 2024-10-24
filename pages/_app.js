@@ -1,6 +1,6 @@
-import React from "react";
-import { createRoot } from 'react-dom/client';
-import App from "next/app";
+// pages/_app.js
+
+import React, { useEffect, useState } from "react";
 import Head from "next/head";
 import Router from "next/router";
 import { AuthProvider } from '../contexts/AuthContext';
@@ -12,79 +12,57 @@ import PageChange from "components/PageChange/PageChange.js";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "styles/tailwind.css";
 
-let root = null; // Store the root instance
+const MyApp = ({ Component, pageProps }) => {
+  const [loading, setLoading] = useState(false);
 
-Router.events.on('routeChangeStart', (url) => {
-  console.log(`Loading: ${url}`);
-  document.body.classList.add('body-page-transition');
+  useEffect(() => {
+    const handleRouteChangeStart = (url) => {
+      console.log(`Loading: ${url}`);
+      setLoading(true);
+      document.body.classList.add('body-page-transition');
+    };
 
-  const container = document.getElementById('page-transition');
-  
-  if (!root) {
-    root = createRoot(container); // Initialize the root if it doesn't exist
-  }
+    const handleRouteChangeComplete = () => {
+      setLoading(false);
+      document.body.classList.remove('body-page-transition');
+    };
 
-  root.render(<PageChange path={url} />);
-});
+    const handleRouteChangeError = () => {
+      setLoading(false);
+      document.body.classList.remove('body-page-transition');
+    };
 
-Router.events.on('routeChangeComplete', () => {
-  safelyUnmountRoot(); // Safely unmount root on route change completion
-  document.body.classList.remove('body-page-transition');
-});
+    Router.events.on('routeChangeStart', handleRouteChangeStart);
+    Router.events.on('routeChangeComplete', handleRouteChangeComplete);
+    Router.events.on('routeChangeError', handleRouteChangeError);
 
-Router.events.on('routeChangeError', () => {
-  safelyUnmountRoot(); // Safely unmount root on route change error
-  document.body.classList.remove('body-page-transition');
-});
+    // Cleanup on unmount
+    return () => {
+      Router.events.off('routeChangeStart', handleRouteChangeStart);
+      Router.events.off('routeChangeComplete', handleRouteChangeComplete);
+      Router.events.off('routeChangeError', handleRouteChangeError);
+    };
+  }, []);
 
-// Helper function to safely unmount the root
-function safelyUnmountRoot() {
-  const container = document.getElementById('page-transition');
-  if (root && container) {
-    root.unmount(); // Unmount the root if it exists
-    root = null; // Reset root to avoid further updates to unmounted root
-  }
-}
+  return (
+    <React.Fragment>
+      <Head>
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, shrink-to-fit=no"
+        />
+        <title>GiftDrive.org</title>
+      </Head>
+      <AuthProvider>
+        <CartProvider>
+          <StatisticsProvider>
+            {loading && <PageChange path={Router.asPath} />}
+            <Component {...pageProps} />
+          </StatisticsProvider>
+        </CartProvider>
+      </AuthProvider>
+    </React.Fragment>
+  );
+};
 
-export default class MyApp extends App {
-  componentDidMount() {
-    const comment = document.createComment();
-    document.insertBefore(comment, document.documentElement);
-  }
-
-  static async getInitialProps({ Component, ctx }) {
-    let pageProps = {};
-
-    if (Component.getInitialProps) {
-      pageProps = await Component.getInitialProps(ctx);
-    }
-
-    return { pageProps };
-  }
-
-  render() {
-    const { Component, pageProps } = this.props;
-    const Layout = Component.layout || (({ children }) => <>{children}</>);
-
-    return (
-      <React.Fragment>
-        <Head>
-          <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1, shrink-to-fit=no"
-          />
-          <title>GiftDrive.org</title>
-        </Head>
-        <AuthProvider>
-          <CartProvider>
-            <StatisticsProvider>
-            <Layout>
-              <Component {...pageProps} />
-            </Layout>
-            </StatisticsProvider>
-          </CartProvider>
-        </AuthProvider>
-      </React.Fragment>
-    );
-  }
-}
+export default MyApp;
