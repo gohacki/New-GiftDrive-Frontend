@@ -5,6 +5,7 @@ import Head from "next/head";
 import Router from "next/router";
 import { AuthProvider } from '../contexts/AuthContext';
 import { CartProvider } from '../contexts/CartContext';
+import { StatisticsProvider } from "../contexts/StatisticsContext";
 
 import PageChange from "components/PageChange/PageChange.js";
 
@@ -91,13 +92,14 @@ export default class MyApp extends App {
             content="width=device-width, initial-scale=1, shrink-to-fit=no"
           />
           <title>GiftDrive.org</title>
-          <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_KEY_HERE"></script>
         </Head>
         <AuthProvider>
           <CartProvider>
+            <StatisticsProvider>
             <Layout>
               <Component {...pageProps} />
             </Layout>
+            </StatisticsProvider>
           </CartProvider>
         </AuthProvider>
       </React.Fragment>

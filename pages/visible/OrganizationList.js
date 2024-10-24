@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Navbar from 'components/Navbars/AuthNavbar.js';
 import Footer from 'components/Footers/Footer.js';
-import OrganizationCard from 'components/cards/OrganizationCard';
+import OrganizationCard from 'components/Cards/OrganizationCard';
 import { useRouter } from 'next/router'; // For navigation
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -41,7 +41,7 @@ export default function HomePage() {
               className="w-full h-full absolute opacity-50 bg-black"
             ></span>
             <form onSubmit={handleSearch} className="md:flex hidden flex-row flex-wrap lg:ml-auto mr-3">
-              <span className="z-10 h-full leading-snug font-normal text-center absolute text-blueGray-300 bg-transparent rounded text-base items-center justify-center w-8 pl-3 py-3">
+              <span className="z-10 h-full leading-snug font-normal text-center text-blueGray-300 bg-transparent rounded text-base items-center justify-center w-8 pl-3 py-3">
                 <i className="fas fa-search"></i>
               </span>
               <input
