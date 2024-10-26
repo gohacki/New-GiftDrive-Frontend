@@ -144,7 +144,7 @@ const OrganizationsAdminPage = () => {
   return (
     <>
     <Navbar transparent/>
-    <div className="py-24 px-6 bg-black p-6">
+    <div className="py-24 px-6 bg-gray-400 p-6">
       {/* Header */}
       <header className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Super Admin Dashboard</h1>

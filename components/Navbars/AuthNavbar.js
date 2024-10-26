@@ -58,7 +58,7 @@ const Navbar = () => {
           <ul className="flex flex-col lg:flex-row list-none lg:ml-auto">
             {/* Browse all Organizations */}
             <li className="flex items-center">
-              <Link href="/visible/OrganizationList" className="text-sm font-bold uppercase px-3 py-4 lg:py-2 flex items-center text-white hover:text-blueGray-200">
+              <Link href="/visible/orglist" className="text-sm font-bold uppercase px-3 py-4 lg:py-2 flex items-center text-white hover:text-blueGray-200">
                 Browse all Organizations
               </Link>
             </li>

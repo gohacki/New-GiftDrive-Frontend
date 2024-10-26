@@ -4,16 +4,39 @@ const colors = require("tailwindcss/colors");
 module.exports = {
   purge: {
     enabled: true,
-    content: ["./**/*.html", "./*.html", "./**/*.js", "./*.js"],
+    content: [
+      // Components: All JS/JSX/TS/TSX files in the components directory and its subdirectories
+      "./components/**/*.{js,jsx,ts,tsx}",
+  
+      // Contexts: All JS/JSX/TS/TSX files in the contexts directory and its subdirectories
+      "./contexts/**/*.{js,jsx,ts,tsx}",
+  
+      // Layouts: All JS/JSX/TS/TSX files in the layouts directory and its subdirectories
+      "./layouts/**/*.{js,jsx,ts,tsx}",
+  
+      // Pages: All JS/JSX/TS/TSX files in the pages directory and its subdirectories
+      "./pages/**/*.{js,jsx,ts,tsx}",
+  
+      // Public: Any HTML files in the public directory (if you have any)
+      "./public/**/*.html",
+  
+      // Styles: All CSS and SCSS files in the styles directory
+      "./styles/**/*.{css,scss}",
+  
+      // Utils: All JS/JSX/TS/TSX files in the utils directory and its subdirectories
+      "./utils/**/*.{js,jsx,ts,tsx}",
+  
+      // Add any other directories or file types as needed
+    ],
     options: {
       safelist: [],
     },
   },
   theme: {
-    colors: {
-      ...colors,
-    },
     extend: {
+      colors: {
+        ...colors,
+      },
       minHeight: {
         "screen-75": "75vh",
       },

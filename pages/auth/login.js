@@ -48,7 +48,7 @@ export default function Login() {
   useEffect(() => {
     if (user && user.account_id) {
       mergeCarts();
-      router.push('../visible/account');
+      router.push('../visible/profile');
     }
   }, [user]);
 

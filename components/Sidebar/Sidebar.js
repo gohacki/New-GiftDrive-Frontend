@@ -35,7 +35,7 @@ const Sidebar = () => {
     },
     {
       name: "Help Page",
-      href: "/",
+      href: "/admin/help",
       icon: <FaQuestionCircle className="mr-2 text-sm" />,
     },
   ];

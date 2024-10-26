@@ -1,6 +1,5 @@
-// pages/_app.js
-
 import React, { useEffect, useState } from "react";
+import PropTypes from "prop-types"; // Import PropTypes
 import Head from "next/head";
 import Router from "next/router";
 import { AuthProvider } from '../contexts/AuthContext';
@@ -10,7 +9,7 @@ import { StatisticsProvider } from '../contexts/StatisticsContext';
 import PageChange from "components/PageChange/PageChange.js";
 
 import "@fortawesome/fontawesome-free/css/all.min.css";
-import "styles/tailwind.css";
+import "styles/index.css";
 
 const MyApp = ({ Component, pageProps }) => {
   const [loading, setLoading] = useState(false);
@@ -38,7 +37,6 @@ const MyApp = ({ Component, pageProps }) => {
     Router.events.on('routeChangeComplete', handleRouteChangeComplete);
     Router.events.on('routeChangeError', handleRouteChangeError);
 
-    // Cleanup on unmount
     return () => {
       Router.events.off('routeChangeStart', handleRouteChangeStart);
       Router.events.off('routeChangeComplete', handleRouteChangeComplete);
@@ -46,7 +44,6 @@ const MyApp = ({ Component, pageProps }) => {
     };
   }, []);
 
-  // Determine the layout to use
   const Layout = Component.layout || (({ children }) => <>{children}</>);
 
   return (
@@ -61,7 +58,7 @@ const MyApp = ({ Component, pageProps }) => {
       <AuthProvider>
         <CartProvider>
           <StatisticsProvider>
-            {loading && <PageChange path={currentPath} />}
+            {/* {loading && <PageChange path={currentPath} />} */}
             <Layout>
               <Component {...pageProps} />
             </Layout>
@@ -70,6 +67,12 @@ const MyApp = ({ Component, pageProps }) => {
       </AuthProvider>
     </React.Fragment>
   );
+};
+
+// Prop validation for MyApp
+MyApp.propTypes = {
+  Component: PropTypes.elementType.isRequired, // Component must be a React component
+  pageProps: PropTypes.object, // pageProps is an optional object
 };
 
 export default MyApp;

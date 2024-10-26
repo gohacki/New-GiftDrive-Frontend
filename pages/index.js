@@ -62,7 +62,7 @@ export default function Landing() {
                     Making it easy to give joy to those in need. Connect with children from partnered organizations, browse curated gift ideas, and make a lasting impact—all from the comfort of your home.
                   </p>
                   <div className="mt-8">
-                    <Link href="/visible/OrganizationList" className="bg-white text-blueGray-700 active:bg-blueGray-50 text-sm font-bold uppercase px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none mr-1 mb-1 transition-all duration-150">
+                    <Link href="/visible/orglist" className="bg-white text-blueGray-700 active:bg-blueGray-50 text-sm font-bold uppercase px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none mr-1 mb-1 transition-all duration-150">
                         Explore Organizations
                     </Link>
                     <Link href="/visible/registerorg" className="bg-blueGray-700 text-white active:bg-blueGray-600 text-sm font-bold uppercase px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none ml-1 mb-1 transition-all duration-150">
