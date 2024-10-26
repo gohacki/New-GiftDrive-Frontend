@@ -4,7 +4,7 @@ import DriveCard from '../../components/Cards/DriveCard';
 import AddDriveModal from '../../components/Modals/AddDriveModal';
 import { AuthContext } from '../../contexts/AuthContext';
 
-import Admin from "layouts/Admin.js";
+import Admin from 'layouts/Admin.js';
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -82,7 +82,7 @@ const CurrentDrives = () => {
       )}
 
       {drives.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           {drives.map((drive) => (
             <DriveCard
               key={drive.drive_id}
