@@ -3,6 +3,8 @@ import axios from 'axios';
 import PropTypes from 'prop-types';
 import { AuthContext } from '../../contexts/AuthContext';
 
+import Admin from "layouts/Admin.js";
+
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const EditOrganizationInfo = () => {
@@ -89,7 +91,7 @@ const EditOrganizationInfo = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="min-h-screen bg-gray-100 p-6 pt-32">
       <h2 className="text-2xl font-semibold mb-4">Edit Organization Info</h2>
 
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md max-w-lg mx-auto">
@@ -175,5 +177,7 @@ EditOrganizationInfo.propTypes = {
     org_id: PropTypes.number.isRequired,
   }),
 };
+
+EditOrganizationInfo.layout = Admin;
 
 export default EditOrganizationInfo;
