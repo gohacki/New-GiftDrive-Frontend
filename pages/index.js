@@ -149,7 +149,7 @@ export default function Landing() {
                   <div className="px-4 py-5 flex-auto">
                     <img
                       alt="Toy Drives"
-                      src="path/to/toy-drive-image.jpg"
+                      src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/landingpage2.png"
                       className="w-full rounded-t-lg"
                     />
                     <h6 className="text-xl font-semibold mt-5">Toy Drives</h6>
@@ -165,7 +165,7 @@ export default function Landing() {
                   <div className="px-4 py-5 flex-auto">
                     <img
                       alt="Clothing Drives"
-                      src="path/to/clothing-drive-image.jpg"
+                      src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/homeimage4.png"
                       className="w-full rounded-t-lg"
                     />
                     <h6 className="text-xl font-semibold mt-5">
@@ -183,7 +183,7 @@ export default function Landing() {
                   <div className="px-4 py-5 flex-auto">
                     <img
                       alt="Educational Supplies Drives"
-                      src="path/to/education-drive-image.jpg"
+                      src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/landingpage1.png"
                       className="w-full rounded-t-lg"
                     />
                     <h6 className="text-xl font-semibold mt-5">
@@ -215,7 +215,7 @@ export default function Landing() {
                 <div className="relative flex flex-col min-w-0 break-words bg-white w-full mb-6 shadow-lg rounded-lg">
                   <img
                     alt="..."
-                    src="path/to/testimonial-image1.jpg"
+                    src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/landingpage3.png"
                     className="w-full align-middle rounded-t-lg"
                   />
                   <blockquote className="relative p-8 mb-4">
@@ -239,7 +239,7 @@ export default function Landing() {
                 <div className="relative flex flex-col min-w-0 break-words bg-white w-full mb-6 shadow-lg rounded-lg">
                   <img
                     alt="..."
-                    src="path/to/testimonial-image2.jpg"
+                    src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/homeimage3.png"
                     className="w-full align-middle rounded-t-lg"
                   />
                   <blockquote className="relative p-8 mb-4">
@@ -263,7 +263,7 @@ export default function Landing() {
                 <div className="relative flex flex-col min-w-0 break-words bg-white w-full mb-6 shadow-lg rounded-lg">
                   <img
                     alt="..."
-                    src="path/to/testimonial-image3.jpg"
+                    src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/homeimage2.png"
                     className="w-full align-middle rounded-t-lg"
                   />
                   <blockquote className="relative p-8 mb-4">
