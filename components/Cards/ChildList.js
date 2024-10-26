@@ -59,7 +59,7 @@ const ChildList = ({ driveId }) => {
       )}
 
       {children.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-6">
           {children.map((child) => (
             <ChildCard key={child.child_id} child={child} onDelete={handleDeleteChild} />
           ))}

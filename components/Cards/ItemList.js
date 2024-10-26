@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
+import ItemSelectionModal from '../Modals/ItemSelectionModal'; // New side modal component
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const ItemList = ({ childId }) => {
   const [items, setItems] = useState([]);
-  const [defaultItems, setDefaultItems] = useState([]);
-  const [selectedItemId, setSelectedItemId] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     fetchItems();
-    fetchDefaultItems();
   }, [childId]);
 
   const fetchItems = async () => {
@@ -23,33 +22,6 @@ const ItemList = ({ childId }) => {
       setItems(response.data);
     } catch (error) {
       console.error('Error fetching items:', error);
-    }
-  };
-
-  const fetchDefaultItems = async () => {
-    try {
-      const response = await axios.get(`${apiUrl}/api/items`, {
-        withCredentials: true,
-      });
-      setDefaultItems(response.data);
-    } catch (error) {
-      console.error('Error fetching default items:', error);
-    }
-  };
-
-  const handleAddItem = async () => {
-    if (!selectedItemId) return;
-
-    try {
-      await axios.post(
-        `${apiUrl}/api/children/${childId}/items`,
-        { item_id: selectedItemId },
-        { withCredentials: true }
-      );
-      fetchItems(); // Refresh items list
-      setSelectedItemId(null);
-    } catch (error) {
-      console.error('Error adding item:', error);
     }
   };
 
@@ -73,7 +45,7 @@ const ItemList = ({ childId }) => {
         <ul className="list-disc list-inside space-y-2">
           {items.map((item) => (
             <li key={item.child_item_id} className="flex justify-between items-center">
-              <span>
+              <span className="truncate max-w-[75%]">
                 {item.item_name} - ${Number(item.price).toFixed(2)}
               </span>
               <button
@@ -89,28 +61,22 @@ const ItemList = ({ childId }) => {
         <p className="text-gray-600">No items added for this child yet.</p>
       )}
 
-      <div className="mt-4 flex space-x-2">
-        <select
-          value={selectedItemId || ''}
-          onChange={(e) => setSelectedItemId(e.target.value)}
-          className="border border-gray-300 rounded px-4 py-2"
-        >
-          <option value="" disabled>
-            -- Select an Item --
-          </option>
-          {defaultItems.map((item) => (
-            <option key={item.item_id} value={item.item_id}>
-              {item.name} - ${Number(item.price).toFixed(2)}
-            </option>
-          ))}
-        </select>
+      <div className="mt-4">
         <button
-          onClick={handleAddItem}
+          onClick={() => setShowModal(true)}
           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
           Add Item
         </button>
       </div>
+
+      {showModal && (
+        <ItemSelectionModal
+          onClose={() => setShowModal(false)}
+          childId={childId}
+          onItemAdded={fetchItems}
+        />
+      )}
     </div>
   );
 };
