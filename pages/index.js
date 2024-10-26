@@ -105,7 +105,7 @@ export default function Landing() {
                     <h6 className="text-xl font-semibold">Curated Gift Ideas</h6>
                     <p className="mt-2 mb-4 text-blueGray-500">
                       Discover a selection of curated gift ideas tailored to each
-                      child's needs and wishes.
+                      child&apos;s needs and wishes.
                     </p>
                   </div>
                 </div>
@@ -123,7 +123,7 @@ export default function Landing() {
                     </h6>
                     <p className="mt-2 mb-4 text-blueGray-500">
                       Your contributions bring joy and make a meaningful
-                      difference in a child's life.
+                      difference in a child&apos;s life.
                     </p>
                   </div>
                 </div>
@@ -220,10 +220,10 @@ export default function Landing() {
                   />
                   <blockquote className="relative p-8 mb-4">
                     <h4 className="text-xl font-bold text-blueGray-700">
-                      "An amazing experience"
+                      &quot;An amazing experience&quot;
                     </h4>
                     <p className="text-md font-light mt-2 text-blueGray-500">
-                      I was able to make a real difference in a child's life with
+                      I was able to make a real difference in a child&apos;s life with
                       just a few clicks.
                     </p>
                     <div className="mt-4">
@@ -244,7 +244,7 @@ export default function Landing() {
                   />
                   <blockquote className="relative p-8 mb-4">
                     <h4 className="text-xl font-bold text-blueGray-700">
-                      "Easy and impactful"
+                      &quot;Easy and impactful&quot;
                     </h4>
                     <p className="text-md font-light mt-2 text-blueGray-500">
                       The process was seamless, and I loved knowing exactly where
@@ -268,7 +268,7 @@ export default function Landing() {
                   />
                   <blockquote className="relative p-8 mb-4">
                     <h4 className="text-xl font-bold text-blueGray-700">
-                      "Highly recommend"
+                      &quot;Highly recommend&quot;
                     </h4>
                     <p className="text-md font-light mt-2 text-blueGray-500">
                       A wonderful way to give back during the holidays and beyond.
