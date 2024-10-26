@@ -53,7 +53,7 @@ const PastDrives = () => {
       <h2 className="text-2xl font-semibold mb-4">Past Drives</h2>
 
       {drives.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           {drives.map((drive) => (
             <DriveCard
               key={drive.drive_id}
