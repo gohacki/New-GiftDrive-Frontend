@@ -3,7 +3,7 @@
 import axios from 'axios';
 import React from 'react';
 import Link from 'next/link';
-import PropTypes from 'prop-types'; // Import PropTypes
+import PropTypes from 'prop-types';
 import { useRouter } from 'next/router';
 import Navbar from 'components/Navbars/AuthNavbar.js';
 import Footer from 'components/Footers/Footer.js';
@@ -23,64 +23,72 @@ const DrivePage = ({ drive }) => {
 
   return (
     <>
-    <Navbar />
-    <div className="min-h-screen bg-gray-500 py-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Back Button */}
-        <button
-          onClick={() => router.back()}
-          className="mb-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-        >
-          Back
-        </button>
+      <Navbar />
+      <div className="min-h-screen bg-gray-500 py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Back Button */}
+          <button
+            onClick={() => router.back()}
+            className="mb-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+          >
+            Back
+          </button>
 
-        {/* Drive Header */}
-        <div className="bg-white shadow-md rounded-lg overflow-hidden mb-10">
-          {drive.photo && (
-            <img
-              src={drive.photo || '/img/default-drive.png'}
-              alt={drive.name}
-              className="w-full h-64 object-cover"
-            />
-          )}
-          <div className="p-6">
-            <h1 className="text-3xl font-bold text-gray-800 mb-4">{drive.name}</h1>
-            <p className="text-gray-600">{drive.description}</p>
+          {/* Drive Header */}
+          <div className="bg-white shadow-md rounded-lg overflow-hidden mb-10">
+            {drive.photo && (
+              <img
+                src={drive.photo || '/img/default-drive.png'}
+                alt={drive.name}
+                className="w-full h-64 object-cover"
+              />
+            )}
+            <div className="p-6">
+              <h1 className="text-3xl font-bold text-gray-800 mb-4">
+                {drive.name}
+              </h1>
+              <p className="text-gray-600">{drive.description}</p>
+            </div>
           </div>
-        </div>
 
-        {/* Children Section */}
-        <div>
-          <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-            Children in {drive.name}
-          </h2>
-          {drive.children && drive.children.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {drive.children.map((child) => (
-                <Link key={child.child_id} href={`/visible/child/${child.child_id}`} className="block bg-white shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+          {/* Children Section */}
+          <div>
+            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+              Children in {drive.name}
+            </h2>
+            {drive.children && drive.children.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {drive.children.map((child) => (
+                  <Link
+                    key={child.child_id}
+                    href={`/visible/child/${child.child_id}`}
+                    className="block bg-white shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+                  >
                     {child.child_photo && (
                       <img
                         src={child.child_photo || '/img/default-child.png'}
                         alt={child.child_name}
-                        className="w-full h-48 object-cover"
+                        className="w-32 h-32 object-cover rounded-full mx-auto mt-4" // Circular image styling
                       />
                     )}
-                    <div className="p-4">
+                    <div className="p-4 text-center">
                       <h3 className="text-lg font-semibold text-gray-800 mb-2">
                         {child.child_name}
                       </h3>
                       {/* Add more child details here if necessary */}
                     </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500">No children available in this drive.</p>
-          )}
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">
+                No children available in this drive.
+              </p>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-    <Footer />
+      <Footer />
     </>
   );
 };
