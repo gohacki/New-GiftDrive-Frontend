@@ -1,10 +1,8 @@
-// components/Navbar.js
-
 import React, { useContext, useState } from 'react';
 import Link from 'next/link';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useRouter } from 'next/router';
-import Image from 'next/image'; // Import Next.js Image component
+import Image from 'next/image';
 import { FaShoppingCart } from 'react-icons/fa';
 
 const Navbar = () => {
@@ -24,9 +22,7 @@ const Navbar = () => {
       <div className="container px-4 mx-auto flex flex-wrap items-center justify-between">
         {/* Brand and Toggle Button */}
         <div className="w-full relative flex justify-between lg:w-auto lg:static lg:block lg:justify-start">
-          {/* Brand Logo */}
           <Link href="/" className="text-white text-sm font-bold leading-relaxed inline-block mr-4 py-2 whitespace-nowrap uppercase flex items-center">
-            {/* Next.js Image component for optimization */}
             <Image
               src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/GiftDriveLogo.png"
               alt="GiftDrive Logo"
@@ -36,7 +32,6 @@ const Navbar = () => {
             />
             GiftDrive
           </Link>
-          {/* Hamburger Menu Button */}
           <button
             className="cursor-pointer text-xl leading-none px-3 py-1 border border-solid border-transparent rounded bg-transparent block lg:hidden outline-none focus:outline-none"
             type="button"
@@ -47,6 +42,7 @@ const Navbar = () => {
             <i className="text-white fas fa-bars"></i>
           </button>
         </div>
+
         {/* Navbar Links */}
         <div
           className={
@@ -56,24 +52,20 @@ const Navbar = () => {
           id="navbar-menu"
         >
           <ul className="flex flex-col lg:flex-row list-none lg:ml-auto">
-            {/* Browse all Organizations */}
             <li className="flex items-center">
               <Link href="/visible/orglist" className="text-sm font-bold uppercase px-3 py-4 lg:py-2 flex items-center text-white hover:text-blueGray-200">
                 Browse all Organizations
               </Link>
             </li>
 
-            {/* Conditional Links for Authenticated Users */}
-            {user ? (
+            {user && (
               <>
-                {/* Account */}
                 <li className="flex items-center">
                   <Link href="/visible/profile" className="text-sm font-bold uppercase px-3 py-4 lg:py-2 flex items-center text-white hover:text-blueGray-200">
                     Account
                   </Link>
                 </li>
 
-                {/* Organization Dashboard (if org admin) */}
                 {user.is_org_admin && (
                   <li className="flex items-center">
                     <Link href="/admin/dashboard" className="text-sm font-bold uppercase px-3 py-4 lg:py-2 flex items-center text-white hover:text-blueGray-200">
@@ -82,16 +74,15 @@ const Navbar = () => {
                   </li>
                 )}
 
-                {/* Super Admin (if super admin) */}
-                {user.is_super_admin && (
+                {/* Super Admin Link */}
+                {user.is_super_admin ? (
                   <li className="flex items-center">
                     <Link href="/admin/superAdmin" className="text-sm font-bold uppercase px-3 py-4 lg:py-2 flex items-center text-white hover:text-blueGray-200">
                       Super Admin
                     </Link>
                   </li>
-                )}
+                ) : null}
 
-                {/* Logout */}
                 <li className="flex items-center">
                   <button
                     onClick={handleLogout}
@@ -101,15 +92,15 @@ const Navbar = () => {
                   </button>
                 </li>
               </>
-            ) : (
+            )}
+
+            {!user && (
               <>
-                {/* Login */}
                 <li className="flex items-center">
                   <Link href="/auth/login" className="text-sm font-bold uppercase px-3 py-4 lg:py-2 flex items-center text-white hover:text-blueGray-200">
                     Login
                   </Link>
                 </li>
-                {/* Register */}
                 <li className="flex items-center">
                   <Link href="/auth/register" className="text-sm font-bold uppercase px-3 py-4 lg:py-2 flex items-center text-white hover:text-blueGray-200">
                     Register
@@ -118,8 +109,7 @@ const Navbar = () => {
               </>
             )}
 
-            {/* Enroll Your Org Now Button */}
-            {user && user.is_org_admin && (
+            {user?.is_org_admin && (
               <li className="flex items-center">
                 <Link href="/visible/registerorg" className="text-sm font-bold uppercase px-3 py-4 lg:py-2 flex items-center">
                   <button
@@ -133,18 +123,10 @@ const Navbar = () => {
             )}
           </ul>
         </div>
-        {/* Cart Icon */}
+
         <div className="navbar-cart flex items-center">
           <Link href="/cart" className="flex items-center">
-            <FaShoppingCart
-              src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/cart1.png"
-              alt="Cart"
-              width={24}
-              height={24}
-              className="h-6 w-6 text-white"
-            />
-            {/* Optional: Add a badge or item count next to the cart icon */}
-            {/* <span className="ml-1 text-white">3</span> */}
+            <FaShoppingCart className="h-6 w-6 text-white" />
           </Link>
         </div>
       </div>
