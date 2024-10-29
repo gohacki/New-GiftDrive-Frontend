@@ -1,4 +1,6 @@
-import React, { useContext, useState } from 'react';
+// src/components/Navbars/AdminNavbar.js
+
+import React, { useContext, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useRouter } from 'next/router';
@@ -8,7 +10,38 @@ import { FaShoppingCart } from 'react-icons/fa';
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
   const [navbarOpen, setNavbarOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const router = useRouter();
+
+  // Handle scroll event to toggle navbar background
+  useEffect(() => {
+    const handleScroll = () => {
+      const offset = window.scrollY;
+      if (offset > 50) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+
+    // Add scroll event listener
+    window.addEventListener('scroll', handleScroll);
+
+    // Clean up the event listener
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Close navbar when route changes
+  useEffect(() => {
+    const handleRouteChange = () => {
+      setNavbarOpen(false);
+    };
+
+    router.events.on('routeChangeStart', handleRouteChange);
+    return () => {
+      router.events.off('routeChangeStart', handleRouteChange);
+    };
+  }, [router.events]);
 
   const handleLogout = async (e) => {
     e.preventDefault();
@@ -17,76 +50,115 @@ const Navbar = () => {
     router.push('/'); // Redirect to homepage after logout
   };
 
+  // Determine active link
+  const isActive = (href) => router.pathname === href;
+
   return (
-    <nav className="top-0 fixed z-50 w-full flex flex-wrap items-center justify-between px-2 py-3 navbar-expand-lg">
-      <div className="container px-4 mx-auto flex flex-wrap items-center justify-between">
+    <nav
+      className={`fixed top-0 z-50 w-full transition-colors duration-300 ${
+        scrolled ? 'bg-blueGray-800 shadow-lg' : 'bg-transparent'
+      }`}
+    >
+      <div className="container mx-auto px-4 py-3 flex flex-wrap items-center justify-between">
         {/* Brand and Toggle Button */}
-        <div className="w-full relative flex justify-between lg:w-auto lg:static lg:block lg:justify-start">
-          <Link href="/" className="text-white text-sm font-bold leading-relaxed inline-block mr-4 py-2 whitespace-nowrap uppercase flex items-center">
-            <Image
-              src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/GiftDriveLogo.png"
-              alt="GiftDrive Logo"
-              width={24}
-              height={24}
-              className="inline-block h-6 w-6 mr-2"
-            />
-            GiftDrive
+        <div className="flex justify-between w-full lg:w-auto">
+          <Link href="/" passHref className="flex items-center text-white text-sm font-bold leading-relaxed mr-4 py-2 whitespace-nowrap uppercase">
+              <Image
+                src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/GiftDriveLogo.png"
+                alt="GiftDrive Logo"
+                width={24}
+                height={24}
+                className="inline-block h-6 w-6 mr-2"
+              />
+              GiftDrive
           </Link>
           <button
-            className="cursor-pointer text-xl leading-none px-3 py-1 border border-solid border-transparent rounded bg-transparent block lg:hidden outline-none focus:outline-none"
+            className="text-white cursor-pointer text-xl leading-none px-3 py-1 border border-solid border-transparent rounded bg-transparent block lg:hidden outline-none focus:outline-none"
             type="button"
             onClick={() => setNavbarOpen(!navbarOpen)}
+            aria-label="Toggle navigation menu"
             aria-expanded={navbarOpen}
             aria-controls="navbar-menu"
           >
-            <i className="text-white fas fa-bars"></i>
+            {/* Hamburger Icon */}
+            <svg
+              className="h-6 w-6"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              {navbarOpen ? (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              ) : (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              )}
+            </svg>
           </button>
         </div>
 
         {/* Navbar Links */}
         <div
-          className={
-            "lg:flex flex-grow items-center bg-blueGray-800 lg:bg-opacity-0 lg:shadow-none" +
-            (navbarOpen ? " block rounded shadow-lg" : " hidden")
-          }
+          className={`lg:flex flex-grow items-center transition-all duration-300 ease-in-out ${
+            navbarOpen ? 'block' : 'hidden'
+          }`}
           id="navbar-menu"
         >
           <ul className="flex flex-col lg:flex-row list-none lg:ml-auto">
             <li className="flex items-center">
-              <Link href="/visible/orglist" className="text-sm font-bold uppercase px-3 py-4 lg:py-2 flex items-center text-white hover:text-blueGray-200">
-                Browse all Organizations
+              <Link href="/visible/orglist" passHref className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
+                    isActive('/visible/orglist') ? 'text-blueGray-300' : ''
+                  }`}>
+                  Browse all Organizations
               </Link>
             </li>
 
             {user && (
               <>
                 <li className="flex items-center">
-                  <Link href="/visible/profile" className="text-sm font-bold uppercase px-3 py-4 lg:py-2 flex items-center text-white hover:text-blueGray-200">
-                    Account
+                  <Link href="/visible/profile" passHref className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
+                        isActive('/visible/profile') ? 'text-blueGray-300' : ''
+                      }`}>
+                      Account
                   </Link>
                 </li>
 
                 {user.is_org_admin && (
                   <li className="flex items-center">
-                    <Link href="/admin/dashboard" className="text-sm font-bold uppercase px-3 py-4 lg:py-2 flex items-center text-white hover:text-blueGray-200">
-                      My Organization Dashboard
+                    <Link href="/admin/dashboard" passHref className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
+                          isActive('/admin/dashboard') ? 'text-blueGray-300' : ''
+                        }`}>
+                        My Organization Dashboard
                     </Link>
                   </li>
                 )}
 
                 {/* Super Admin Link */}
-                {user.is_super_admin ? (
+                {user.is_super_admin && (
                   <li className="flex items-center">
-                    <Link href="/admin/superAdmin" className="text-sm font-bold uppercase px-3 py-4 lg:py-2 flex items-center text-white hover:text-blueGray-200">
-                      Super Admin
+                    <Link href="/admin/superAdmin" passHref className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
+                          isActive('/admin/superAdmin') ? 'text-blueGray-300' : ''
+                        }`}>
+                        Super Admin
                     </Link>
                   </li>
-                ) : null}
+                )}
 
                 <li className="flex items-center">
                   <button
                     onClick={handleLogout}
-                    className="text-sm font-bold uppercase px-3 py-4 lg:py-2 flex items-center text-white hover:text-blueGray-200 cursor-pointer bg-transparent border-none"
+                    className="text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 cursor-pointer bg-transparent border-none"
                   >
                     Logout
                   </button>
@@ -97,13 +169,17 @@ const Navbar = () => {
             {!user && (
               <>
                 <li className="flex items-center">
-                  <Link href="/auth/login" className="text-sm font-bold uppercase px-3 py-4 lg:py-2 flex items-center text-white hover:text-blueGray-200">
-                    Login
+                  <Link href="/auth/login" passHref className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
+                        isActive('/auth/login') ? 'text-blueGray-300' : ''
+                      }`}>
+                      Login
                   </Link>
                 </li>
                 <li className="flex items-center">
-                  <Link href="/auth/register" className="text-sm font-bold uppercase px-3 py-4 lg:py-2 flex items-center text-white hover:text-blueGray-200">
-                    Register
+                  <Link href="/auth/register" passHref className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
+                        isActive('/auth/register') ? 'text-blueGray-300' : ''
+                      }`}>
+                      Register
                   </Link>
                 </li>
               </>
@@ -111,22 +187,32 @@ const Navbar = () => {
 
             {user?.is_org_admin && (
               <li className="flex items-center">
-                <Link href="/visible/registerorg" className="text-sm font-bold uppercase px-3 py-4 lg:py-2 flex items-center">
-                  <button
-                    className="bg-white text-blueGray-700 active:bg-blueGray-50 text-xs font-bold uppercase px-4 py-2 rounded shadow hover:shadow-md outline-none focus:outline-none ease-linear transition-all duration-150"
-                    type="button"
-                  >
-                    Enroll Your Org Now
-                  </button>
+                <Link href="/visible/registerorg" passHref className="text-sm font-bold uppercase px-3 py-2 flex items-center">
+                    <button
+                      className="bg-white text-blueGray-700 active:bg-blueGray-50 text-xs font-bold uppercase px-4 py-2 rounded shadow hover:shadow-md outline-none focus:outline-none ease-linear transition-all duration-150"
+                      type="button"
+                    >
+                      Enroll Your Org Now
+                    </button>
                 </Link>
               </li>
             )}
+
+            {/* Cart Icon for Small Screens */}
+            <li className="flex items-center lg:hidden">
+              <Link href="/cart" passHref className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
+                    isActive('/cart') ? 'text-blueGray-300' : ''
+                  }`}>
+                  <FaShoppingCart className="h-6 w-6 mr-1" /> Cart
+              </Link>
+            </li>
           </ul>
         </div>
 
-        <div className="navbar-cart flex items-center">
-          <Link href="/cart" className="flex items-center">
-            <FaShoppingCart className="h-6 w-6 text-white" />
+        {/* Cart Icon for Large Screens */}
+        <div className="navbar-cart flex items-center hidden lg:flex">
+          <Link href="/cart" passHref className="flex items-center">
+              <FaShoppingCart className="h-6 w-6 text-white" />
           </Link>
         </div>
       </div>
