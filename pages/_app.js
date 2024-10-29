@@ -53,6 +53,10 @@ const MyApp = ({ Component, pageProps }) => {
           name="viewport"
           content="width=device-width, initial-scale=1, shrink-to-fit=no"
         />
+        <link
+          rel="icon"
+          href="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/GiftDriveFavicon.png"
+        />
         <title>GiftDrive.org</title>
       </Head>
       <AuthProvider>
