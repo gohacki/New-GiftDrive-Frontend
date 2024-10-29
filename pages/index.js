@@ -133,11 +133,11 @@ export default function Landing() {
         </section>
 
         {/* 3. Drive Types Section */}
-        <section className="relative py-20 bg-white">
+        <section className="relative py-20 bg-blueGray-800">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
-              <h2 className="text-4xl font-semibold">Our Drive Types</h2>
-              <p className="text-lg leading-relaxed m-4 text-blueGray-500">
+              <h2 className="text-4xl font-semibold text-white">Our Drive Types</h2>
+              <p className="text-lg leading-relaxed m-4 text-blueGray-200">
                 Choose from various types of gift drives to support children in
                 need.
               </p>

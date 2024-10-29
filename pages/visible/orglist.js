@@ -5,10 +5,7 @@ import axios from 'axios';
 import Navbar from 'components/Navbars/AuthNavbar.js';
 import Footer from 'components/Footers/Footer.js';
 import OrganizationCard from 'components/Cards/OrganizationCard';
-import { useRouter } from 'next/router'; // For navigation
-import PropTypes from 'prop-types';
 import InfiniteScroll from 'react-infinite-scroll-component';
-import { FaArrowRight } from 'react-icons/fa'; // Example icon
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -22,7 +19,6 @@ export default function OrgList() {
   const [cities, setCities] = useState(['All']);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null); // To handle errors
 
