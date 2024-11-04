@@ -3,3 +3,9 @@
 @tailwind components;
 
 @tailwind utilities;
+
+.uniform-image-size {
+    width: 100%; /* Ensure the image spans the full width of the container */
+    height: 200px; /* Set a fixed height */
+    object-fit: cover; /* Crop or scale the image to fit the dimensions */
+  }

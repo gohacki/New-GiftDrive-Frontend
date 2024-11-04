@@ -56,13 +56,14 @@ const Navbar = () => {
   return (
     <nav
       className={`fixed top-0 z-50 w-full transition-colors duration-300 ${
-        scrolled ? 'bg-blueGray-800 shadow-lg' : 'bg-transparent'
+        scrolled || navbarOpen ? 'bg-blueGray-800 shadow-lg' : 'bg-transparent'
       }`}
     >
       <div className="container mx-auto px-4 py-3 flex flex-wrap items-center justify-between">
         {/* Brand and Toggle Button */}
         <div className="flex justify-between w-full lg:w-auto">
-          <Link href="/" passHref className="flex items-center text-white text-sm font-bold leading-relaxed mr-4 py-2 whitespace-nowrap uppercase">
+          <Link href="/">
+            <div className="flex items-center text-white text-sm font-bold leading-relaxed mr-4 py-2 whitespace-nowrap uppercase cursor-pointer">
               <Image
                 src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/GiftDriveLogo.png"
                 alt="GiftDrive Logo"
@@ -71,6 +72,7 @@ const Navbar = () => {
                 className="inline-block h-6 w-6 mr-2"
               />
               GiftDrive
+            </div>
           </Link>
           <button
             className="text-white cursor-pointer text-xl leading-none px-3 py-1 border border-solid border-transparent rounded bg-transparent block lg:hidden outline-none focus:outline-none"
@@ -111,35 +113,47 @@ const Navbar = () => {
         {/* Navbar Links */}
         <div
           className={`lg:flex flex-grow items-center transition-all duration-300 ease-in-out ${
-            navbarOpen ? 'block' : 'hidden'
+            navbarOpen ? 'block bg-blueGray-800 lg:bg-transparent' : 'hidden'
           }`}
           id="navbar-menu"
         >
           <ul className="flex flex-col lg:flex-row list-none lg:ml-auto">
             <li className="flex items-center">
-              <Link href="/visible/orglist" passHref className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
+              <Link href="/visible/orglist">
+                <span
+                  className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
                     isActive('/visible/orglist') ? 'text-blueGray-300' : ''
-                  }`}>
+                  }`}
+                >
                   Browse all Organizations
+                </span>
               </Link>
             </li>
 
             {user && (
               <>
                 <li className="flex items-center">
-                  <Link href="/visible/profile" passHref className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
+                  <Link href="/visible/profile">
+                    <span
+                      className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
                         isActive('/visible/profile') ? 'text-blueGray-300' : ''
-                      }`}>
+                      }`}
+                    >
                       Account
+                    </span>
                   </Link>
                 </li>
 
                 {user.is_org_admin && (
                   <li className="flex items-center">
-                    <Link href="/admin/dashboard" passHref className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
+                    <Link href="/admin/dashboard">
+                      <span
+                        className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
                           isActive('/admin/dashboard') ? 'text-blueGray-300' : ''
-                        }`}>
+                        }`}
+                      >
                         My Organization Dashboard
+                      </span>
                     </Link>
                   </li>
                 )}
@@ -147,10 +161,14 @@ const Navbar = () => {
                 {/* Super Admin Link */}
                 {user.is_super_admin && (
                   <li className="flex items-center">
-                    <Link href="/admin/superAdmin" passHref className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
+                    <Link href="/admin/superAdmin">
+                      <span
+                        className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
                           isActive('/admin/superAdmin') ? 'text-blueGray-300' : ''
-                        }`}>
+                        }`}
+                      >
                         Super Admin
+                      </span>
                     </Link>
                   </li>
                 )}
@@ -169,17 +187,25 @@ const Navbar = () => {
             {!user && (
               <>
                 <li className="flex items-center">
-                  <Link href="/auth/login" passHref className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
+                  <Link href="/auth/login">
+                    <span
+                      className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
                         isActive('/auth/login') ? 'text-blueGray-300' : ''
-                      }`}>
+                      }`}
+                    >
                       Login
+                    </span>
                   </Link>
                 </li>
                 <li className="flex items-center">
-                  <Link href="/auth/register" passHref className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
+                  <Link href="/auth/register">
+                    <span
+                      className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
                         isActive('/auth/register') ? 'text-blueGray-300' : ''
-                      }`}>
+                      }`}
+                    >
                       Register
+                    </span>
                   </Link>
                 </li>
               </>
@@ -187,23 +213,29 @@ const Navbar = () => {
 
             {user?.is_org_admin && (
               <li className="flex items-center">
-                <Link href="/visible/registerorg" passHref className="text-sm font-bold uppercase px-3 py-2 flex items-center">
+                <Link href="/visible/registerorg">
+                  <span className="text-sm font-bold uppercase px-3 py-2 flex items-center">
                     <button
                       className="bg-white text-blueGray-700 active:bg-blueGray-50 text-xs font-bold uppercase px-4 py-2 rounded shadow hover:shadow-md outline-none focus:outline-none ease-linear transition-all duration-150"
                       type="button"
                     >
                       Enroll Your Org Now
                     </button>
+                  </span>
                 </Link>
               </li>
             )}
 
             {/* Cart Icon for Small Screens */}
             <li className="flex items-center lg:hidden">
-              <Link href="/cart" passHref className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
+              <Link href="/cart">
+                <span
+                  className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
                     isActive('/cart') ? 'text-blueGray-300' : ''
-                  }`}>
+                  }`}
+                >
                   <FaShoppingCart className="h-6 w-6 mr-1" /> Cart
+                </span>
               </Link>
             </li>
           </ul>
@@ -211,8 +243,10 @@ const Navbar = () => {
 
         {/* Cart Icon for Large Screens */}
         <div className="navbar-cart flex items-center hidden lg:flex">
-          <Link href="/cart" passHref className="flex items-center">
+          <Link href="/cart">
+            <span className="flex items-center">
               <FaShoppingCart className="h-6 w-6 text-white" />
+            </span>
           </Link>
         </div>
       </div>

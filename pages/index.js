@@ -13,7 +13,8 @@ export default function Landing() {
       <Navbar transparent />
       <main>
         {/* 1. Main Header Section */}
-        <div className="relative pt-16 pb-32 flex content-center items-center justify-center min-h-screen-75">
+        <div className="relative pt-16 pb-32 flex content-center items-center justify-center min-h-[75vh]">
+          {/* Background Image */}
           <div
             className="absolute top-0 w-full h-full bg-center bg-cover"
             style={{
@@ -26,31 +27,45 @@ export default function Landing() {
               className="w-full h-full absolute opacity-75 bg-black"
             ></span>
           </div>
-          <div className="container relative mx-auto">
+
+          {/* Content Container */}
+          <div className="container relative mx-auto px-4">
             <div className="items-center flex flex-wrap">
               <div className="w-full lg:w-6/12 px-4 ml-auto mr-auto text-center">
-                <div className="pr-12">
-                  <h1 className="text-white font-semibold text-5xl">
+                <div className="pr-0 lg:pr-12">
+                  {/* Heading */}
+                  <h1 className="text-white font-semibold text-4xl sm:text-5xl md:text-6xl">
                     Gift Drives Start Here.
                   </h1>
-                  <p className="mt-4 text-lg text-blueGray-200">
+
+                  {/* Paragraph */}
+                  <p className="mt-4 text-lg sm:text-xl text-blueGray-200">
                     Making it easy to give joy to those in need. Connect with
                     children from partnered organizations, browse curated gift
                     ideas, and make a lasting impact—all from the comfort of your
                     home.
                   </p>
-                  <div className="mt-8">
-                    <Link href="/visible/orglist" className="bg-white text-blueGray-700 active:bg-blueGray-50 text-sm font-bold uppercase px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none mr-1 mb-1 transition-all duration-150">
-                        Explore Organizations
+
+                  {/* Buttons */}
+                  <div className="mt-8 flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                    <Link
+                      href="/visible/orglist"
+                      className="bg-white text-blueGray-700 active:bg-blueGray-50 text-sm font-bold uppercase px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none transition-all duration-150"
+                    >
+                      Explore Organizations
                     </Link>
-                    <Link href="/visible/registerorg" className="bg-blueGray-700 text-white active:bg-blueGray-600 text-sm font-bold uppercase px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none ml-1 mb-1 transition-all duration-150">
-                        Enroll Your Organization
+                    <Link
+                      href="/visible/registerorg"
+                      className="bg-blueGray-700 text-white active:bg-blueGray-600 text-sm font-bold uppercase px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none transition-all duration-150"
+                    >
+                      Enroll Your Organization
                     </Link>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+
           {/* Decorative SVG */}
           <div
             className="top-auto bottom-0 left-0 right-0 w-full absolute pointer-events-none overflow-hidden h-16"
@@ -131,73 +146,73 @@ export default function Landing() {
             </div>
           </div>
         </section>
-
+        
         {/* 3. Drive Types Section */}
         <section className="relative py-20 bg-blueGray-800">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-4xl font-semibold text-white">Our Drive Types</h2>
               <p className="text-lg leading-relaxed m-4 text-blueGray-200">
-                Choose from various types of gift drives to support children in
-                need.
+                Choose from various types of gift drives to support children in need.
               </p>
             </div>
-            <div className="flex flex-wrap">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {/* Drive Type 1 */}
-              <div className="w-full md:w-4/12 px-4 text-center">
-                <div className="relative flex flex-col min-w-0 break-words bg-blueGray-100 w-full mb-8 shadow-lg rounded-lg">
-                  <div className="px-4 py-5 flex-auto">
-                    <img
-                      alt="Toy Drives"
-                      src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/landingpage2.png"
-                      className="w-full rounded-t-lg"
-                    />
-                    <h6 className="text-xl font-semibold mt-5">Toy Drives</h6>
-                    <p className="mt-2 mb-4 text-blueGray-500">
-                      Provide new toys to children to brighten their day.
-                    </p>
-                  </div>
+              <div className="bg-blueGray-100 shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
+                <div className="px-4 py-4">
+                  <img
+                    alt="Toy Drives"
+                    src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/landingpage2.png"
+                    className="w-11/12 mx-auto h-48 object-cover rounded-lg"
+                  />
+                </div>
+                <div className="px-4 py-5 flex-grow flex flex-col">
+                  <h6 className="text-xl font-semibold mt-5">Toy Drives</h6>
+                  <p className="mt-2 mb-4 text-blueGray-500 flex-grow">
+                    Provide new toys to children to brighten their day.
+                  </p>
                 </div>
               </div>
+              
               {/* Drive Type 2 */}
-              <div className="w-full md:w-4/12 px-4 text-center">
-                <div className="relative flex flex-col min-w-0 break-words bg-blueGray-100 w-full mb-8 shadow-lg rounded-lg">
-                  <div className="px-4 py-5 flex-auto">
-                    <img
-                      alt="Clothing Drives"
-                      src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/homeimage4.png"
-                      className="w-full rounded-t-lg"
-                    />
-                    <h6 className="text-xl font-semibold mt-5">
-                      Clothing Drives
-                    </h6>
-                    <p className="mt-2 mb-4 text-blueGray-500">
-                      Donate clothing items to keep children warm and comfortable.
-                    </p>
-                  </div>
+              <div className="bg-blueGray-100 shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
+                <div className="px-4 py-4">
+                  <img
+                    alt="Clothing Drives"
+                    src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/homeimage4.png"
+                    className="w-11/12 mx-auto h-48 object-cover rounded-lg"
+                  />
+                </div>
+                <div className="px-4 py-5 flex-grow flex flex-col">
+                  <h6 className="text-xl font-semibold mt-5">Clothing Drives</h6>
+                  <p className="mt-2 mb-4 text-blueGray-500 flex-grow">
+                    Donate clothing items to keep children warm and comfortable.
+                  </p>
                 </div>
               </div>
+              
               {/* Drive Type 3 */}
-              <div className="w-full md:w-4/12 px-4 text-center">
-                <div className="relative flex flex-col min-w-0 break-words bg-blueGray-100 w-full mb-8 shadow-lg rounded-lg">
-                  <div className="px-4 py-5 flex-auto">
-                    <img
-                      alt="Educational Supplies Drives"
-                      src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/landingpage1.png"
-                      className="w-full rounded-t-lg"
-                    />
-                    <h6 className="text-xl font-semibold mt-5">
-                      Educational Supplies Drives
-                    </h6>
-                    <p className="mt-2 mb-4 text-blueGray-500">
-                      Help equip children with necessary educational materials.
-                    </p>
-                  </div>
+              <div className="bg-blueGray-100 shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
+                <div className="px-4 py-4">
+                  <img
+                    alt="Educational Supplies Drives"
+                    src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/landingpage1.png"
+                    className="w-11/12 mx-auto h-48 object-cover rounded-lg"
+                  />
+                </div>
+                <div className="px-4 py-5 flex-grow flex flex-col">
+                  <h6 className="text-xl font-semibold mt-5">
+                    Educational Supplies Drives
+                  </h6>
+                  <p className="mt-2 mb-4 text-blueGray-500 flex-grow">
+                    Help equip children with necessary educational materials.
+                  </p>
                 </div>
               </div>
             </div>
           </div>
         </section>
+
 
         {/* 4. Testimonials Section */}
         <section className="relative py-20">
