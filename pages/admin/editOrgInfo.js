@@ -13,7 +13,7 @@ const EditOrganizationInfo = () => {
     name: '',
     description: '',
     website: '',
-    logo: null,
+    photo: null,
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -30,7 +30,15 @@ const EditOrganizationInfo = () => {
         `${apiUrl}/api/organizations/${user.org_id}`,
         { withCredentials: true }
       );
-      setOrganization(response.data);
+
+      // Debugging log
+      console.log('Fetched organization data:', response.data);
+
+      // Correctly set the organization state
+      setOrganization({
+        ...response.data,
+        photo: response.data.photo,
+      });
     } catch (error) {
       console.error('Error fetching organization info:', error);
     }
@@ -42,7 +50,7 @@ const EditOrganizationInfo = () => {
   };
 
   const handleFileChange = (e) => {
-    setOrganization({ ...organization, logo: e.target.files[0] });
+    setOrganization({ ...organization, photo: e.target.files[0] });
   };
 
   const validateForm = () => {
@@ -68,8 +76,8 @@ const EditOrganizationInfo = () => {
     formData.append('name', organization.name);
     formData.append('description', organization.description);
     formData.append('website', organization.website);
-    if (organization.logo) {
-      formData.append('logo', organization.logo);
+    if (organization.photo) {
+      formData.append('photo', organization.photo);
     }
 
     try {
@@ -84,6 +92,8 @@ const EditOrganizationInfo = () => {
       );
       alert('Organization info updated successfully!');
       setLoading(false);
+      // Optionally, refetch organization info to update the state with the new photo URL
+      fetchOrganizationInfo();
     } catch (error) {
       console.error('Error updating organization info:', error);
       setLoading(false);
@@ -135,14 +145,25 @@ const EditOrganizationInfo = () => {
         </div>
 
         <div className="mb-4">
-          <label className="block font-medium mb-1">Logo</label>
+          <label className="block font-medium mb-1">Photo</label>
           <input type="file" accept="image/*" onChange={handleFileChange} />
-          {organization.logo && !organization.logo.name && (
+          {organization.photo && typeof organization.photo === 'string' && (
             <div className="mt-2">
-              <p>Current Logo:</p>
+              <p>Current Photo:</p>
               <img
-                src={organization.logo}
-                alt="Organization Logo"
+                src={organization.photo}
+                alt="Organization Photo"
+                className="w-32 h-32 object-cover rounded"
+              />
+            </div>
+          )}
+          {/* If a new file is selected, show a preview */}
+          {organization.photo && organization.photo instanceof File && (
+            <div className="mt-2">
+              <p>New Photo Preview:</p>
+              <img
+                src={URL.createObjectURL(organization.photo)}
+                alt="New Organization Photo"
                 className="w-32 h-32 object-cover rounded"
               />
             </div>
