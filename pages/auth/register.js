@@ -4,6 +4,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useRouter } from 'next/router'; 
 import axios from 'axios';
 import { AuthContext } from '../../contexts/AuthContext';
+import Link from 'next/link';
 
 // Import the Auth layout
 import Auth from "layouts/Auth.js";
@@ -90,22 +91,13 @@ const RegisterPage = () => {
                 </h6>
               </div>
               <div className="btn-wrapper text-center">
-                {/* Github Button */}
-                <button
-                  className="bg-white active:bg-blueGray-50 text-blueGray-700 font-normal px-4 py-2 rounded outline-none focus:outline-none mr-2 mb-1 uppercase shadow hover:shadow-md inline-flex items-center font-bold text-xs ease-linear transition-all duration-150"
-                  type="button"
-                  onClick={handleGithubLogin}
-                >
-                  <img alt="Github" className="w-5 mr-1" src="/img/github.svg" />
-                  Github
-                </button>
                 {/* Google Button */}
                 <button
                   className="bg-white active:bg-blueGray-50 text-blueGray-700 font-normal px-4 py-2 rounded outline-none focus:outline-none mr-2 mb-1 uppercase shadow hover:shadow-md inline-flex items-center font-bold text-xs ease-linear transition-all duration-150"
                   type="button"
                   onClick={handleGoogleLogin}
                 >
-                  <img alt="Google" className="w-5 mr-1" src="/img/google.svg" />
+                  <img alt="Google" className="w-5 mr-1" src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" />
                   Google
                 </button>
                 {/* Facebook Button */}
@@ -114,7 +106,7 @@ const RegisterPage = () => {
                   type="button"
                   onClick={handleFacebookLogin}
                 >
-                  <img alt="Facebook" className="w-5 mr-1" src="/img/facebook.svg" />
+                  <img alt="Facebook" className="w-5 mr-1" src="https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg" />
                   Facebook
                 </button>
               </div>
@@ -247,21 +239,19 @@ const RegisterPage = () => {
                   </button>
                 </div>
               </form>
-              {/* Additional Links */}
-              <div className="mt-6 text-center">
-                <p>
-                  Already have an account?{' '}
-                  <a
-                    href="/login"
-                    className="text-lightBlue-500 hover:text-blueGray-800"
-                  >
-                    Login here
-                  </a>
-                </p>
-              </div>
+
             </div>
           </div>
+              {/* Additional Links */}
+              <div className="flex flex-wrap mt-6 relative">
+                <div className="w-full text-center">
+                  <Link href="/auth/login" className="text-blueGray-200">
+                      <small>Already have an account?</small>
+                  </Link>
+                </div>
+              </div>
         </div>
+
       </div>
     </div>
   );

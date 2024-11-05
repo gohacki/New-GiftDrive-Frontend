@@ -5,7 +5,6 @@ import axios from 'axios';
 import Navbar from 'components/Navbars/AuthNavbar.js';
 import Footer from 'components/Footers/Footer.js';
 import OrganizationCard from 'components/Cards/OrganizationCard';
-import InfiniteScroll from 'react-infinite-scroll-component';
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -15,8 +14,8 @@ export default function OrgList() {
   const [selectedState, setSelectedState] = useState('All');
   const [selectedCity, setSelectedCity] = useState('All');
   const [featuredOnly, setFeaturedOnly] = useState(true); // Load featured by default
-  const [states, setStates] = useState(['All']);
-  const [cities, setCities] = useState(['All']);
+  const [states, setStates] = useState([]);
+  const [cities, setCities] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -28,17 +27,17 @@ export default function OrgList() {
       try {
         // Fetch unique states
         const statesResponse = await axios.get(`${apiUrl}/api/organizations/states`);
-        setStates(['All States', ...statesResponse.data]);
+        setStates(statesResponse.data);
 
         // Fetch unique cities
         const citiesResponse = await axios.get(`${apiUrl}/api/organizations/cities`);
-        setCities(['All Cities', ...citiesResponse.data]);
+        setCities(citiesResponse.data);
       } catch (error) {
         console.error('Error fetching filter options:', error);
         setError('Failed to load filter options. Please try again later.');
         // Fallback to predefined states and cities if API fails
-        setStates(['All', 'California', 'Texas', 'New York']);
-        setCities(['All', 'Los Angeles', 'Houston', 'New York City']);
+        setStates(['California', 'Texas', 'New York']);
+        setCities(['Los Angeles', 'Houston', 'New York City']);
       }
     };
 
@@ -74,6 +73,7 @@ export default function OrgList() {
       const params = {
         page: currentPage,
         limit: 6, // Adjust as needed
+        featured: featuredOnly.toString(), // Convert to string
       };
 
       if (searchQuery.trim() !== '') {
@@ -88,10 +88,7 @@ export default function OrgList() {
         params.city = selectedCity;
       }
 
-      if (featuredOnly) {
-        params.featured = true;
-      }
-
+      // Use the unified endpoint
       const response = await axios.get(`${apiUrl}/api/organizations/featured`, { params });
 
       if (response.data && response.data.length > 0) {
@@ -110,13 +107,12 @@ export default function OrgList() {
     setLoading(false);
   };
 
-  // Fetch initial data
+  // Fetch initial data and when 'page' changes
   useEffect(() => {
-    fetchOrganizations(page);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchOrganizations(page, page === 1);
   }, [page]);
 
-  // Load more organizations (for infinite scroll)
+  // Load more organizations (for "Load More" button)
   const loadMore = () => {
     if (hasMore && !loading) {
       setPage((prev) => prev + 1);
@@ -130,27 +126,26 @@ export default function OrgList() {
         // Reset to all cities
         try {
           const citiesResponse = await axios.get(`${apiUrl}/api/organizations/cities`);
-          setCities(['All', ...citiesResponse.data]);
+          setCities(citiesResponse.data);
         } catch (error) {
           console.error('Error fetching cities:', error);
-          setCities(['All', 'Los Angeles', 'Houston', 'New York City']);
+          setCities(['Los Angeles', 'Houston', 'New York City']);
         }
       } else {
         try {
           const citiesResponse = await axios.get(`${apiUrl}/api/organizations/cities`, {
             params: { state: selectedState },
           });
-          setCities(['All', ...citiesResponse.data]);
+          setCities(citiesResponse.data);
         } catch (error) {
-          console.error('Error fetching cities for state:', error);
-          setCities(['All', 'Los Angeles', 'San Francisco', 'New York City']); // Fallback
+          console.error('Error fetching cities:', error);
+          setCities(['Los Angeles', 'San Francisco', 'New York City']); // Fallback
         }
       }
       setSelectedCity('All'); // Reset city selection when state changes
     };
 
     fetchCitiesByState();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedState]);
 
   return (
@@ -210,6 +205,7 @@ export default function OrgList() {
                     className="block w-full pl-3 pr-10 py-3 border border-blueGray-300 bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
                     aria-label="Filter by state"
                   >
+                    <option value="All">All States</option>
                     {states.map((state) => (
                       <option key={state} value={state}>
                         {state}
@@ -231,6 +227,7 @@ export default function OrgList() {
                     className="block w-full pl-3 pr-10 py-3 border border-blueGray-300 bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
                     aria-label="Filter by city"
                   >
+                    <option value="All">All Cities</option>
                     {cities.map((city) => (
                       <option key={city} value={city}>
                         {city}
@@ -270,60 +267,41 @@ export default function OrgList() {
           </section>
         )}
 
-        {/* Featured Organizations Section */}
+        {/* Organizations Section */}
         <section id="organizations" className="relative py-20 bg-blueGray-200">
           <div className="container mx-auto px-4">
             {/* Section Header */}
             <div className="text-center mb-12">
-              <h3 className="text-3xl font-semibold text-blueGray-800">Featured Organizations</h3>
+              <h3 className="text-3xl font-semibold text-blueGray-800">Organizations</h3>
               <p className="text-blueGray-600 mt-2">Discover organizations making a real impact</p>
             </div>
-            {/* Organizations Grid with Infinite Scroll */}
-            <InfiniteScroll
-              dataLength={organizations.length}
-              next={loadMore}
-              hasMore={hasMore}
-              loader={
-                <div className="flex justify-center mt-4">
-                  <svg
-                    className="animate-spin h-8 w-8 text-blue-600"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    aria-label="Loading spinner"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v8H4z"
-                    ></path>
-                  </svg>
-                </div>
-              }
-              endMessage={
-                <p className="text-center text-blueGray-600 mt-4">
-                  <b>No more organizations to display.</b>
-                </p>
-              }
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {organizations.length > 0 ? (
-                  organizations.map((org) => (
-                    <OrganizationCard key={org.org_id} org={org} />
-                  ))
-                ) : (
-                  <p className="text-center text-blueGray-600 col-span-full">No organizations found.</p>
-                )}
+            {/* Organizations Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {organizations.length > 0 ? (
+                organizations.map((org) => (
+                  <OrganizationCard key={org.org_id} org={org} />
+                ))
+              ) : (
+                <p className="text-center text-blueGray-600 col-span-full">No organizations found.</p>
+              )}
+            </div>
+            {/* Load More Button */}
+            {hasMore && (
+              <div className="flex justify-center mt-8">
+                <button
+                  onClick={loadMore}
+                  disabled={loading}
+                  className={`bg-blueGray-800 text-white active:bg-blueGray-700 text-sm font-bold uppercase px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none ${
+                    loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                  } transition-all duration-150`}
+                >
+                  {loading ? 'Loading...' : 'Load More'}
+                </button>
               </div>
-            </InfiniteScroll>
+            )}
+            {!hasMore && organizations.length > 0 && (
+              <p className="text-center text-blueGray-600 mt-4">No more organizations to display.</p>
+            )}
           </div>
         </section>
       </main>
@@ -331,8 +309,3 @@ export default function OrgList() {
     </>
   );
 }
-
-// PropTypes validation for the OrgList component
-OrgList.propTypes = {
-  // No props are being passed to OrgList currently
-};

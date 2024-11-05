@@ -1,7 +1,8 @@
-// components/Landing.js
+// pages.index.js
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 // components
 import Navbar from "components/Navbars/AuthNavbar.js";
@@ -15,13 +16,15 @@ export default function Landing() {
         {/* 1. Main Header Section */}
         <div className="relative pt-16 pb-32 flex content-center items-center justify-center min-h-[75vh]">
           {/* Background Image */}
-          <div
-            className="absolute top-0 w-full h-full bg-center bg-cover"
-            style={{
-              backgroundImage:
-                "url('https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/homeimage1.png')",
-            }}
-          >
+          <div className="absolute top-0 w-full h-full">
+            <Image
+              src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/homeimage1.png"
+              alt="Background Image"
+              layout="fill"
+              objectFit="cover"
+              quality={100}
+              priority
+            />
             <span
               id="blackOverlay"
               className="w-full h-full absolute opacity-75 bg-black"
@@ -146,7 +149,7 @@ export default function Landing() {
             </div>
           </div>
         </section>
-        
+
         {/* 3. Drive Types Section */}
         <section className="relative py-20 bg-blueGray-800">
           <div className="container mx-auto px-4">
@@ -159,11 +162,13 @@ export default function Landing() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {/* Drive Type 1 */}
               <div className="bg-blueGray-100 shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
-                <div className="px-4 py-4">
-                  <img
-                    alt="Toy Drives"
+                <div className="relative w-11/12 mx-auto mt-4 h-48 rounded-lg overflow-hidden">
+                  <Image
                     src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/landingpage2.png"
-                    className="w-11/12 mx-auto h-48 object-cover rounded-lg"
+                    alt="Toy Drives"
+                    fill
+                    objectFit="cover"
+                    priority
                   />
                 </div>
                 <div className="px-4 py-5 flex-grow flex flex-col">
@@ -176,11 +181,13 @@ export default function Landing() {
               
               {/* Drive Type 2 */}
               <div className="bg-blueGray-100 shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
-                <div className="px-4 py-4">
-                  <img
-                    alt="Clothing Drives"
+                <div className="relative w-11/12 mx-auto mt-4 h-48 rounded-lg overflow-hidden">
+                  <Image
                     src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/homeimage4.png"
-                    className="w-11/12 mx-auto h-48 object-cover rounded-lg"
+                    alt="Clothing Drives"
+                    fill
+                    objectFit="cover"
+                    priority
                   />
                 </div>
                 <div className="px-4 py-5 flex-grow flex flex-col">
@@ -193,11 +200,13 @@ export default function Landing() {
               
               {/* Drive Type 3 */}
               <div className="bg-blueGray-100 shadow-lg rounded-lg overflow-hidden flex flex-col h-full">
-                <div className="px-4 py-4">
-                  <img
-                    alt="Educational Supplies Drives"
+                <div className="relative w-11/12 mx-auto mt-4 h-48 rounded-lg overflow-hidden">
+                  <Image
                     src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/landingpage1.png"
-                    className="w-11/12 mx-auto h-48 object-cover rounded-lg"
+                    alt="Educational Supplies Drives"
+                    fill
+                    objectFit="cover"
+                    priority
                   />
                 </div>
                 <div className="px-4 py-5 flex-grow flex flex-col">
@@ -228,11 +237,15 @@ export default function Landing() {
               {/* Testimonial 1 */}
               <div className="w-full md:w-4/12 px-4">
                 <div className="relative flex flex-col min-w-0 break-words bg-white w-full mb-6 shadow-lg rounded-lg">
-                  <img
-                    alt="..."
-                    src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/landingpage3.png"
-                    className="w-full align-middle rounded-t-lg"
-                  />
+                  <div className="relative w-full h-48 rounded-t-lg overflow-hidden">
+                    <Image
+                      src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/landingpage3.png"
+                      alt="John Doe"
+                      fill
+                      objectFit="cover"
+                      priority
+                    />
+                  </div>
                   <blockquote className="relative p-8 mb-4">
                     <h4 className="text-xl font-bold text-blueGray-700">
                       &quot;An amazing experience&quot;
@@ -252,11 +265,15 @@ export default function Landing() {
               {/* Testimonial 2 */}
               <div className="w-full md:w-4/12 px-4">
                 <div className="relative flex flex-col min-w-0 break-words bg-white w-full mb-6 shadow-lg rounded-lg">
-                  <img
-                    alt="..."
-                    src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/homeimage3.png"
-                    className="w-full align-middle rounded-t-lg"
-                  />
+                  <div className="relative w-full h-48 rounded-t-lg overflow-hidden">
+                    <Image
+                      src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/homeimage3.png"
+                      alt="Jane Smith"
+                      fill
+                      objectFit="cover"
+                      priority
+                    />
+                  </div>
                   <blockquote className="relative p-8 mb-4">
                     <h4 className="text-xl font-bold text-blueGray-700">
                       &quot;Easy and impactful&quot;
@@ -276,11 +293,15 @@ export default function Landing() {
               {/* Testimonial 3 */}
               <div className="w-full md:w-4/12 px-4">
                 <div className="relative flex flex-col min-w-0 break-words bg-white w-full mb-6 shadow-lg rounded-lg">
-                  <img
-                    alt="..."
-                    src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/homeimage2.png"
-                    className="w-full align-middle rounded-t-lg"
-                  />
+                  <div className="relative w-full h-48 rounded-t-lg overflow-hidden">
+                    <Image
+                      src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/homeimage2.png"
+                      alt="Emily Johnson"
+                      fill
+                      objectFit="cover"
+                      priority
+                    />
+                  </div>
                   <blockquote className="relative p-8 mb-4">
                     <h4 className="text-xl font-bold text-blueGray-700">
                       &quot;Highly recommend&quot;
@@ -351,8 +372,10 @@ export default function Landing() {
                       connect with more supporters.
                     </p>
                     <div className="text-center mt-6">
-                      <Link href="/visible/registerorg" className="bg-blueGray-800 text-white active:bg-blueGray-600 text-sm font-bold uppercase px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none ease-linear transition-all duration-150">
+                      <Link href="/visible/registerorg">
+                        <span className="bg-blueGray-800 text-white active:bg-blueGray-600 text-sm font-bold uppercase px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none ease-linear transition-all duration-150 cursor-pointer">
                           Register Now
+                        </span>
                       </Link>
                     </div>
                   </div>
