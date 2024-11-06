@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
 
@@ -7,11 +7,27 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 const ItemSelectionModal = ({ childId, onClose, onItemAdded }) => {
   const [defaultItems, setDefaultItems] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(false); // Add loading state
+  const [loadingItemId, setLoadingItemId] = useState(null); // Track loading state per item
+  const modalRef = useRef(null);
 
+  // Focus management for accessibility
   useEffect(() => {
-    fetchDefaultItems();
-  }, []);
+    if (modalRef.current) {
+      const firstInput = modalRef.current.querySelector('input, button');
+      if (firstInput) firstInput.focus();
+    }
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup on unmount
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const fetchDefaultItems = async () => {
     try {
@@ -21,26 +37,31 @@ const ItemSelectionModal = ({ childId, onClose, onItemAdded }) => {
       setDefaultItems(response.data);
     } catch (error) {
       console.error('Error fetching default items:', error);
+      // Optionally, set a global error message here
     }
   };
 
+  useEffect(() => {
+    fetchDefaultItems();
+  }, []);
+
   const handleAddItem = async (itemId) => {
-    setLoading(true); // Start loading
+    setLoadingItemId(itemId); // Start loading for this specific item
     try {
       const response = await axios.post(
         `${apiUrl}/api/children/${childId}/items`,
         { rye_item_id: itemId },
         { withCredentials: true }
       );
-      console.log('Item added successfully:', response.data); // Log success
+      console.log('Item added successfully:', response.data);
 
-      onItemAdded(); // Refresh the item list
+      onItemAdded(); // Refresh the item list or perform other actions
       onClose(); // Close the modal
     } catch (error) {
-      console.error('Error adding item:', error); // Log error for debugging
-      alert('Failed to add item. Please try again.'); // Show alert to the user
+      console.error('Error adding item:', error);
+      alert('Failed to add item. Please try again.');
     } finally {
-      setLoading(false); // Stop loading
+      setLoadingItemId(null); // Reset loading state
     }
   };
 
@@ -49,18 +70,29 @@ const ItemSelectionModal = ({ childId, onClose, onItemAdded }) => {
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-start">
+    <div
+      className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-start justify-center"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="item-selection-modal-title"
+      ref={modalRef}
+    >
       {/* Side Modal Container */}
-      <div className="bg-white w-80 max-w-full h-full p-6 overflow-y-auto z-50 shadow-lg">
+      <div className="bg-white w-80 max-w-full h-full p-6 overflow-y-auto shadow-lg relative">
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-gray-600 hover:text-gray-800"
+          aria-label="Close modal"
+        >
+          &times;
+        </button>
+
         {/* Modal Header */}
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Select an Item</h2>
-          <button
-            onClick={onClose}
-            className="text-red-500 hover:text-red-600 font-bold"
-          >
-            Close
-          </button>
+          <h2 id="item-selection-modal-title" className="text-xl font-semibold">
+            Select an Item
+          </h2>
         </div>
 
         {/* Search Bar */}
@@ -69,28 +101,30 @@ const ItemSelectionModal = ({ childId, onClose, onItemAdded }) => {
           placeholder="Search for an item..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full border border-gray-300 rounded px-4 py-2 mb-4"
+          className="w-full border border-gray-300 rounded px-4 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          aria-label="Search items"
         />
 
         {/* Items List */}
-        <div className="grid gap-4">
+        <div className="space-y-2">
           {filteredItems.length > 0 ? (
             filteredItems.map((item) => (
               <div
                 key={item.rye_item_id}
-                className="p-4 border border-gray-200 rounded-lg shadow-sm flex justify-between items-center"
+                className="flex justify-between items-center p-2 border border-gray-200 rounded hover:bg-gray-100"
               >
-                <span>{item.name}</span>
+                <span>{item.name} - ${Number(item.price).toFixed(2)}</span>
                 <button
                   onClick={() => handleAddItem(item.rye_item_id)}
-                  className={`${
-                    loading
-                      ? 'bg-gray-400'
+                  className={`px-3 py-1 rounded text-white ${
+                    loadingItemId === item.rye_item_id
+                      ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-green-500 hover:bg-green-600'
-                  } text-white px-3 py-1 rounded`}
-                  disabled={loading} // Disable button while loading
+                  }`}
+                  disabled={loadingItemId === item.rye_item_id}
+                  aria-label={`Add ${item.name}`}
                 >
-                  {loading ? 'Adding...' : 'Add'}
+                  {loadingItemId === item.rye_item_id ? 'Adding...' : 'Add'}
                 </button>
               </div>
             ))
@@ -105,8 +139,8 @@ const ItemSelectionModal = ({ childId, onClose, onItemAdded }) => {
 
 // PropTypes Validation
 ItemSelectionModal.propTypes = {
-  childId: PropTypes.number.isRequired,  // Ensure childId is provided as a number
-  onClose: PropTypes.func.isRequired,    // Ensure onClose is a function
+  childId: PropTypes.number.isRequired, // Ensure childId is provided as a number
+  onClose: PropTypes.func.isRequired, // Ensure onClose is a function
   onItemAdded: PropTypes.func.isRequired, // Ensure onItemAdded is a function
 };
 

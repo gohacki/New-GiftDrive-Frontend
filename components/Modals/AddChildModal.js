@@ -4,7 +4,7 @@ import PropTypes from 'prop-types'; // Import PropTypes
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-const AddChildModal = ({ driveId, onClose, onAddChild }) => {
+const AddChildModal = ({ onClose, onAddChild, driveId }) => {
   const [defaultChildren, setDefaultChildren] = useState([]);
   const [selectedChildId, setSelectedChildId] = useState(null);
   const [defaultItems, setDefaultItems] = useState([]);
@@ -69,7 +69,7 @@ const AddChildModal = ({ driveId, onClose, onAddChild }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full">
         <h2 className="text-xl font-semibold mb-4">Add Child to Drive</h2>
         <form onSubmit={handleSubmit}>
@@ -135,8 +135,8 @@ const AddChildModal = ({ driveId, onClose, onAddChild }) => {
 
 // PropTypes Validation
 AddChildModal.propTypes = {
-  driveId: PropTypes.string.isRequired,  // Validate driveId as a string
-  onClose: PropTypes.func.isRequired,    // Ensure onClose is a function
+  driveId: PropTypes.string.isRequired, // Validate driveId as a string
+  onClose: PropTypes.func.isRequired, // Ensure onClose is a function
   onAddChild: PropTypes.func.isRequired, // Ensure onAddChild is a function
 };
 

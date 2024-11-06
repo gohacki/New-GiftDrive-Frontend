@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
 
@@ -13,7 +13,27 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
     end_date: drive.end_date || '',
   });
 
-  const [errors, setErrors] = useState({}); // Stores field-specific errors
+  const [errors, setErrors] = useState({});
+  const modalRef = useRef(null);
+
+  // Focus management for accessibility
+  useEffect(() => {
+    if (modalRef.current) {
+      const firstInput = modalRef.current.querySelector('input, textarea, button');
+      if (firstInput) firstInput.focus();
+    }
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup on unmount
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -27,7 +47,7 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!driveData.name || driveData.name.length < 3) {
+    if (!driveData.name || driveData.name.trim().length < 3) {
       newErrors.name = 'Drive name must be at least 3 characters long.';
     }
 
@@ -54,16 +74,16 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
 
     if (!validateForm()) return; // Prevent submission if validation fails
 
-    try {
-      const formData = new FormData();
-      formData.append('name', driveData.name);
-      formData.append('description', driveData.description);
-      if (driveData.photo) {
-        formData.append('photo', driveData.photo);
-      }
-      formData.append('start_date', driveData.start_date);
-      formData.append('end_date', driveData.end_date);
+    const formData = new FormData();
+    formData.append('name', driveData.name.trim());
+    formData.append('description', driveData.description.trim());
+    if (driveData.photo) {
+      formData.append('photo', driveData.photo);
+    }
+    formData.append('start_date', driveData.start_date);
+    formData.append('end_date', driveData.end_date);
 
+    try {
       const response = await axios.put(
         `${apiUrl}/api/drives/${drive.drive_id}`,
         formData,
@@ -77,75 +97,160 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
       onClose(); // Close the modal
     } catch (error) {
       console.error('Error updating drive:', error);
+      // Optionally, set a global error message here
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full">
-        <h2 className="text-xl font-semibold mb-4">Edit Drive</h2>
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-drive-modal-title"
+      ref={modalRef}
+    >
+      <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full relative">
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-gray-600 hover:text-gray-800"
+          aria-label="Close modal"
+        >
+          &times;
+        </button>
+
+        <h2 id="edit-drive-modal-title" className="text-xl font-semibold mb-4">
+          Edit Drive
+        </h2>
         <form onSubmit={handleSubmit} noValidate>
           <div className="mb-4">
-            <label className="block font-medium mb-1">Drive Name</label>
+            <label htmlFor="drive-name" className="block font-medium mb-1">
+              Drive Name
+            </label>
             <input
               type="text"
+              id="drive-name"
               name="name"
               value={driveData.name}
               onChange={handleInputChange}
-              className="w-full border border-gray-300 rounded p-2"
+              className={`w-full border ${
+                errors.name ? 'border-red-500' : 'border-gray-300'
+              } rounded p-2`}
               required
               minLength={3}
+              aria-invalid={errors.name ? 'true' : 'false'}
+              aria-describedby={errors.name ? 'drive-name-error' : undefined}
             />
-            {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
+            {errors.name && (
+              <p id="drive-name-error" className="text-red-500 text-sm">
+                {errors.name}
+              </p>
+            )}
           </div>
 
           <div className="mb-4">
-            <label className="block font-medium mb-1">Description</label>
+            <label htmlFor="drive-description" className="block font-medium mb-1">
+              Description
+            </label>
             <textarea
+              id="drive-description"
               name="description"
               value={driveData.description}
               onChange={handleInputChange}
-              className="w-full border border-gray-300 rounded p-2"
+              className={`w-full border ${
+                errors.description ? 'border-red-500' : 'border-gray-300'
+              } rounded p-2`}
               maxLength={500}
+              aria-invalid={errors.description ? 'true' : 'false'}
+              aria-describedby={errors.description ? 'drive-description-error' : undefined}
             />
-            {errors.description && <p className="text-red-500 text-sm">{errors.description}</p>}
+            {errors.description && (
+              <p id="drive-description-error" className="text-red-500 text-sm">
+                {errors.description}
+              </p>
+            )}
           </div>
 
           <div className="mb-4">
-            <label className="block font-medium mb-1">Photo</label>
-            <input type="file" accept="image/*" onChange={handleFileChange} />
+            <label htmlFor="drive-photo" className="block font-medium mb-1">
+              Photo
+            </label>
+            <input
+              type="file"
+              id="drive-photo"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="w-full"
+            />
+            {/* Display current photo if exists and no new photo is uploaded */}
             {drive.photo && !driveData.photo && (
               <div className="mt-2">
                 <p>Current Photo:</p>
-                <img src={drive.photo} alt={drive.name} className="w-32 h-32 object-cover rounded" />
+                <img
+                  src={drive.photo}
+                  alt={drive.name}
+                  className="w-32 h-32 object-cover rounded"
+                />
+              </div>
+            )}
+            {/* Preview of the new photo */}
+            {driveData.photo && (
+              <div className="mt-2">
+                <img
+                  src={URL.createObjectURL(driveData.photo)}
+                  alt="Drive Preview"
+                  className="w-32 h-32 object-cover rounded"
+                />
               </div>
             )}
           </div>
 
           <div className="mb-4">
-            <label className="block font-medium mb-1">Start Date</label>
+            <label htmlFor="start-date" className="block font-medium mb-1">
+              Start Date
+            </label>
             <input
               type="date"
+              id="start-date"
               name="start_date"
               value={driveData.start_date}
               onChange={handleInputChange}
-              className="w-full border border-gray-300 rounded p-2"
+              className={`w-full border ${
+                errors.start_date ? 'border-red-500' : 'border-gray-300'
+              } rounded p-2`}
               required
+              aria-invalid={errors.start_date ? 'true' : 'false'}
+              aria-describedby={errors.start_date ? 'start-date-error' : undefined}
             />
-            {errors.start_date && <p className="text-red-500 text-sm">{errors.start_date}</p>}
+            {errors.start_date && (
+              <p id="start-date-error" className="text-red-500 text-sm">
+                {errors.start_date}
+              </p>
+            )}
           </div>
 
           <div className="mb-4">
-            <label className="block font-medium mb-1">End Date</label>
+            <label htmlFor="end-date" className="block font-medium mb-1">
+              End Date
+            </label>
             <input
               type="date"
+              id="end-date"
               name="end_date"
               value={driveData.end_date}
               onChange={handleInputChange}
-              className="w-full border border-gray-300 rounded p-2"
+              className={`w-full border ${
+                errors.end_date ? 'border-red-500' : 'border-gray-300'
+              } rounded p-2`}
               required
+              aria-invalid={errors.end_date ? 'true' : 'false'}
+              aria-describedby={errors.end_date ? 'end-date-error' : undefined}
             />
-            {errors.end_date && <p className="text-red-500 text-sm">{errors.end_date}</p>}
+            {errors.end_date && (
+              <p id="end-date-error" className="text-red-500 text-sm">
+                {errors.end_date}
+              </p>
+            )}
           </div>
 
           <div className="flex justify-end space-x-4">
@@ -169,6 +274,7 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
   );
 };
 
+// PropTypes Validation
 EditDriveModal.propTypes = {
   drive: PropTypes.shape({
     drive_id: PropTypes.number.isRequired,

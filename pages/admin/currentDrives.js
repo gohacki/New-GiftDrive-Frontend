@@ -1,16 +1,16 @@
+// pages/CurrentDrives.js
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import DriveCard from '../../components/Cards/DriveCard';
-import AddDriveModal from '../../components/Modals/AddDriveModal';
+import { useModal, MODAL_TYPES } from '../../contexts/ModalContext';
 import { AuthContext } from '../../contexts/AuthContext';
-
 import Admin from 'layouts/Admin.js';
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const CurrentDrives = () => {
   const [drives, setDrives] = useState([]);
-  const [showAddDriveModal, setShowAddDriveModal] = useState(false);
+  const { openModal } = useModal();
   const { user } = useContext(AuthContext);
 
   useEffect(() => {
@@ -21,24 +21,25 @@ const CurrentDrives = () => {
 
   const fetchDrives = async () => {
     try {
-      const response = await axios.get(
-        `${apiUrl}/api/drives/organization/${user.org_id}/current`,
-        { withCredentials: true }
-      );
+      const response = await axios.get(`${apiUrl}/api/drives/organization/${user.org_id}/current`, {
+        withCredentials: true,
+      });
       setDrives(response.data);
     } catch (error) {
       console.error('Error fetching current drives:', error);
     }
   };
 
-  const handleAddDrive = async (newDrive) => {
+  const handleAddDrive = async (driveData) => {
     try {
       const formData = new FormData();
-      formData.append('name', newDrive.name);
-      formData.append('description', newDrive.description);
-      if (newDrive.photo) formData.append('photo', newDrive.photo);
-      formData.append('start_date', newDrive.start_date);
-      formData.append('end_date', newDrive.end_date);
+      formData.append('name', driveData.name.trim());
+      formData.append('description', driveData.description.trim());
+      if (driveData.photo) {
+        formData.append('photo', driveData.photo);
+      }
+      formData.append('start_date', driveData.start_date);
+      formData.append('end_date', driveData.end_date);
 
       const response = await axios.post(`${apiUrl}/api/drives`, formData, {
         withCredentials: true,
@@ -62,24 +63,23 @@ const CurrentDrives = () => {
     }
   };
 
+  const triggerAddDriveModal = () => {
+    openModal(MODAL_TYPES.ADD_DRIVE, {
+      onAddDrive: handleAddDrive,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-6 pt-32">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-semibold">Current Drives</h2>
         <button
-          onClick={() => setShowAddDriveModal(true)}
+          onClick={triggerAddDriveModal}
           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
           Add New Drive
         </button>
       </div>
-
-      {showAddDriveModal && (
-        <AddDriveModal
-          onClose={() => setShowAddDriveModal(false)}
-          onAddDrive={handleAddDrive}
-        />
-      )}
 
       {drives.length > 0 ? (
         <div className="grid grid-cols-1 gap-6">
@@ -88,6 +88,7 @@ const CurrentDrives = () => {
               key={drive.drive_id}
               drive={drive}
               onDelete={handleDeleteDrive}
+              onUpdateDrive={fetchDrives}
             />
           ))}
         </div>

@@ -1,13 +1,14 @@
+// components/Cards/ItemList.js
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
-import ItemSelectionModal from '../Modals/ItemSelectionModal'; // New side modal component
+import { useModal, MODAL_TYPES } from '../../contexts/ModalContext';
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const ItemList = ({ childId }) => {
   const [items, setItems] = useState([]);
-  const [showModal, setShowModal] = useState(false);
+  const { openModal } = useModal();
 
   useEffect(() => {
     fetchItems();
@@ -15,10 +16,9 @@ const ItemList = ({ childId }) => {
 
   const fetchItems = async () => {
     try {
-      const response = await axios.get(
-        `${apiUrl}/api/children/${childId}/items`,
-        { withCredentials: true }
-      );
+      const response = await axios.get(`${apiUrl}/api/children/${childId}/items`, {
+        withCredentials: true,
+      });
       setItems(response.data);
     } catch (error) {
       console.error('Error fetching items:', error);
@@ -27,14 +27,20 @@ const ItemList = ({ childId }) => {
 
   const handleDeleteItem = async (childItemId) => {
     try {
-      await axios.delete(
-        `${apiUrl}/api/children/${childId}/items/${childItemId}`,
-        { withCredentials: true }
-      );
+      await axios.delete(`${apiUrl}/api/children/${childId}/items/${childItemId}`, {
+        withCredentials: true,
+      });
       fetchItems(); // Refresh items list
     } catch (error) {
       console.error('Error deleting item:', error);
     }
+  };
+
+  const triggerItemSelectionModal = () => {
+    openModal(MODAL_TYPES.ITEM_SELECTION, {
+      childId,
+      onItemAdded: fetchItems,
+    });
   };
 
   return (
@@ -63,20 +69,12 @@ const ItemList = ({ childId }) => {
 
       <div className="mt-4">
         <button
-          onClick={() => setShowModal(true)}
+          onClick={triggerItemSelectionModal}
           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
           Add Item
         </button>
       </div>
-
-      {showModal && (
-        <ItemSelectionModal
-          onClose={() => setShowModal(false)}
-          childId={childId}
-          onItemAdded={fetchItems}
-        />
-      )}
     </div>
   );
 };

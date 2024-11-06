@@ -7,6 +7,8 @@ import NProgress from 'nprogress';
 import 'nprogress/nprogress.css';
 import Providers from 'components/Providers';
 import ErrorBoundary from 'components/ErrorBoundary';
+import { ModalProvider } from '../contexts/ModalContext';
+import ModalRenderer from '../components/Modals/ModalRenderer';
 
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "styles/index.css";
@@ -57,7 +59,10 @@ const MyApp = ({ Component, pageProps }) => {
         <ErrorBoundary>
           <Layout>
             <Suspense fallback={<div className="flex justify-center items-center min-h-screen">Loading...</div>}>
-              <Component {...pageProps} />
+              <ModalProvider>
+                <Component {...pageProps} />
+                <ModalRenderer />
+              </ModalProvider>
             </Suspense>
           </Layout>
         </ErrorBoundary>

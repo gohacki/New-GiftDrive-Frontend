@@ -76,7 +76,7 @@ const EditChildModal = ({ child, onClose, onUpdateChild }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full">
         <h2 className="text-xl font-semibold mb-4">Edit Child</h2>
         <form onSubmit={handleSubmit}>
@@ -147,6 +147,7 @@ const EditChildModal = ({ child, onClose, onUpdateChild }) => {
   );
 };
 
+// PropTypes Validation
 EditChildModal.propTypes = {
   child: PropTypes.shape({
     child_id: PropTypes.number.isRequired,
