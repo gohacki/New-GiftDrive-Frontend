@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import PropTypes from 'prop-types';
 import { AuthContext } from '../../contexts/AuthContext';
+import Image from 'next/image';
 
 import Admin from "layouts/Admin.js";
 
@@ -19,6 +20,7 @@ const EditOrganizationInfo = () => {
     country: '',
     postalCode: '',
   });
+  const [previewPhoto, setPreviewPhoto] = useState(null); // State for new photo preview
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
@@ -26,6 +28,14 @@ const EditOrganizationInfo = () => {
     if (user && user.org_id) {
       fetchOrganizationInfo();
     }
+
+    // Cleanup the object URL when component unmounts or when a new file is selected
+    return () => {
+      if (previewPhoto) {
+        URL.revokeObjectURL(previewPhoto);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchOrganizationInfo = async () => {
@@ -60,7 +70,23 @@ const EditOrganizationInfo = () => {
   };
 
   const handleFileChange = (e) => {
-    setOrganization({ ...organization, photo: e.target.files[0] });
+    const file = e.target.files[0];
+    setOrganization({ ...organization, photo: file });
+
+    if (file) {
+      // Revoke the previous object URL if it exists to prevent memory leaks
+      if (previewPhoto) {
+        URL.revokeObjectURL(previewPhoto);
+      }
+      const previewUrl = URL.createObjectURL(file);
+      setPreviewPhoto(previewUrl);
+    } else {
+      // If no file is selected, remove the preview
+      if (previewPhoto) {
+        URL.revokeObjectURL(previewPhoto);
+      }
+      setPreviewPhoto(null);
+    }
   };
 
   const validateForm = () => {
@@ -109,6 +135,11 @@ const EditOrganizationInfo = () => {
       setLoading(false);
       // Optionally, refetch organization info to update the state with the new photo URL
       fetchOrganizationInfo();
+      // Reset preview photo after successful upload
+      if (previewPhoto) {
+        URL.revokeObjectURL(previewPhoto);
+        setPreviewPhoto(null);
+      }
     } catch (error) {
       console.error('Error updating organization info:', error);
       setLoading(false);
@@ -150,7 +181,9 @@ const EditOrganizationInfo = () => {
                     name="name"
                     value={organization.name}
                     onChange={handleInputChange}
-                    className={`border-0 px-3 py-3 placeholder-blueGray-300 text-blueGray-600 bg-white rounded text-sm shadow focus:outline-none focus:ring w-full ease-linear transition-all duration-150 ${errors.name ? 'border-red-500' : ''}`}
+                    className={`border-0 px-3 py-3 placeholder-blueGray-300 text-blueGray-600 bg-white rounded text-sm shadow focus:outline-none focus:ring w-full ease-linear transition-all duration-150 ${
+                      errors.name ? 'border-red-500' : ''
+                    }`}
                     placeholder="Organization Name"
                     required
                     minLength={3}
@@ -190,7 +223,9 @@ const EditOrganizationInfo = () => {
                     name="description"
                     value={organization.description}
                     onChange={handleInputChange}
-                    className={`border-0 px-3 py-3 placeholder-blueGray-300 text-blueGray-600 bg-white rounded text-sm shadow focus:outline-none focus:ring w-full ease-linear transition-all duration-150 ${errors.description ? 'border-red-500' : ''}`}
+                    className={`border-0 px-3 py-3 placeholder-blueGray-300 text-blueGray-600 bg-white rounded text-sm shadow focus:outline-none focus:ring w-full ease-linear transition-all duration-150 ${
+                      errors.description ? 'border-red-500' : ''
+                    }`}
                     placeholder="Organization Description"
                     maxLength={500}
                     rows="4"
@@ -298,25 +333,35 @@ const EditOrganizationInfo = () => {
                     onChange={handleFileChange}
                     className="border-0 px-3 py-3 text-blueGray-600 bg-white rounded text-sm shadow focus:outline-none focus:ring w-full ease-linear transition-all duration-150"
                   />
+                  {/* Display Current Photo */}
                   {organization.photo && typeof organization.photo === 'string' && (
-                    <div className="mt-2">
-                      <p className="text-blueGray-700 text-sm">Current Photo:</p>
-                      <img
-                        src={organization.photo}
-                        alt="Organization Photo"
-                        className="w-32 h-32 object-cover rounded"
-                      />
+                    <div className="mt-2 flex items-center">
+                      <p className="text-blueGray-700 text-sm mr-2">Current Photo:</p>
+                      <div className="relative w-32 h-32">
+                        <Image
+                          src={organization.photo}
+                          alt="Organization Photo"
+                          className="rounded object-cover"
+                          layout="fill" // Use 'fill' with proper parent styling
+                          objectFit="cover"
+                          priority={true} // Optional: prioritize loading if necessary
+                        />
+                      </div>
                     </div>
                   )}
-                  {/* If a new file is selected, show a preview */}
-                  {organization.photo && organization.photo instanceof File && (
-                    <div className="mt-2">
-                      <p className="text-blueGray-700 text-sm">New Photo Preview:</p>
-                      <img
-                        src={URL.createObjectURL(organization.photo)}
-                        alt="New Organization Photo"
-                        className="w-32 h-32 object-cover rounded"
-                      />
+                  {/* Display New Photo Preview */}
+                  {previewPhoto && (
+                    <div className="mt-2 flex items-center">
+                      <p className="text-blueGray-700 text-sm mr-2">New Photo Preview:</p>
+                      <div className="relative w-32 h-32">
+                        <Image
+                          src={previewPhoto}
+                          alt="New Organization Photo"
+                          className="rounded object-cover"
+                          layout="fill"
+                          objectFit="cover"
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
