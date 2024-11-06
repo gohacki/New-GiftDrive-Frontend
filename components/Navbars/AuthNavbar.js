@@ -228,10 +228,10 @@ const Navbar = () => {
 
             {/* Cart Icon for Small Screens */}
             <li className="flex items-center lg:hidden">
-              <Link href="/cart">
+              <Link href="/visible/cart">
                 <span
                   className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
-                    isActive('/cart') ? 'text-blueGray-300' : ''
+                    isActive('/visible/cart') ? 'text-blueGray-300' : ''
                   }`}
                 >
                   <FaShoppingCart className="h-6 w-6 mr-1" /> Cart
@@ -243,7 +243,7 @@ const Navbar = () => {
 
         {/* Cart Icon for Large Screens */}
         <div className="navbar-cart flex items-center hidden lg:flex">
-          <Link href="/cart">
+          <Link href="/visible/cart">
             <span className="flex items-center">
               <FaShoppingCart className="h-6 w-6 text-white" />
             </span>

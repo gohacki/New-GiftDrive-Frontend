@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 // Import Chart Components
 import CardLineChart from "components/Cards/CardLineChart";
@@ -25,6 +27,12 @@ export default function Dashboard() {
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
+  const [startDate, setStartDate] = useState(
+    new Date(new Date().setMonth(new Date().getMonth() - 1))
+  );
+  const [endDate, setEndDate] = useState(new Date());
+
+
   useEffect(() => {
     const fetchStatistics = async () => {
       try {
@@ -32,6 +40,10 @@ export default function Dashboard() {
           const response = await axios.get(
             `${apiUrl}/api/drives/organization/${user.org_id}/statistics`,
             {
+              params: {
+                startDate: startDate.toISOString(),
+                endDate: endDate.toISOString(),
+              },
               withCredentials: true,
             }
           );
@@ -46,7 +58,7 @@ export default function Dashboard() {
     if (!loading) {
       fetchStatistics();
     }
-  }, [user, loading, apiUrl, setGlobalStatistics]);
+  }, [user, loading, apiUrl, setGlobalStatistics, startDate, endDate]);
 
   if (loading || !localStatistics) {
     return (
@@ -58,12 +70,30 @@ export default function Dashboard() {
 
   return (
     <>
+      <div className="flex justify-end p-4">
+        <div className="mr-4">
+          <label className="block text-sm font-medium text-white">Start Date</label>
+          <DatePicker
+            selected={startDate}
+            onChange={(date) => setStartDate(date)}
+            className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-white text-black"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-white">End Date</label>
+          <DatePicker
+            selected={endDate}
+            onChange={(date) => setEndDate(date)}
+            className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-white text-black"
+          />
+        </div>
+      </div>
       {/* Charts Section */}
       <div className="flex flex-wrap mt-4">
         {/* Kids Gifted Status Pie Chart */}
         <div className="w-full xl:w-6/12 mb-12 xl:mb-0 px-4">
           <CardPieChart
-            title="Kids Gifted Status"
+            title="Donees Gifted Status"
             data={[
               localStatistics.kidsFullyGifted,
               localStatistics.kidsPartiallyGifted,
