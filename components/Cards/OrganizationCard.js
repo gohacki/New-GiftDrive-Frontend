@@ -14,8 +14,8 @@ const OrganizationCard = ({ org }) => {
           <Image
             src={org.photo}
             alt={org.name}
-            layout="fill"
-            objectFit="cover"
+            fill={true}
+            style={{objectFit: "cover"}}
             className="rounded-t-lg"
             priority={false} // Set to true if images are above the fold
           />
