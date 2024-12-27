@@ -4,7 +4,7 @@
 const nextConfig = {
     reactStrictMode: true,
     images: {
-      domains: ['giveagift-assets.nyc3.cdn.digitaloceanspaces.com', 'nyc3.digitaloceanspaces.com'],
+      domains: ['giveagift-assets.nyc3.cdn.digitaloceanspaces.com', 'nyc3.digitaloceanspaces.com', 'm.media-amazon.com'],
     },
   };
   

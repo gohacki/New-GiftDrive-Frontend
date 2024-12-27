@@ -28,7 +28,7 @@ const AddChildModal = ({ onClose, onAddChild, driveId }) => {
 
   const fetchDefaultItems = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/api/items/default`, {
+      const response = await axios.get(`${apiUrl}/api/items/`, {
         withCredentials: true,
       });
       setDefaultItems(response.data);
