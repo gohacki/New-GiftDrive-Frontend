@@ -4,7 +4,6 @@ import AddChildModal from './AddChildModal';
 import EditChildModal from './EditChildModal';
 import AddDriveModal from './AddDriveModal';
 import EditDriveModal from './EditDriveModal';
-import ItemSelectionModal from './ItemSelectionModal';
 
 const ModalRenderer = () => {
   const { modalState, closeModal } = useModal();
@@ -24,9 +23,6 @@ const ModalRenderer = () => {
       return <AddDriveModal onClose={closeModal} {...modalProps} />;
     case MODAL_TYPES.EDIT_DRIVE:
       return <EditDriveModal onClose={closeModal} {...modalProps} />;
-    case MODAL_TYPES.ITEM_SELECTION:
-      return <ItemSelectionModal onClose={closeModal} {...modalProps} />;
-    // Add more cases as needed
     default:
       return null;
   }

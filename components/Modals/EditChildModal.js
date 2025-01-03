@@ -10,53 +10,93 @@ if (!apiUrl) {
 }
 
 const EditChildModal = ({ child, onClose, onUpdateChild }) => {
-  const [childData, setChildData] = useState({
-    name: child.child_name || '',
-    photo: child.child_photo || null,
-    itemIds: child.items?.map((item) => Number(item.item_id)) || [],
-  });
-  const [defaultItems, setDefaultItems] = useState([]);
+  // State to manage current items with quantities
+  const [currentItems, setCurrentItems] = useState(
+    child.items?.map((item) => ({
+      child_item_id: Number(item.child_item_id),
+      item_id: Number(item.item_id),
+      item_name: item.item_name,
+      price: Number(item.price),
+      quantity: Number(item.quantity) || 1,
+      item_photo: item.item_photo,
+    })) || []
+  );
+
+  // State to manage all items fetched from the backend
+  const [allItems, setAllItems] = useState([]);
+  
+  // State for search term
+  const [searchTerm, setSearchTerm] = useState('');
+
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchDefaultItems();
+    fetchAllItems();
   }, []);
 
-  const fetchDefaultItems = async () => {
+  const fetchAllItems = async () => {
     try {
       const response = await axios.get(`${apiUrl}/api/items/`, {
         withCredentials: true,
       });
-      setDefaultItems(response.data);
+      setAllItems(response.data);
     } catch (error) {
-      console.error('Error fetching default items:', error);
+      console.error('Error fetching all items:', error);
       setError('Failed to load items. Please try again.');
     }
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setChildData({ ...childData, [name]: value });
+  // Compute available items by excluding current items
+  const availableItems = allItems.filter(
+    (item) => !currentItems.some((ci) => ci.item_id === item.item_id)
+  );
+
+  // Handler to adjust quantity
+  const handleQuantityChange = (childItemId, delta) => {
+    setCurrentItems((prevItems) =>
+      prevItems.map((item) =>
+        item.child_item_id === childItemId
+          ? {
+              ...item,
+              quantity: Math.max(item.quantity + delta, 1),
+            }
+          : item
+      )
+    );
   };
 
-  const handleFileChange = (e) => {
-    setChildData({ ...childData, photo: e.target.files[0] });
+  // Handler to remove an item
+  const handleRemoveItem = (childItemId) => {
+    setCurrentItems((prevItems) =>
+      prevItems.filter((item) => item.child_item_id !== childItemId)
+    );
   };
 
-  const handleItemSelection = (e) => {
-    const itemId = Number(e.target.value);
-    const isChecked = e.target.checked;
-
-    if (isChecked) {
-      setChildData({ ...childData, itemIds: [...childData.itemIds, itemId] });
-    } else {
-      setChildData({
-        ...childData,
-        itemIds: childData.itemIds.filter((id) => id !== itemId),
-      });
-    }
+  // Handler to add an item
+  const handleAddItem = (item) => {
+    setCurrentItems((prevItems) => [
+      ...prevItems,
+      {
+        item_id: item.item_id,
+        item_name: item.name,
+        price: Number(item.price),
+        quantity: 1,
+        item_photo: item.image_url,
+      },
+    ]);
   };
+
+  // Handler for search input
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+  
+
+  // Filtered available items based on search term
+  const filteredAvailableItems = availableItems.filter((item) =>
+    item.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -64,24 +104,26 @@ const EditChildModal = ({ child, onClose, onUpdateChild }) => {
     setIsSubmitting(true);
 
     try {
-      const formData = new FormData();
-      formData.append('name', childData.name);
-      formData.append('child_id', child.child_id);
-      if (childData.photo instanceof File) {
-        formData.append('photo', childData.photo);
-      }
-      formData.append('item_ids', JSON.stringify(childData.itemIds));
+      // Prepare data to send to backend
+      const payload = {
+        child_item_ids: currentItems.map((item) => item.child_item_id),
+        quantities: currentItems.reduce((acc, item) => {
+          acc[item.child_item_id] = item.quantity;
+          return acc;
+        }, {}),
+      };
 
       const response = await axios.put(
         `${apiUrl}/api/children/${child.child_id}`,
-        formData,
+        payload,
         {
-          withCredentials: true,
           headers: {
-            'Content-Type': 'multipart/form-data',
+            'Content-Type': 'application/json',
           },
+          withCredentials: true,
         }
       );
+      console.log(response.data);
 
       onUpdateChild(response.data);
       onClose();
@@ -98,14 +140,14 @@ const EditChildModal = ({ child, onClose, onUpdateChild }) => {
       role="dialog"
       aria-modal="true"
       aria-labelledby="edit-child-modal-title"
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-auto"
     >
       <div
-        className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full"
+        className="bg-white rounded-lg shadow-lg p-6 max-w-3xl w-full mx-4 my-8"
         role="document"
       >
-        <h2 id="edit-child-modal-title" className="text-xl font-semibold mb-4">
-          Edit Child
+        <h2 id="edit-child-modal-title" className="text-2xl font-semibold mb-6">
+          Manage Child&apos;s Items
         </h2>
         <form onSubmit={handleSubmit}>
           {error && (
@@ -113,71 +155,117 @@ const EditChildModal = ({ child, onClose, onUpdateChild }) => {
               {error}
             </div>
           )}
-          <div className="mb-4">
-            <label htmlFor="name" className="block font-medium mb-1">
-              Name:
-            </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={childData.name}
-              onChange={handleInputChange}
-              className="w-full border border-gray-300 rounded p-2"
-              required
-            />
-          </div>
 
-          <div className="mb-4">
-            <label htmlFor="photo" className="block font-medium mb-1">
-              Photo:
-            </label>
-            <input
-              type="file"
-              id="photo"
-              accept="image/*"
-              onChange={handleFileChange}
-              aria-describedby="photo-description"
-            />
-            <p id="photo-description" className="text-sm text-gray-500">
-              Upload a new photo to replace the existing one.
-            </p>
-            {child.child_photo && !childData.photo && (
-              <div className="mt-2">
-                <img
-                  src={child.child_photo}
-                  alt={child.child_name}
-                  className="w-32 h-32 object-cover rounded"
-                />
-              </div>
+          {/* Current Items Section */}
+          <div className="mb-6">
+            <h3 className="text-xl font-medium mb-3">Current Items</h3>
+            {currentItems.length === 0 ? (
+              <p className="text-gray-600">No items currently associated with this child.</p>
+            ) : (
+              <ul className="space-y-4">
+                {currentItems.map((item) => (
+                  <li
+                    key={item.child_item_id}
+                    className="flex items-center justify-between bg-gray-100 p-4 rounded"
+                  >
+                    <div className="flex items-center space-x-4">
+                      {item.item_photo && (
+                        <img
+                          src={item.item_photo}
+                          alt={item.item_name}
+                          className="w-16 h-16 object-cover rounded"
+                        />
+                      )}
+                      <div>
+                        <h4 className="text-lg font-semibold">{item.item_name}</h4>
+                        <p className="text-gray-600">${item.price.toFixed(2)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => handleQuantityChange(item.child_item_id, -1)}
+                          className="px-2 py-1 bg-gray-300 rounded hover:bg-gray-400"
+                          aria-label={`Decrease quantity of ${item.item_name}`}
+                        >
+                          -
+                        </button>
+                        <span>{item.quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleQuantityChange(item.child_item_id, 1)}
+                          className="px-2 py-1 bg-gray-300 rounded hover:bg-gray-400"
+                          aria-label={`Increase quantity of ${item.item_name}`}
+                        >
+                          +
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem(item.child_item_id)}
+                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                        aria-label={`Remove ${item.item_name} from child`}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
 
-          <div className="mb-4">
-            <fieldset>
-              <legend className="block font-medium mb-1">
-                Select Items:
-              </legend>
-              <div className="space-y-2">
-                {defaultItems.map((item) => (
-                  <div key={item.item_id} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id={`item-${item.item_id}`}
-                      value={item.item_id}
-                      checked={childData.itemIds.includes(item.item_id)}
-                      onChange={handleItemSelection}
-                      className="w-4 h-4"
-                    />
-                    <label htmlFor={`item-${item.item_id}`}>
-                      {item.name} - ${Number(item.price).toFixed(2)}
-                    </label>
-                  </div>
+          {/* Available Items Section */}
+          <div className="mb-6">
+            <h3 className="text-xl font-medium mb-3">Available Items</h3>
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Search items..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+                className="w-full border border-gray-300 rounded p-2"
+                aria-label="Search available items"
+              />
+            </div>
+            {filteredAvailableItems.length === 0 ? (
+              <p className="text-gray-600">No available items match your search.</p>
+            ) : (
+              <ul className="space-y-4 max-h-64 overflow-y-auto">
+                {filteredAvailableItems.map((item) => (
+                  <li
+                    key={item.item_id}
+                    className="flex items-center justify-between bg-gray-50 p-4 rounded"
+                  >
+                    <div className="flex items-center space-x-4">
+                      {item.image_url && (
+                        <img
+                          src={item.image_url}
+                          alt={item.name}
+                          className="w-16 h-16 object-cover rounded"
+                        />
+                      )}
+                      <div>
+                        <h4 className="text-lg font-semibold">{item.name}</h4>
+                        <p className="text-gray-600">${Number(item.price).toFixed(2)}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleAddItem(item)}
+                      className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                      aria-label={`Add ${item.name} to child`}
+                    >
+                      Add
+                    </button>
+                  </li>
                 ))}
-              </div>
-            </fieldset>
+              </ul>
+            )}
           </div>
 
+          {/* Submit and Cancel Buttons */}
           <div className="flex justify-end space-x-4">
             <button
               type="button"
@@ -213,11 +301,11 @@ EditChildModal.propTypes = {
         child_item_id: PropTypes.number,
         child_id: PropTypes.number,
         item_id: PropTypes.number,
-        rye_item_id: PropTypes.string,
         item_name: PropTypes.string,
         description: PropTypes.string,
         price: PropTypes.number,
         item_photo: PropTypes.string,
+        quantity: PropTypes.number,
         users_with_item_in_cart: PropTypes.number,
       })
     ),

@@ -43,10 +43,21 @@ const DriveCard = ({ drive, onDelete, onUpdateDrive }) => {
           onClick={(e) => e.stopPropagation()} // Prevent triggering the toggle of details
         >
           <button
+            onClick={() => setShowDetails(!showDetails)}
+            aria-expanded={showDetails}
+            tabIndex={0}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') setShowDetails(!showDetails);
+            }}
+            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+          >
+            Manage Drive Donees
+          </button>
+          <button
             onClick={handleEdit}
             className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
           >
-            Edit
+            Edit Drive Info
           </button>
           <button
             onClick={handleDelete}

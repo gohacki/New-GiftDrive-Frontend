@@ -1,4 +1,4 @@
-// src/pages/drive/[id].js
+// src/pages/visible/child/[id].js
 
 import { useRouter } from 'next/router';
 import axios from 'axios';

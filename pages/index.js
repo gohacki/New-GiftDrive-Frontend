@@ -38,7 +38,7 @@ export default function Landing() {
                 <div className="pr-0 lg:pr-12">
                   {/* Heading */}
                   <h1 className="text-white font-semibold text-4xl sm:text-5xl md:text-6xl">
-                    Gift Drives Start.
+                    Gift Drives Start Here
                   </h1>
 
                   {/* Paragraph */}
