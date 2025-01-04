@@ -2,15 +2,12 @@
 
 import React, { useContext, useEffect, useState } from 'react';
 import { CartContext } from '../../contexts/CartContext';
-import axios from 'axios';
 import Link from 'next/link';
 import Navbar from 'components/Navbars/AuthNavbar';
 import Footer from 'components/Footers/Footer';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
 const CartPage = () => {
-  const { cart, removeFromCart } = useContext(CartContext);
+  const { cart, removeFromCart, updateCartItemQuantity, loading } = useContext(CartContext);
   const [cartItems, setCartItems] = useState([]);
 
   useEffect(() => {
@@ -21,28 +18,24 @@ const CartPage = () => {
     }
   }, [cart]);
 
-  const handleRemoveItem = async (cartLineId) => {
+  const handleRemoveItem = async (cartItemId) => {
     try {
-      await removeFromCart(cartLineId);
-      setCartItems(cartItems.filter((item) => item.cartLineId !== cartLineId));
+      await removeFromCart(cartItemId);
+      // No need to manually update cartItems; fetchCart will handle it
     } catch (error) {
       console.error('Error removing item:', error);
     }
   };
 
-  const handleUpdateQuantity = async (cartLineId, quantity) => {
+  const handleUpdateQuantity = async (cartItemId, quantity) => {
+    if (quantity < 1) {
+      alert('Quantity must be at least 1.');
+      return;
+    }
+
     try {
-      await axios.post(
-        `${apiUrl}/api/cart/update`,
-        { cartLineId, quantity },
-        { withCredentials: true }
-      );
-      // Update the local cart items state
-      setCartItems(
-        cartItems.map((item) =>
-          item.cartLineId === cartLineId ? { ...item, quantity } : item
-        )
-      );
+      await updateCartItemQuantity(cartItemId, quantity);
+      // No need to manually update cartItems; fetchCart will handle it
     } catch (error) {
       console.error('Error updating quantity:', error);
     }
@@ -51,10 +44,11 @@ const CartPage = () => {
   const handleProceedToCheckout = () => {
     // Implement your checkout logic here
     // For example, redirect to a checkout page
+    // router.push('/checkout'); // Ensure this route exists
   };
 
   const totalPrice = cartItems.reduce(
-    (total, item) => total + item.price * item.quantity,
+    (total, item) => total + (item.price || 0) * (item.quantity || 1),
     0
   );
 
@@ -63,8 +57,12 @@ const CartPage = () => {
       <Navbar transparent />
       <main className="pt-20 min-h-[80vh] bg-gray-800">
         <div className="container mx-auto px-4 py-8">
-          {cartItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center min-h-screen-minus-nav-footer text-white">
+          {loading ? (
+            <div className="flex justify-center items-center text-white">
+              <p>Loading your cart...</p>
+            </div>
+          ) : cartItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center text-white">
               <h2 className="text-3xl font-semibold mb-4">Your Cart is Empty</h2>
               <Link href="/visible/orglist" className="text-blue-400 hover:underline">
                 Browse Organizations
@@ -86,33 +84,50 @@ const CartPage = () => {
                   </thead>
                   <tbody>
                     {cartItems.map((item) => (
-                      <tr key={item.cartLineId} className="border-b">
+                      <tr key={item.cart_item_id} className="border-b">
                         <td className="px-6 py-4 flex items-center">
-                          <img
-                            src={item.imageUrl}
-                            alt={item.productName}
-                            className="w-16 h-16 object-cover mr-4 rounded"
-                          />
-                          <span>{item.productName}</span>
+                          {item.image_url ? (
+                            <img
+                              src={item.image_url}
+                              alt={item.item_name}
+                              className="w-16 h-16 object-cover mr-4 rounded"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 bg-gray-300 mr-4 rounded"></div>
+                          )}
+                          <div>
+                            <Link href={`/visible/child/${item.child_id}`} className="text-blue-500 hover:underline">
+                              {item.item_name}
+                            </Link>
+                            {item.size || item.color ? (
+                              <div className="text-sm text-gray-600">
+                                {item.size && <span>Size: {item.size} </span>}
+                                {item.color && <span>Color: {item.color}</span>}
+                              </div>
+                            ) : null}
+                          </div>
                         </td>
-                        <td className="px-6 py-4">${item.price.toFixed(2)}</td>
+                        <td className="px-6 py-4">${Number(item.price).toFixed(2)}</td>
                         <td className="px-6 py-4">
                           <input
                             type="number"
                             min="1"
                             value={item.quantity}
                             onChange={(e) =>
-                              handleUpdateQuantity(item.cartLineId, parseInt(e.target.value))
+                              handleUpdateQuantity(
+                                item.cart_item_id,
+                                parseInt(e.target.value)
+                              )
                             }
                             className="w-16 border border-gray-300 rounded p-1 text-center"
                           />
                         </td>
                         <td className="px-6 py-4">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          ${(Number(item.price) * Number(item.quantity)).toFixed(2)}
                         </td>
                         <td className="px-6 py-4">
                           <button
-                            onClick={() => handleRemoveItem(item.cartLineId)}
+                            onClick={() => handleRemoveItem(item.cart_item_id)}
                             className="text-red-500 hover:underline"
                           >
                             Remove

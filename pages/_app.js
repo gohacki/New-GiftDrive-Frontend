@@ -9,6 +9,8 @@ import Providers from 'components/Providers';
 import ErrorBoundary from 'components/ErrorBoundary';
 import { ModalProvider } from '../contexts/ModalContext';
 import ModalRenderer from '../components/Modals/ModalRenderer';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "styles/index.css";
@@ -61,6 +63,7 @@ const MyApp = ({ Component, pageProps }) => {
             <Suspense fallback={<div className="flex justify-center items-center min-h-screen">Loading...</div>}>
               <ModalProvider>
                 <Component {...pageProps} />
+                <ToastContainer />
                 <ModalRenderer />
               </ModalProvider>
             </Suspense>

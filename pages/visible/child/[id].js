@@ -1,7 +1,6 @@
 // src/pages/visible/child/[id].js
 
 import { useRouter } from 'next/router';
-import axios from 'axios';
 import React, { useContext } from 'react';
 import PropTypes from 'prop-types';
 import { CartContext } from '../../../contexts/CartContext';
@@ -11,10 +10,14 @@ import Navbar from 'components/Navbars/AuthNavbar';
 import { FaArrowLeft } from 'react-icons/fa';
 import Breadcrumbs from 'components/UI/Breadcrumbs'; // Ensure this component exists
 import Image from 'next/image';
+import axios from 'axios';
 
 const ChildDetailPage = ({ child }) => {
   const router = useRouter();
   const { cart, addToCart, removeFromCart } = useContext(CartContext);
+
+  // Debugging statement
+  console.log('Rendered Child:', child);
 
   if (!child) {
     return (
@@ -29,31 +32,45 @@ const ChildDetailPage = ({ child }) => {
   }
 
   const handleAddToCart = (item) => {
-    const ryeItemId = item.rye_item_id;
+    const itemId = item.item_id;
+    const configId = item.config_id || null; // Adjust based on your data
+    const childId = child.child_id;
     const quantity = 1;
 
-    if (!ryeItemId) {
-      console.error('Missing rye_item_id');
+    if (!itemId) {
+      console.error('Missing item_id');
       return;
     }
 
-    addToCart(ryeItemId, quantity);
+    addToCart(itemId, configId, childId, quantity);
   };
 
-  const handleRemoveFromCart = (item) => {
-    const cartItem = cart?.stores?.flatMap((store) => store.cartLines)?.find(
-      (ci) => ci.product?.id === item.rye_item_id
-    );
-
-    if (cartItem) {
-      removeFromCart(cartItem.id);
-    }
+  const handleRemoveFromCart = (cartItemId) => {
+    removeFromCart(cartItemId);
   };
 
   const isItemAdded = (item) => {
-    return cart?.stores?.flatMap((store) => store.cartLines)?.some(
-      (ci) => ci.product?.id === item.rye_item_id
+    return cart?.items?.some(
+      (ci) =>
+        ci.item_id === item.item_id &&
+        ci.config_id === (item.config_id || null) &&
+        ci.child_id === child.child_id
     );
+  };
+
+  /**
+   * Get the cart_item_id for a specific item
+   * @param {object} item - The item object
+   * @returns {number|null} - The cart_item_id or null if not found
+   */
+  const getCartItemId = (item) => {
+    const cartItem = cart?.items?.find(
+      (ci) =>
+        ci.item_id === item.item_id &&
+        ci.config_id === (item.config_id || null) &&
+        ci.child_id === child.child_id
+    );
+    return cartItem ? cartItem.cart_item_id : null;
   };
 
   return (
@@ -88,9 +105,9 @@ const ChildDetailPage = ({ child }) => {
               {child.photo && (
                 <div className="md:w-1/3 flex justify-center items-center p-6">
                   <Image
-                    src={child.photo || '/img/default-child.png'}
+                    src={child.photo}
                     alt={child.child_name}
-                    width={192} // 48 * 4 (Tailwind's default spacing scale)
+                    width={192}
                     height={192}
                     className="object-cover rounded-full"
                   />
@@ -99,7 +116,6 @@ const ChildDetailPage = ({ child }) => {
               {/* Child Info */}
               <div className="md:w-2/3 p-6 flex flex-col justify-center">
                 <h1 className="text-3xl font-bold text-gray-800 mb-2">{child.child_name}</h1>
-                <p className="text-gray-600 mb-2">{child.organization_name}</p>
                 <p className="text-gray-500 mb-2">
                   Associated with Drive:{' '}
                   <Link href={`/drive/${child.drive_id}`} className="text-blue-500 hover:underline">
@@ -122,6 +138,7 @@ const ChildDetailPage = ({ child }) => {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {child.items.map((item) => {
                   const isAdded = isItemAdded(item);
+                  const cartItemId = getCartItemId(item);
 
                   return (
                     <div
@@ -134,9 +151,9 @@ const ChildDetailPage = ({ child }) => {
                       {item.item_photo && (
                         <div className="flex justify-center">
                           <Image
-                            src={item.item_photo || '/img/default-item.png'}
+                            src={item.item_photo}
                             alt={item.item_name || 'Item Image'}
-                            width={128} // 32 * 4
+                            width={128}
                             height={128}
                             className="object-cover rounded-lg mb-4"
                           />
@@ -148,17 +165,24 @@ const ChildDetailPage = ({ child }) => {
                         <p className="text-gray-600 mb-2">${Number(item.price).toFixed(2)}</p>
                         {/* Optional: Add more item details here */}
                         {item.description && <p className="text-gray-600 mb-2">{item.description}</p>}
+                        {/* If there are configurations, display them */}
+                        {item.size || item.color ? (
+                          <div className="text-sm text-gray-500">
+                            {item.size && <span>Size: {item.size} </span>}
+                            {item.color && <span>Color: {item.color}</span>}
+                          </div>
+                        ) : null}
                       </div>
                       {/* Users with Item in Cart */}
-                      {item.users_with_item_in_cart > 0 && (
+                      {item.users_with_item_in_cart > 1 && (
                         <div className="bg-yellow-100 text-yellow-800 text-sm rounded-lg p-2 mb-2">
-                          {item.users_with_item_in_cart} other {item.users_with_item_in_cart === 1 ? 'person' : 'people'} have this item in their cart
+                          {item.users_with_item_in_cart} other {item.users_with_item_in_cart === 2 ? 'person' : 'people'} have this item in their cart
                         </div>
                       )}
                       {/* Add/Remove Button */}
                       <button
                         onClick={() =>
-                          isAdded ? handleRemoveFromCart(item) : handleAddToCart(item)
+                          isAdded ? handleRemoveFromCart(cartItemId) : handleAddToCart(item)
                         }
                         className={`w-full py-2 rounded-lg text-white ${
                           isAdded ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
@@ -177,60 +201,109 @@ const ChildDetailPage = ({ child }) => {
           </div>
         </div>
       </div>
-        <Footer />
-      </>
-    );
-  };
+      <Footer />
+    </>
+  );
+};
 
-  // PropTypes validation for the ChildDetailPage component
-  ChildDetailPage.propTypes = {
-    child: PropTypes.shape({
-      child_id: PropTypes.number.isRequired,
-      child_name: PropTypes.string.isRequired,
-      organization_name: PropTypes.string.isRequired,
-      drive_id: PropTypes.number.isRequired,
-      drive_name: PropTypes.string.isRequired,
-      photo: PropTypes.string.isRequired,
-      age: PropTypes.number, // Optional
-      gender: PropTypes.string, // Optional
-      description: PropTypes.string, // Optional
-      items: PropTypes.arrayOf(
-        PropTypes.shape({
-          child_item_id: PropTypes.number.isRequired,
-          item_name: PropTypes.string.isRequired,
-          item_photo: PropTypes.string.isRequired,
-          price: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-          users_with_item_in_cart: PropTypes.number.isRequired,
-          rye_item_id: PropTypes.number.isRequired,
-          description: PropTypes.string, // Optional
-        })
-      ).isRequired,
-    }).isRequired,
-  };
+// PropTypes validation for the ChildDetailPage component
+ChildDetailPage.propTypes = {
+  child: PropTypes.shape({
+    child_id: PropTypes.number.isRequired,
+    child_name: PropTypes.string.isRequired,
+    drive_id: PropTypes.number.isRequired,
+    drive_name: PropTypes.string.isRequired,
+    photo: PropTypes.string,
+    age: PropTypes.number, // Optional
+    gender: PropTypes.string, // Optional
+    description: PropTypes.string, // Optional
+    items: PropTypes.arrayOf(
+      PropTypes.shape({
+        child_item_id: PropTypes.number.isRequired,
+        item_id: PropTypes.number.isRequired,
+        config_id: PropTypes.number, // Optional
+        item_name: PropTypes.string.isRequired,
+        item_photo: PropTypes.string,
+        price: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+        users_with_item_in_cart: PropTypes.number.isRequired,
+        description: PropTypes.string, // Optional
+        size: PropTypes.string, // Optional
+        color: PropTypes.string, // Optional
+      })
+    ).isRequired,
+  }).isRequired,
+};
 
-  export default ChildDetailPage;
+export default ChildDetailPage;
 
-  // Fetch child data on the server side
-  export async function getServerSideProps(context) {
-    const { id } = context.params;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+// Fetch child data on the server side
+export async function getServerSideProps(context) {
+  const { id } = context.params;
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-    try {
-      const response = await axios.get(`${apiUrl}/api/children/${id}`);
-      const child = response.data;
+  try {
+    // Fetch child details
+    const childResponse = await axios.get(`${apiUrl}/api/children/${id}`, {
+      withCredentials: true, // Include credentials if needed
+    });
+    const childData = childResponse.data;
 
-      return {
-        props: {
-          child,
-        },
-      };
-    } catch (error) {
-      console.error('Error fetching child data:', error);
-
+    // Validate childData
+    if (!childData || !childData.child_id) {
+      console.warn(`Child with ID ${id} not found.`);
       return {
         props: {
           child: null,
         },
       };
     }
+
+    // Fetch items associated with the child
+    const itemsResponse = await axios.get(`${apiUrl}/api/children/${childData.child_id}/items`, {
+      withCredentials: true,
+    });
+    const itemsData = itemsResponse.data;
+
+    // Transform items data if necessary
+    const items = Array.isArray(itemsData)
+      ? itemsData.map((item) => ({
+          child_item_id: item.child_item_id,
+          item_id: item.item_id,
+          config_id: item.config_id || null, // Adjust based on your data
+          item_name: item.item_name,
+          item_photo: item.item_photo || '/img/default-item.png', // Provide a default image if missing
+          price: Number(item.price),
+          users_with_item_in_cart: Number(item.users_with_item_in_cart) || 0,
+          description: item.description || null,
+          size: item.size || null, // If applicable
+          color: item.color || null, // If applicable
+        }))
+      : [];
+
+    // Combine child details with items
+    const child = {
+      child_id: childData.child_id,
+      child_name: childData.child_name,
+      drive_id: childData.drive_id,
+      drive_name: childData.drive_name,
+      photo: childData.photo || '/img/default-child.png', // Provide a default image if missing
+      age: childData.age || null,
+      gender: childData.gender || null,
+      description: childData.description || null,
+      items: items,
+    };
+
+    return {
+      props: {
+        child,
+      },
+    };
+  } catch (error) {
+    console.error('Error fetching child or items data:', error.message);
+    return {
+      props: {
+        child: null,
+      },
+    };
   }
+}

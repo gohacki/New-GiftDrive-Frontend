@@ -33,6 +33,7 @@ const EditChildModal = ({ child, onClose, onUpdateChild }) => {
 
   useEffect(() => {
     fetchAllItems();
+    fetchCurrentItems(); 
   }, []);
 
   const fetchAllItems = async () => {
@@ -67,25 +68,91 @@ const EditChildModal = ({ child, onClose, onUpdateChild }) => {
   };
 
   // Handler to remove an item
-  const handleRemoveItem = (childItemId) => {
-    setCurrentItems((prevItems) =>
-      prevItems.filter((item) => item.child_item_id !== childItemId)
-    );
-  };
+  // Handler to remove an item
+const handleRemoveItem = async (childItemId) => {
+    try {
+      const response = await axios.delete(
+        `${apiUrl}/api/children/${child.child_id}/items/${childItemId}`,
+        {
+          withCredentials: true,
+        }
+      );
+
+      console.log('Item removed successfully:', response.data);
+
+      // Fetch the updated list of child items
+      await fetchCurrentItems();
+    } catch (error) {
+      console.error('Error removing item from child:', error);
+      setError(
+        error.response?.data?.error ||
+          'Failed to remove item. Please try again.'
+      );
+    }
+};
+
 
   // Handler to add an item
-  const handleAddItem = (item) => {
-    setCurrentItems((prevItems) => [
-      ...prevItems,
-      {
-        item_id: item.item_id,
-        item_name: item.name,
-        price: Number(item.price),
-        quantity: 1,
-        item_photo: item.image_url,
-      },
-    ]);
+  // Handler to add an item
+  const handleAddItem = async (item) => {
+    try {
+      // Send POST request to add the item
+      const response = await axios.post(
+        `${apiUrl}/api/children/${child.child_id}/items`,
+        {
+          item_id: item.item_id,
+          config_id: item.config_id || null, // Include config_id if applicable
+          quantity: 1, // Default quantity
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          withCredentials: true,
+        }
+      );
+
+      console.log('Item added successfully:', response.data);
+
+      // Fetch the updated list of child items
+      await fetchCurrentItems();
+    } catch (error) {
+      console.error('Error adding item to child:', error);
+      setError(
+        error.response?.data?.error ||
+          'Failed to add item to child. Please try again.'
+      );
+    }
   };
+
+  // Function to fetch current items for the child
+  const fetchCurrentItems = async () => {
+    try {
+      const response = await axios.get(
+        `${apiUrl}/api/children/${child.child_id}/items`,
+        {
+          withCredentials: true,
+        }
+      );
+
+      // Update the currentItems state with fetched data
+      setCurrentItems(
+        response.data.map((item) => ({
+          child_item_id: Number(item.child_item_id),
+          item_id: Number(item.item_id),
+          item_name: item.item_name,
+          price: Number(item.price),
+          quantity: Number(item.quantity) || 1,
+          item_photo: item.item_photo,
+        }))
+      );
+    } catch (error) {
+      console.error('Error fetching current items:', error);
+      setError('Failed to load current items. Please try again.');
+    }
+  };
+
+
 
   // Handler for search input
   const handleSearchChange = (e) => {
@@ -102,9 +169,8 @@ const EditChildModal = ({ child, onClose, onUpdateChild }) => {
     e.preventDefault();
     setError(null);
     setIsSubmitting(true);
-
+  
     try {
-      // Prepare data to send to backend
       const payload = {
         child_item_ids: currentItems.map((item) => item.child_item_id),
         quantities: currentItems.reduce((acc, item) => {
@@ -112,7 +178,7 @@ const EditChildModal = ({ child, onClose, onUpdateChild }) => {
           return acc;
         }, {}),
       };
-
+  
       const response = await axios.put(
         `${apiUrl}/api/children/${child.child_id}`,
         payload,
@@ -123,17 +189,22 @@ const EditChildModal = ({ child, onClose, onUpdateChild }) => {
           withCredentials: true,
         }
       );
-      console.log(response.data);
-
+  
+      console.log('Child updated successfully:', response.data);
+  
       onUpdateChild(response.data);
       onClose();
     } catch (error) {
       console.error('Error updating child:', error);
-      setError('Failed to update child. Please check your inputs and try again.');
+      setError(
+        error.response?.data?.error ||
+          'Failed to update child. Please check your inputs and try again.'
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
+  
 
   return (
     <div
@@ -212,6 +283,7 @@ const EditChildModal = ({ child, onClose, onUpdateChild }) => {
                     </div>
                   </li>
                 ))}
+
               </ul>
             )}
           </div>
