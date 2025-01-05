@@ -5,10 +5,16 @@ import { CartContext } from '../../contexts/CartContext';
 import Link from 'next/link';
 import Navbar from 'components/Navbars/AuthNavbar';
 import Footer from 'components/Footers/Footer';
+import { loadStripe } from '@stripe/stripe-js';
+import axios from 'axios';
+
+// Initialize Stripe outside of component to avoid recreating on every render
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
 const CartPage = () => {
   const { cart, removeFromCart, updateCartItemQuantity, loading } = useContext(CartContext);
   const [cartItems, setCartItems] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false); // To handle button state
 
   useEffect(() => {
     if (cart && cart.items) {
@@ -21,9 +27,10 @@ const CartPage = () => {
   const handleRemoveItem = async (cartItemId) => {
     try {
       await removeFromCart(cartItemId);
-      // No need to manually update cartItems; fetchCart will handle it
+      // The CartContext should automatically update cartItems via context
     } catch (error) {
       console.error('Error removing item:', error);
+      alert('Failed to remove item. Please try again.');
     }
   };
 
@@ -35,16 +42,48 @@ const CartPage = () => {
 
     try {
       await updateCartItemQuantity(cartItemId, quantity);
-      // No need to manually update cartItems; fetchCart will handle it
+      // The CartContext should automatically update cartItems via context
     } catch (error) {
       console.error('Error updating quantity:', error);
+      alert('Failed to update quantity. Please try again.');
     }
   };
 
-  const handleProceedToCheckout = () => {
-    // Implement your checkout logic here
-    // For example, redirect to a checkout page
-    // router.push('/checkout'); // Ensure this route exists
+  const handleProceedToCheckout = async () => {
+    setIsProcessing(true); // Disable the button to prevent multiple clicks
+    try {
+      // Create a Checkout Session on the Express backend
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/checkout/create-checkout-session`,
+        {}, // Include any necessary data here if required by your backend
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          withCredentials: true, // Ensure cookies are sent if needed for authentication
+        }
+      );
+
+      const { sessionId } = response.data;
+
+      if (!sessionId) {
+        throw new Error('No session ID returned from the server.');
+      }
+
+      // Redirect to Stripe Checkout
+      const stripe = await stripePromise;
+      const { error } = await stripe.redirectToCheckout({ sessionId });
+
+      if (error) {
+        console.error('Stripe Checkout error:', error);
+        alert('An error occurred while redirecting to checkout.');
+      }
+    } catch (error) {
+      console.error('Error proceeding to checkout:', error.response?.data || error.message);
+      alert('Failed to initiate checkout. Please try again.');
+    } finally {
+      setIsProcessing(false); // Re-enable the button
+    }
   };
 
   const totalPrice = cartItems.reduce(
@@ -99,12 +138,12 @@ const CartPage = () => {
                             <Link href={`/visible/child/${item.child_id}`} className="text-blue-500 hover:underline">
                               {item.item_name}
                             </Link>
-                            {item.size || item.color ? (
+                            {(item.size || item.color) && (
                               <div className="text-sm text-gray-600">
                                 {item.size && <span>Size: {item.size} </span>}
                                 {item.color && <span>Color: {item.color}</span>}
                               </div>
-                            ) : null}
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4">${Number(item.price).toFixed(2)}</td>
@@ -116,7 +155,7 @@ const CartPage = () => {
                             onChange={(e) =>
                               handleUpdateQuantity(
                                 item.cart_item_id,
-                                parseInt(e.target.value)
+                                parseInt(e.target.value, 10)
                               )
                             }
                             className="w-16 border border-gray-300 rounded p-1 text-center"
@@ -150,9 +189,12 @@ const CartPage = () => {
               <div className="flex justify-end mt-6">
                 <button
                   onClick={handleProceedToCheckout}
-                  className="bg-blue-500 text-white px-6 py-3 rounded hover:bg-blue-600"
+                  className={`bg-blue-500 text-white px-6 py-3 rounded hover:bg-blue-600 ${
+                    isProcessing ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  disabled={isProcessing}
                 >
-                  Proceed to Checkout
+                  {isProcessing ? 'Processing...' : 'Proceed to Checkout'}
                 </button>
               </div>
             </>
