@@ -140,6 +140,9 @@ const ChildDetailPage = ({ child }) => {
                   const isAdded = isItemAdded(item);
                   const cartItemId = getCartItemId(item);
 
+                  // We'll use 'item.remaining' to decide if we disable the Add button
+                  const isOutOfStock = item.remaining <= 0;
+
                   return (
                     <div
                       key={item.child_item_id}
@@ -159,37 +162,56 @@ const ChildDetailPage = ({ child }) => {
                           />
                         </div>
                       )}
+
                       {/* Item Info */}
                       <div className="flex-grow">
                         <h3 className="text-lg font-semibold text-gray-800 mb-2">{item.item_name}</h3>
                         <p className="text-gray-600 mb-2">${Number(item.price).toFixed(2)}</p>
-                        {/* Optional: Add more item details here */}
+
+                        {/* Show needed/purchased/remaining */}
+                        <p className="text-gray-600 text-sm">
+                          Needed: {item.needed} | Purchased: {item.purchased} | Remaining: {item.remaining}
+                        </p>
+
                         {item.description && <p className="text-gray-600 mb-2">{item.description}</p>}
-                        {/* If there are configurations, display them */}
-                        {item.size || item.color ? (
-                          <div className="text-sm text-gray-500">
-                            {item.size && <span>Size: {item.size} </span>}
-                            {item.color && <span>Color: {item.color}</span>}
-                          </div>
-                        ) : null}
                       </div>
+
                       {/* Users with Item in Cart */}
                       {item.users_with_item_in_cart > 1 && (
                         <div className="bg-yellow-100 text-yellow-800 text-sm rounded-lg p-2 mb-2">
-                          {item.users_with_item_in_cart} other {item.users_with_item_in_cart === 2 ? 'person' : 'people'} have this item in their cart
+                          {item.users_with_item_in_cart} other{' '}
+                          {item.users_with_item_in_cart === 2 ? 'person' : 'people'} have this item in their cart
                         </div>
                       )}
+
                       {/* Add/Remove Button */}
                       <button
                         onClick={() =>
-                          isAdded ? handleRemoveFromCart(cartItemId) : handleAddToCart(item)
+                          isAdded
+                            ? handleRemoveFromCart(cartItemId)
+                            : handleAddToCart(item)
                         }
-                        className={`w-full py-2 rounded-lg text-white ${
-                          isAdded ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
-                        } transition-colors`}
-                        aria-label={isAdded ? `Remove ${item.item_name} from cart` : `Add ${item.item_name} to cart`}
+                        className={`w-full py-2 rounded-lg text-white transition-colors ${
+                          isAdded
+                            ? 'bg-red-500 hover:bg-red-600'
+                            : isOutOfStock
+                              ? 'bg-gray-400 cursor-not-allowed'
+                              : 'bg-green-500 hover:bg-green-600'
+                        }`}
+                        aria-label={
+                          isAdded
+                            ? `Remove ${item.item_name} from cart`
+                            : isOutOfStock
+                              ? `${item.item_name} is fully purchased`
+                              : `Add ${item.item_name} to cart`
+                        }
+                        disabled={isOutOfStock}
                       >
-                        {isAdded ? 'Remove' : 'Add'}
+                        {isAdded
+                          ? 'Remove'
+                          : isOutOfStock
+                            ? 'Out of Stock'
+                            : 'Add'}
                       </button>
                     </div>
                   );
@@ -244,7 +266,7 @@ export async function getServerSideProps(context) {
   try {
     // Fetch child details
     const childResponse = await axios.get(`${apiUrl}/api/children/${id}`, {
-      withCredentials: true, // Include credentials if needed
+      withCredentials: true,
     });
     const childData = childResponse.data;
 
@@ -264,19 +286,22 @@ export async function getServerSideProps(context) {
     });
     const itemsData = itemsResponse.data;
 
-    // Transform items data if necessary
+    // Transform items data to include needed, purchased, and remaining
     const items = Array.isArray(itemsData)
       ? itemsData.map((item) => ({
           child_item_id: item.child_item_id,
           item_id: item.item_id,
-          config_id: item.config_id || null, // Adjust based on your data
+          config_id: item.config_id || null,
           item_name: item.item_name,
-          item_photo: item.item_photo || '/img/default-item.png', // Provide a default image if missing
+          item_photo: item.item_photo || '/img/default-item.png',
           price: Number(item.price),
           users_with_item_in_cart: Number(item.users_with_item_in_cart) || 0,
           description: item.description || null,
-          size: item.size || null, // If applicable
-          color: item.color || null, // If applicable
+          size: item.size || null,
+          color: item.color || null,
+          needed: Number(item.needed) || 0,           // Added
+          purchased: Number(item.purchased) || 0,     // Added
+          remaining: Number(item.remaining) || 0,     // Added
         }))
       : [];
 
@@ -286,7 +311,7 @@ export async function getServerSideProps(context) {
       child_name: childData.child_name,
       drive_id: childData.drive_id,
       drive_name: childData.drive_name,
-      photo: childData.photo || '/img/default-child.png', // Provide a default image if missing
+      photo: childData.photo || '/img/default-child.png',
       age: childData.age || null,
       gender: childData.gender || null,
       description: childData.description || null,
@@ -307,3 +332,4 @@ export async function getServerSideProps(context) {
     };
   }
 }
+

@@ -185,7 +185,7 @@ const AccountPage = () => {
                                 {new Date(order.order_date).toLocaleDateString()}
                               </td>
                               <td className="py-2 px-4 text-sm text-blueGray-700">
-                                ${order.total_amount.toFixed(2)}
+                                ${Number(order.total_amount).toFixed(2)}
                               </td>
                               <td className="py-2 px-4 text-sm text-blueGray-700">
                                 <ul className="list-disc list-inside">
@@ -203,64 +203,6 @@ const AccountPage = () => {
                     </div>
                   ) : (
                     <p className="text-blueGray-600">You have no orders yet.</p>
-                  )}
-                </div>
-
-                {/* Cart Items */}
-                <div className="mt-10 py-10 border-t border-blueGray-200">
-                  <h2 className="text-2xl font-semibold text-blueGray-700 mb-4">Your Cart Items</h2>
-                  {cartItems.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full bg-white">
-                        <thead>
-                          <tr>
-                            <th className="py-2 px-4 bg-blueGray-100 text-left text-xs font-semibold text-blueGray-600 uppercase tracking-wider">
-                              Item Name
-                            </th>
-                            <th className="py-2 px-4 bg-blueGray-100 text-left text-xs font-semibold text-blueGray-600 uppercase tracking-wider">
-                              Size
-                            </th>
-                            <th className="py-2 px-4 bg-blueGray-100 text-left text-xs font-semibold text-blueGray-600 uppercase tracking-wider">
-                              Color
-                            </th>
-                            <th className="py-2 px-4 bg-blueGray-100 text-left text-xs font-semibold text-blueGray-600 uppercase tracking-wider">
-                              Quantity
-                            </th>
-                            <th className="py-2 px-4 bg-blueGray-100 text-left text-xs font-semibold text-blueGray-600 uppercase tracking-wider">
-                              Actions
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {cartItems.map(item => (
-                            <tr key={item.cart_item_id} className="border-b">
-                              <td className="py-2 px-4 text-sm text-blueGray-700">
-                                {item.item_name}
-                              </td>
-                              <td className="py-2 px-4 text-sm text-blueGray-700">
-                                {item.size || 'N/A'}
-                              </td>
-                              <td className="py-2 px-4 text-sm text-blueGray-700">
-                                {item.color || 'N/A'}
-                              </td>
-                              <td className="py-2 px-4 text-sm text-blueGray-700">
-                                {item.quantity}
-                              </td>
-                              <td className="py-2 px-4 text-sm text-blueGray-700">
-                                <button
-                                  className="bg-red-500 text-white px-3 py-1 rounded"
-                                  // onClick={() => removeCartItem(item.cart_item_id)} // Implement removeCartItem function
-                                >
-                                  Remove
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <p className="text-blueGray-600">Your cart is empty.</p>
                   )}
                 </div>
               </div>
