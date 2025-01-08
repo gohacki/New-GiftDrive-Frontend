@@ -10,8 +10,6 @@ import CardLineChart from "components/Cards/CardLineChart";
 import CardBarChart from "components/Cards/CardBarChart";
 import CardPieChart from "components/Cards/CardPieChart";
 import CardStats from "components/Cards/CardStats";
-import CardPageVisits from "components/Cards/CardPageVisits";
-import CardSocialTraffic from "components/Cards/CardSocialTraffic";
 
 // Layout
 import Admin from "layouts/Admin.js";
@@ -176,19 +174,6 @@ export default function Dashboard() {
           />
         </div>
         {/* Add more financial stats as needed */}
-      </div>
-
-      {/* Page Visits and Social Traffic Tables */}
-      <div className="flex flex-wrap mt-4">
-        {/* Page Visits */}
-        <div className="w-full xl:w-6/12 mb-12 xl:mb-0 px-4">
-          <CardPageVisits />
-        </div>
-
-        {/* Social Traffic */}
-        <div className="w-full xl:w-6/12 px-4">
-          <CardSocialTraffic />
-        </div>
       </div>
     </>
   );

@@ -71,16 +71,9 @@ export default function Footer() {
                 </span>
                 <ul className="list-unstyled">
                   <li>
-                    <Link href="/about">
+                    <Link href="/visible/about">
                       <span className="text-blueGray-600 hover:text-blueGray-800 font-semibold block pb-2 text-sm cursor-pointer">
                         About Us
-                      </span>
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/blog">
-                      <span className="text-blueGray-600 hover:text-blueGray-800 font-semibold block pb-2 text-sm cursor-pointer">
-                        Blog
                       </span>
                     </Link>
                   </li>

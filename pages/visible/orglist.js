@@ -10,7 +10,8 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function OrgList() {
   const [organizations, setOrganizations] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState(''); // State for the search input field
+  const [searchQuery, setSearchQuery] = useState(''); // Actual query used for fetching
   const [selectedState, setSelectedState] = useState('All');
   const [selectedCity, setSelectedCity] = useState('All');
   const [featuredOnly, setFeaturedOnly] = useState(true); // Load featured by default
@@ -44,25 +45,25 @@ export default function OrgList() {
     fetchFilterOptions();
   }, []);
 
-  // Handle search form submission
+  // Handle search form submission (optional)
   const handleSearch = (e) => {
     e.preventDefault();
-    // Reset organizations and pagination when a new search is performed
-    setOrganizations([]);
-    setPage(1);
-    setHasMore(true);
+    // Update searchQuery immediately if user submits the form
+    setSearchQuery(searchInput.trim());
     setFeaturedOnly(false); // Clear "Featured Only" when searching
-    fetchOrganizations(1, true);
   };
 
-  // Handle filter changes
-  const handleFilterChange = () => {
-    // Reset organizations and pagination when filters are changed
-    setOrganizations([]);
-    setPage(1);
-    setHasMore(true);
-    fetchOrganizations(1, true);
-  };
+  // Debounce the search input to update searchQuery after user stops typing
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      // Update searchQuery which will trigger the data fetching
+      setSearchQuery(searchInput.trim());
+      setFeaturedOnly(false); // Clear "Featured Only" when searching
+    }, 500); // 500ms delay
+
+    // Cleanup the timeout if searchInput changes before 500ms
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchInput]);
 
   // Fetch organizations with filtering and pagination
   const fetchOrganizations = async (currentPage, reset = false) => {
@@ -76,8 +77,8 @@ export default function OrgList() {
         featured: featuredOnly.toString(), // Convert to string
       };
 
-      if (searchQuery.trim() !== '') {
-        params.search = searchQuery.trim();
+      if (searchQuery !== '') {
+        params.search = searchQuery;
       }
 
       if (selectedState !== 'All') {
@@ -107,9 +108,19 @@ export default function OrgList() {
     setLoading(false);
   };
 
-  // Fetch initial data and when 'page' changes
+  // useEffect to handle filter and search changes
   useEffect(() => {
-    fetchOrganizations(page, page === 1);
+    // Reset organizations and pagination when filters or search query change
+    setOrganizations([]);
+    setPage(1);
+    setHasMore(true);
+    fetchOrganizations(1, true);
+  }, [featuredOnly, selectedState, selectedCity, searchQuery]);
+
+  // Fetch more organizations when 'page' changes
+  useEffect(() => {
+    if (page === 1) return; // Already fetched in the filter/search useEffect
+    fetchOrganizations(page, false);
   }, [page]);
 
   // Load more organizations (for "Load More" button)
@@ -182,8 +193,8 @@ export default function OrgList() {
                   <input
                     type="text"
                     placeholder="Search for organizations..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
                     className="block w-full pl-10 pr-4 py-3 border border-blueGray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     aria-label="Search for organizations"
                   />
@@ -201,7 +212,6 @@ export default function OrgList() {
                     name="state"
                     value={selectedState}
                     onChange={(e) => setSelectedState(e.target.value)}
-                    onBlur={handleFilterChange}
                     className="block w-full pl-3 pr-10 py-3 border border-blueGray-300 bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
                     aria-label="Filter by state"
                   >
@@ -223,7 +233,6 @@ export default function OrgList() {
                     name="city"
                     value={selectedCity}
                     onChange={(e) => setSelectedCity(e.target.value)}
-                    onBlur={handleFilterChange}
                     className="block w-full pl-3 pr-10 py-3 border border-blueGray-300 bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
                     aria-label="Filter by city"
                   >
@@ -241,10 +250,7 @@ export default function OrgList() {
                     id="featured"
                     type="checkbox"
                     checked={featuredOnly}
-                    onChange={(e) => {
-                      setFeaturedOnly(e.target.checked);
-                      handleFilterChange();
-                    }}
+                    onChange={(e) => setFeaturedOnly(e.target.checked)}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     aria-label="Filter by featured organizations"
                   />
@@ -253,6 +259,14 @@ export default function OrgList() {
                   </label>
                 </div>
                 {/* Optional: Additional Filters can be added here */}
+                <div className="flex items-center">
+                  <button
+                    type="submit"
+                    className="ml-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    Search
+                  </button>
+                </div>
               </div>
             </form>
           </div>
