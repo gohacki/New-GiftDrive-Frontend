@@ -2,7 +2,7 @@
 
 import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
-import {toast} from 'react-toastify';
+import { toast } from 'react-toastify';
 
 export const CartContext = createContext();
 
@@ -26,6 +26,7 @@ export const CartProvider = ({ children }) => {
       setCart(response.data.cart); // Assuming backend sends { cart: { ... } }
     } catch (error) {
       console.error('Error fetching cart:', error.response?.data || error.message);
+      toast.error('Failed to load cart. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -49,7 +50,7 @@ export const CartProvider = ({ children }) => {
       toast.success('Item added to cart successfully!');
     } catch (error) {
       console.error('Error adding to cart:', error.response?.data || error.message);
-      toast.error('Failed to add item to cart.');
+      toast.error(error.response?.data?.error || 'Failed to add item to cart.');
     }
   };
 
@@ -65,8 +66,10 @@ export const CartProvider = ({ children }) => {
         { withCredentials: true }
       );
       fetchCart();
+      toast.success('Item removed from cart.');
     } catch (error) {
       console.error('Error removing from cart:', error.response?.data || error.message);
+      toast.error(error.response?.data?.error || 'Failed to remove item from cart.');
     }
   };
 
@@ -78,13 +81,15 @@ export const CartProvider = ({ children }) => {
   const updateCartItemQuantity = async (cart_item_id, quantity) => {
     try {
       await axios.post(
-        `${apiUrl}/api/cart/update`, // Ensure your backend has an update endpoint
+        `${apiUrl}/api/cart/update`,
         { cart_item_id, quantity },
         { withCredentials: true }
       );
       fetchCart();
+      toast.success('Cart updated successfully.');
     } catch (error) {
       console.error('Error updating cart item quantity:', error.response?.data || error.message);
+      toast.error(error.response?.data?.error || 'Failed to update cart item quantity.');
     }
   };
 

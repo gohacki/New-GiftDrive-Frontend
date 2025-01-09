@@ -1,7 +1,7 @@
 // src/pages/visible/child/[id].js
 
 import { useRouter } from 'next/router';
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import PropTypes from 'prop-types';
 import { CartContext } from '../../../contexts/CartContext';
 import Link from 'next/link';
@@ -15,6 +15,9 @@ import axios from 'axios';
 const ChildDetailPage = ({ child }) => {
   const router = useRouter();
   const { cart, addToCart, removeFromCart } = useContext(CartContext);
+
+  // State to manage quantities for each item
+  const [quantities, setQuantities] = useState({});
 
   // Debugging statement
   console.log('Rendered Child:', child);
@@ -31,11 +34,10 @@ const ChildDetailPage = ({ child }) => {
     );
   }
 
-  const handleAddToCart = (item) => {
+  const handleAddToCart = (item, quantity) => {
     const itemId = item.item_id;
     const configId = item.config_id || null; // Adjust based on your data
     const childId = child.child_id;
-    const quantity = 1;
 
     if (!itemId) {
       console.error('Missing item_id');
@@ -71,6 +73,15 @@ const ChildDetailPage = ({ child }) => {
         ci.child_id === child.child_id
     );
     return cartItem ? cartItem.cart_item_id : null;
+  };
+
+  // Handler for quantity change
+  const handleQuantityChange = (itemId, value, max) => {
+    const newQuantity = Math.max(1, Math.min(Number(value), max));
+    setQuantities((prev) => ({
+      ...prev,
+      [itemId]: newQuantity,
+    }));
   };
 
   return (
@@ -143,6 +154,9 @@ const ChildDetailPage = ({ child }) => {
                   // We'll use 'item.remaining' to decide if we disable the Add button
                   const isOutOfStock = item.remaining <= 0;
 
+                  // Determine maximum quantity that can be added
+                  const maxQuantity = Math.min(item.needed - item.purchased, item.remaining);
+
                   return (
                     <div
                       key={item.child_item_id}
@@ -184,35 +198,89 @@ const ChildDetailPage = ({ child }) => {
                         </div>
                       )}
 
-                      {/* Add/Remove Button */}
-                      <button
-                        onClick={() =>
-                          isAdded
-                            ? handleRemoveFromCart(cartItemId)
-                            : handleAddToCart(item)
-                        }
-                        className={`w-full py-2 rounded-lg text-white transition-colors ${
-                          isAdded
-                            ? 'bg-red-500 hover:bg-red-600'
-                            : isOutOfStock
-                              ? 'bg-gray-400 cursor-not-allowed'
-                              : 'bg-green-500 hover:bg-green-600'
-                        }`}
-                        aria-label={
-                          isAdded
-                            ? `Remove ${item.item_name} from cart`
-                            : isOutOfStock
-                              ? `${item.item_name} is fully purchased`
-                              : `Add ${item.item_name} to cart`
-                        }
-                        disabled={isOutOfStock}
-                      >
-                        {isAdded
-                          ? 'Remove'
-                          : isOutOfStock
-                            ? 'Out of Stock'
-                            : 'Add'}
-                      </button>
+                      {/* Quantity Selector and Add/Remove Button */}
+                      <div className="mt-4">
+                        {item.needed > 1 ? (
+                          <>
+                            {/* Quantity Selector */}
+                            <div className="flex items-center mb-2">
+                              <label htmlFor={`quantity-${item.child_item_id}`} className="mr-2 text-gray-700">
+                                Quantity:
+                              </label>
+                              <input
+                                type="number"
+                                id={`quantity-${item.child_item_id}`}
+                                name={`quantity-${item.child_item_id}`}
+                                min="1"
+                                max={maxQuantity}
+                                value={quantities[item.item_id] || 1}
+                                onChange={(e) =>
+                                  handleQuantityChange(item.item_id, e.target.value, maxQuantity)
+                                }
+                                className="w-16 px-2 py-1 border rounded text-center"
+                                disabled={isOutOfStock || isAdded}
+                              />
+                            </div>
+                            <button
+                              onClick={() =>
+                                isAdded
+                                  ? handleRemoveFromCart(cartItemId)
+                                  : handleAddToCart(item, quantities[item.item_id] || 1)
+                              }
+                              className={`w-full py-2 rounded-lg text-white transition-colors ${
+                                isAdded
+                                  ? 'bg-red-500 hover:bg-red-600'
+                                  : isOutOfStock
+                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    : 'bg-green-500 hover:bg-green-600'
+                              }`}
+                              aria-label={
+                                isAdded
+                                  ? `Remove ${item.item_name} from cart`
+                                  : isOutOfStock
+                                    ? `${item.item_name} is fully purchased`
+                                    : `Add ${item.item_name} to cart`
+                              }
+                              disabled={isOutOfStock}
+                            >
+                              {isAdded
+                                ? 'Remove'
+                                : isOutOfStock
+                                  ? 'Out of Stock'
+                                  : 'Add'}
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() =>
+                              isAdded
+                                ? handleRemoveFromCart(cartItemId)
+                                : handleAddToCart(item, 1)
+                            }
+                            className={`w-full py-2 rounded-lg text-white transition-colors ${
+                              isAdded
+                                ? 'bg-red-500 hover:bg-red-600'
+                                : isOutOfStock
+                                  ? 'bg-gray-400 cursor-not-allowed'
+                                  : 'bg-green-500 hover:bg-green-600'
+                            }`}
+                            aria-label={
+                              isAdded
+                                ? `Remove ${item.item_name} from cart`
+                                : isOutOfStock
+                                  ? `${item.item_name} is fully purchased`
+                                  : `Add ${item.item_name} to cart`
+                            }
+                            disabled={isOutOfStock}
+                          >
+                            {isAdded
+                              ? 'Remove'
+                              : isOutOfStock
+                                ? 'Out of Stock'
+                                : 'Add'}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -251,6 +319,9 @@ ChildDetailPage.propTypes = {
         description: PropTypes.string, // Optional
         size: PropTypes.string, // Optional
         color: PropTypes.string, // Optional
+        needed: PropTypes.number.isRequired,        // Ensure these are required
+        purchased: PropTypes.number.isRequired,      // Ensure these are required
+        remaining: PropTypes.number.isRequired,      // Ensure these are required
       })
     ).isRequired,
   }).isRequired,
@@ -332,4 +403,3 @@ export async function getServerSideProps(context) {
     };
   }
 }
-

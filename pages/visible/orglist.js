@@ -50,15 +50,19 @@ export default function OrgList() {
     e.preventDefault();
     // Update searchQuery immediately if user submits the form
     setSearchQuery(searchInput.trim());
-    setFeaturedOnly(false); // Clear "Featured Only" when searching
+    setFeaturedOnly(searchInput.trim() === '' ? true : false); // Clear "Featured Only" when searching if search is not empty
   };
 
   // Debounce the search input to update searchQuery after user stops typing
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      // Update searchQuery which will trigger the data fetching
-      setSearchQuery(searchInput.trim());
-      setFeaturedOnly(false); // Clear "Featured Only" when searching
+      const trimmedInput = searchInput.trim();
+      setSearchQuery(trimmedInput);
+      if (trimmedInput !== '') {
+        setFeaturedOnly(false); // Clear "Featured Only" when searching
+      } else {
+        setFeaturedOnly(true); // Reset "Featured Only" when search is cleared
+      }
     }, 500); // 500ms delay
 
     // Cleanup the timeout if searchInput changes before 500ms

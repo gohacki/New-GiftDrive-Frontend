@@ -91,6 +91,27 @@ const CartPage = () => {
     0
   );
 
+    // Example logic in the Cart component
+  const incrementQuantity = (item) => {
+    // Only update if we haven't reached the max
+    if (item.quantity < item.maxAvailable) {
+      handleUpdateQuantity(item.cart_item_id, item.quantity + 1);
+    }
+  };
+
+  const decrementQuantity = (item) => {
+    // If we’re at 1, prompt to remove the item entirely
+    if (item.quantity === 1) {
+      const confirmRemove = window.confirm('Do you want to remove this item from your cart?');
+      if (confirmRemove) {
+        handleRemoveItem(item.cart_item_id);
+      }
+    } else {
+      handleUpdateQuantity(item.cart_item_id, item.quantity - 1);
+    }
+  };
+
+
   return (
     <>
       <Navbar transparent />
@@ -148,18 +169,24 @@ const CartPage = () => {
                         </td>
                         <td className="px-6 py-4">${Number(item.price).toFixed(2)}</td>
                         <td className="px-6 py-4">
-                          <input
-                            type="number"
-                            min="1"
-                            value={item.quantity}
-                            onChange={(e) =>
-                              handleUpdateQuantity(
-                                item.cart_item_id,
-                                parseInt(e.target.value, 10)
-                              )
-                            }
-                            className="w-16 border border-gray-300 rounded p-1 text-center"
-                          />
+                          <div className="flex items-center">
+                            <button
+                              onClick={() => decrementQuantity(item)}
+                              className={`px-2 py-1 border`}
+                            >
+                              -
+                            </button>
+
+                            <span className="mx-2 w-8 text-center">{item.quantity}</span>
+
+                            <button
+                              onClick={() => incrementQuantity(item)}
+                              className={`px-2 py-1 border ${item.quantity >= item.maxAvailable ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-500'}`}
+                              disabled={item.quantity >= item.maxAvailable}
+                            >
+                              +
+                            </button>
+                          </div>
                         </td>
                         <td className="px-6 py-4">
                           ${(Number(item.price) * Number(item.quantity)).toFixed(2)}
