@@ -172,7 +172,7 @@ const CartPage = () => {
                           <div className="flex items-center">
                             <button
                               onClick={() => decrementQuantity(item)}
-                              className={`px-2 py-1 border`}
+                              className={`px-2 py-1 border rounded-lg`}
                             >
                               -
                             </button>
@@ -181,7 +181,7 @@ const CartPage = () => {
 
                             <button
                               onClick={() => incrementQuantity(item)}
-                              className={`px-2 py-1 border ${item.quantity >= item.maxAvailable ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-500'}`}
+                              className={`px-2 py-1 border rounded-lg ${item.quantity >= item.maxAvailable ? 'bg-gray-300 cursor-not-allowed' : ''}`}
                               disabled={item.quantity >= item.maxAvailable}
                             >
                               +
