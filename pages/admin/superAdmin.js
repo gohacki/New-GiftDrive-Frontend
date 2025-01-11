@@ -1,10 +1,7 @@
 // src/pages/superadmin/organizations.js
-import React from 'react';
-import { FaTrash, FaSync } from 'react-icons/fa'; // Optional: For icons
-
+import React, { useState, useEffect, useContext, useCallback } from 'react';
+import { FaTrash } from 'react-icons/fa';
 import Navbar from 'components/Navbars/AuthNavbar';
-
-import { useState, useEffect, useContext, useCallback } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useRouter } from 'next/router';
@@ -14,7 +11,7 @@ const OrganizationsAdminPage = () => {
   const router = useRouter();
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-  // State variables
+  // State variables for organizations
   const [organizations, setOrganizations] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
@@ -27,12 +24,22 @@ const OrganizationsAdminPage = () => {
     photo: null,
   });
   const [errorMessage, setErrorMessage] = useState('');
-  const [syncMessage, setSyncMessage] = useState('');
-  const [productUrl, setProductUrl] = useState('');
   const [loading, setLoading] = useState(false);
-  const [syncLoading, setSyncLoading] = useState(false);
 
-  // Fetch organizations with useCallback to prevent re-creation
+  // State variables for unpurchased order items
+  const [unpurchasedItems, setUnpurchasedItems] = useState([]);
+  const [unpurchasedLoading, setUnpurchasedLoading] = useState(false);
+  const [purchaseModal, setPurchaseModal] = useState(false);
+  const [selectedOrderItem, setSelectedOrderItem] = useState(null);
+  const [purchaseForm, setPurchaseForm] = useState({
+    order_number: '',
+    tracking_number: '',
+  });
+  const [purchaseLoading, setPurchaseLoading] = useState(false);
+  const [purchaseError, setPurchaseError] = useState('');
+  const [purchaseSuccess, setPurchaseSuccess] = useState('');
+
+  // Fetch organizations
   const fetchOrganizations = useCallback(async () => {
     setLoading(true);
     try {
@@ -47,7 +54,21 @@ const OrganizationsAdminPage = () => {
     }
   }, [apiUrl]);
 
-  // Handle authentication and fetch organizations on user change
+  // Fetch unpurchased order items
+  const fetchUnpurchasedItems = useCallback(async () => {
+    setUnpurchasedLoading(true);
+    try {
+      const response = await axios.get(`${apiUrl}/api/order_items/unpurchased`, { withCredentials: true });
+      setUnpurchasedItems(response.data);
+    } catch (error) {
+      console.error('Error fetching unpurchased order items:', error);
+      // Optionally set an error state
+    } finally {
+      setUnpurchasedLoading(false);
+    }
+  }, [apiUrl]);
+
+  // Handle authentication and fetch data
   useEffect(() => {
     if (!user) {
       router.push('/login');
@@ -55,15 +76,17 @@ const OrganizationsAdminPage = () => {
       router.push('/');
     } else {
       fetchOrganizations();
+      fetchUnpurchasedItems();
     }
-  }, [user, router, fetchOrganizations]);
+  }, [user, router, fetchOrganizations, fetchUnpurchasedItems]);
 
-  // Handle input changes
+  // Handle input changes for organization form
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Handle file input change
   const handleFileChange = (e) => {
     setFormData((prev) => ({ ...prev, photo: e.target.files[0] }));
   };
@@ -77,7 +100,11 @@ const OrganizationsAdminPage = () => {
     }
 
     const submitData = new FormData();
-    Object.keys(formData).forEach((key) => submitData.append(key, formData[key]));
+    Object.keys(formData).forEach((key) => {
+      if (formData[key] !== null) {
+        submitData.append(key, formData[key]);
+      }
+    });
 
     setLoading(true);
     try {
@@ -121,63 +148,89 @@ const OrganizationsAdminPage = () => {
     }
   };
 
-  // Handle product tracking
-  const handleTrackProduct = async () => {
-    if (!productUrl.trim()) {
-      setSyncMessage('Please enter a valid product URL.');
+  // Handle opening the purchase modal
+  const openPurchaseModal = (orderItem) => {
+    setSelectedOrderItem(orderItem);
+    setPurchaseForm({
+      order_number: orderItem.order_number || '',
+      tracking_number: orderItem.tracking_number || '',
+    });
+    setPurchaseError('');
+    setPurchaseSuccess('');
+    setPurchaseModal(true);
+  };
+
+  // Handle closing the purchase modal
+  const closePurchaseModal = () => {
+    setPurchaseModal(false);
+    setSelectedOrderItem(null);
+    setPurchaseForm({
+      order_number: '',
+      tracking_number: '',
+    });
+  };
+
+  // Handle input changes for purchase form
+  const handlePurchaseInputChange = (e) => {
+    const { name, value } = e.target;
+    setPurchaseForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Handle submitting the purchase form
+  const handleSubmitPurchase = async (e) => {
+    e.preventDefault();
+    const { order_number, tracking_number } = purchaseForm;
+
+    if (!order_number || !tracking_number) {
+      setPurchaseError('Both order number and tracking number are required.');
       return;
     }
 
-    setSyncLoading(true);
+    setPurchaseLoading(true);
     try {
-      await axios.post(`${apiUrl}/api/items/track`, { url: productUrl }, { withCredentials: true });
-      setSyncMessage('Product tracking initiated successfully!');
-      setProductUrl('');
+      await axios.post(
+        `${apiUrl}/api/order_items/${selectedOrderItem.order_item_id}/purchase`,
+        { order_number, tracking_number },
+        { withCredentials: true }
+      );
+      setPurchaseSuccess('Order item marked as purchased successfully.');
+      // Refresh the unpurchased items list
+      fetchUnpurchasedItems();
+      // Optionally, remove the item from the current list
+      setUnpurchasedItems((prev) =>
+        prev.filter((item) => item.order_item_id !== selectedOrderItem.order_item_id)
+      );
+      // Close the modal after a short delay
+      setTimeout(() => {
+        closePurchaseModal();
+      }, 1500);
     } catch (error) {
-      console.error('Error tracking product:', error);
-      setSyncMessage('Failed to track product.');
+      console.error('Error marking order item as purchased:', error);
+      setPurchaseError(
+        error.response?.data?.error || 'Failed to mark order item as purchased.'
+      );
     } finally {
-      setSyncLoading(false);
+      setPurchaseLoading(false);
     }
   };
 
   return (
     <>
-    <Navbar transparent/>
-    <div className="py-24 px-6 bg-gray-400 p-6">
-      {/* Header */}
-      <header className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Super Admin Dashboard</h1>
-      </header>
+      <Navbar transparent />
+      <div className="py-24 px-6 bg-gray-400 p-6">
+        {/* Header */}
+        <header className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-800">Super Admin Dashboard</h1>
+        </header>
 
-      {/* Product Tracking Section */}
-      <section className="bg-white p-6 rounded-lg shadow-md mb-6">
-        <h2 className="text-2xl font-semibold text-gray-700 mb-4">Track a New Product</h2>
-        {syncMessage && (
-          <div
-            className={`mb-4 px-4 py-2 rounded ${
-              syncMessage.includes('successfully') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-            }`}
-          >
-            {syncMessage}
-          </div>
-        )}
-        <div className="flex flex-col sm:flex-row items-center">
-          <input
-            type="text"
-            placeholder="Enter product URL..."
-            value={productUrl}
-            onChange={(e) => setProductUrl(e.target.value)}
-            className="w-full sm:w-auto flex-grow px-4 py-2 border border-gray-300 rounded mb-4 sm:mb-0 sm:mr-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            onClick={handleTrackProduct}
-            disabled={syncLoading}
-            className="w-full sm:w-auto bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition-colors flex items-center justify-center"
-          >
-            {syncLoading ? (
+
+        {/* Unpurchased Order Items Section */}
+        <section className="bg-white p-6 rounded-lg shadow-md my-6">
+          <h2 className="text-2xl font-semibold text-gray-700 mb-4">Unpurchased Order Items</h2>
+          {unpurchasedLoading ? (
+            <div className="flex justify-center items-center">
               <svg
-                className="animate-spin h-5 w-5 mr-2 text-white"
+                className="animate-spin h-8 w-8 text-blue-600"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -196,15 +249,79 @@ const OrganizationsAdminPage = () => {
                   d="M4 12a8 8 0 018-8v8H4z"
                 ></path>
               </svg>
-            ) : (
-              <FaSync className="mr-2" />
-            )}
-            Start Tracking
-          </button>
-        </div>
-      </section>
+              <span className="ml-2 text-gray-700">Loading unpurchased order items...</span>
+            </div>
+          ) : unpurchasedItems.length === 0 ? (
+            <p className="text-gray-500">No unpurchased order items found.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white table-fixed">
+                <thead>
+                  <tr>
+                    <th className="px-6 py-3 border-b-2 border-gray-300 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-48">
+                      Item Name
+                    </th>
+                    <th className="px-6 py-3 border-b-2 border-gray-300 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Quantity
+                    </th>
+                    <th className="px-6 py-3 border-b-2 border-gray-300 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Customer Email
+                    </th>
+                    <th className="px-6 py-3 border-b-2 border-gray-300 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Internal Item Order Number
+                    </th>
+                    <th className="px-6 py-3 border-b-2 border-gray-300 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Amazon Order Number
+                    </th>
+                    <th className="px-6 py-3 border-b-2 border-gray-300 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Tracking Number
+                    </th>
+                    <th className="px-6 py-3 border-b-2 border-gray-300 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {unpurchasedItems.map((item) => (
+                    <tr key={item.order_item_id} className="hover:bg-gray-100" onClick={() => openPurchaseModal(item)}>
+                      <td
+                        className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 max-w-[12rem] truncate"
+                        title={item.item_name} // Shows full text on hover
+                      >
+                        {item.item_name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {item.quantity}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {item.customer_email}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {item.order_item_id}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {item.order_number || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {item.tracking_number || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        <button
+                          onClick={() => openPurchaseModal(item)}
+                          className="flex items-center text-green-600 hover:text-green-800"
+                        >
+                          Mark as Purchased
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
 
-      {/* Organization Addition Form */}
+                {/* Organization Addition Form */}
       <section className="bg-white p-6 rounded-lg shadow-md mb-6">
         <h2 className="text-2xl font-semibold text-gray-700 mb-4">Add New Organization</h2>
         {errorMessage && (
@@ -426,22 +543,7 @@ const OrganizationsAdminPage = () => {
                 {organizations.map((org) => (
                   <tr key={org.org_id} className="hover:bg-gray-100">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div className="flex items-center">
-                        {/* Optional: Display organization photo */}
-                        {org.photo && (
-                          <div className="flex-shrink-0 h-10 w-10">
-                            <img
-                              src={org.photo}
-                              alt={`${org.name} Logo`}
-                              width={40}
-                              height={40}
-                              className="rounded-full object-cover"
-                            />
-                          </div>
-                        )}
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{org.name}</div>
-                        </div>
+                          <div className="text-sm font-medium text-gray-900">{org.name}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
@@ -465,10 +567,99 @@ const OrganizationsAdminPage = () => {
           </div>
         )}
       </section>
-    </div>
+
+
+        {/* Purchase Modal */}
+        {purchaseModal && selectedOrderItem && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div className="bg-white rounded-lg shadow-lg w-11/12 max-w-md p-6">
+              <h3 className="text-xl font-semibold mb-4">Mark as Purchased</h3>
+              {purchaseError && (
+                <div className="mb-4 px-4 py-2 rounded bg-red-100 text-red-700">
+                  {purchaseError}
+                </div>
+              )}
+              {purchaseSuccess && (
+                <div className="mb-4 px-4 py-2 rounded bg-green-100 text-green-700">
+                  {purchaseSuccess}
+                </div>
+              )}
+              <form onSubmit={handleSubmitPurchase}>
+                <div className="mb-4">
+                  <label htmlFor="order_number" className="block text-gray-700 font-medium mb-2">
+                    Order Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="order_number"
+                    id="order_number"
+                    value={purchaseForm.order_number}
+                    onChange={handlePurchaseInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="tracking_number" className="block text-gray-700 font-medium mb-2">
+                    Tracking Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="tracking_number"
+                    id="tracking_number"
+                    value={purchaseForm.tracking_number}
+                    onChange={handlePurchaseInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={closePurchaseModal}
+                    className="mr-4 px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={purchaseLoading}
+                    className={`px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center ${
+                      purchaseLoading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {purchaseLoading && (
+                      <svg
+                        className="animate-spin h-5 w-5 mr-2 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v8H4z"
+                        ></path>
+                      </svg>
+                    )}
+                    {purchaseLoading ? 'Processing...' : 'Mark as Purchased'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
     </>
   );
 };
-
 
 export default OrganizationsAdminPage;
