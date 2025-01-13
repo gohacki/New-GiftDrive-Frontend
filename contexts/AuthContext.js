@@ -1,6 +1,7 @@
 // src/contexts/AuthContext.js
 
 import React, { createContext, useState, useEffect } from 'react';
+import PropTypes from 'prop-types'; // Import PropTypes
 import axios from 'axios';
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -29,21 +30,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (credentials) => {
-    try {
-      const response = await axios.post(`${apiUrl}/api/auth/login`, credentials);
-      setUser(response.data.user);
-    } catch (error) {
-      throw error;
-    }
+    const response = await axios.post(`${apiUrl}/api/auth/login`, credentials);
+    setUser(response.data.user);
   };
 
   const logout = async () => {
-    try {
-      await axios.post(`${apiUrl}/api/auth/logout`);
-      setUser(null);
-    } catch (error) {
-      throw error;
-    }
+    await axios.post(`${apiUrl}/api/auth/logout`);
+    setUser(null);
   };
 
   return (
@@ -51,4 +44,9 @@ export const AuthProvider = ({ children }) => {
       {!loading && children}
     </AuthContext.Provider>
   );
+};
+
+// Define PropTypes for AuthProvider
+AuthProvider.propTypes = {
+  children: PropTypes.node.isRequired, // children must be a renderable node and is required
 };

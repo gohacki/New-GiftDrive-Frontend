@@ -35,7 +35,6 @@ const EditOrganizationInfo = () => {
         URL.revokeObjectURL(previewPhoto);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchOrganizationInfo = async () => {

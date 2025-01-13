@@ -1,6 +1,5 @@
-// contexts/CartContext.js
-
 import React, { createContext, useState, useEffect } from 'react';
+import PropTypes from 'prop-types'; // Import prop-types for validation
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
@@ -98,4 +97,9 @@ export const CartProvider = ({ children }) => {
       {children}
     </CartContext.Provider>
   );
+};
+
+// Prop validation for CartProvider
+CartProvider.propTypes = {
+  children: PropTypes.node.isRequired, // Ensure children are a valid React node and required
 };

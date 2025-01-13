@@ -10,7 +10,7 @@ import Footer from '../../components/Footers/Footer'; // Adjust the path as nece
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const AccountPage = () => {
-  const [cartItems, setCartItems] = useState([]);
+  const [setCartItems] = useState([]);
   const [orders, setOrders] = useState([]);
   const [error, setError] = useState(null);
   const router = useRouter();

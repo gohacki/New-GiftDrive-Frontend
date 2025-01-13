@@ -1,7 +1,10 @@
+// components/FooterSmall.js
+
 import React from "react";
 import Link from "next/link";
+import PropTypes from 'prop-types';
 
-export default function FooterSmall(props) {
+const FooterSmall = (props) => {
   return (
     <>
       <footer
@@ -26,7 +29,7 @@ export default function FooterSmall(props) {
               </div>
             </div>
             <div className="w-full md:w-8/12 px-4">
-              <ul className="flex flex-wrap list-none md:justify-end  justify-center">
+              <ul className="flex flex-wrap list-none md:justify-end justify-center">
                 <li>
                   <Link
                     href="/"
@@ -35,6 +38,7 @@ export default function FooterSmall(props) {
                     About Us
                   </Link>
                 </li>
+                {/* Add more list items as needed */}
               </ul>
             </div>
           </div>
@@ -42,4 +46,14 @@ export default function FooterSmall(props) {
       </footer>
     </>
   );
-}
+};
+
+FooterSmall.propTypes = {
+  absolute: PropTypes.bool,
+};
+
+FooterSmall.defaultProps = {
+  absolute: false,
+};
+
+export default FooterSmall;

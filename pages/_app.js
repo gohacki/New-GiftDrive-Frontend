@@ -9,11 +9,13 @@ import Providers from 'components/Providers';
 import ErrorBoundary from 'components/ErrorBoundary';
 import { ModalProvider } from '../contexts/ModalContext';
 import ModalRenderer from '../components/Modals/ModalRenderer';
-import { ToastContainer, toast } from 'react-toastify';
+import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "styles/index.css";
+
+import PropTypes from 'prop-types';
 
 // Configure NProgress
 NProgress.configure({ showSpinner: false });
@@ -35,7 +37,7 @@ const MyApp = ({ Component, pageProps }) => {
   const Layout = Component.layout || (({ children }) => <>{children}</>);
 
   return (
-    <React.Fragment>
+    <>
       <Head>
         <meta
           name="viewport"
@@ -70,8 +72,13 @@ const MyApp = ({ Component, pageProps }) => {
           </Layout>
         </ErrorBoundary>
       </Providers>
-    </React.Fragment>
+    </>
   );
+};
+
+MyApp.propTypes = {
+  Component: PropTypes.elementType.isRequired,
+  pageProps: PropTypes.object.isRequired,
 };
 
 export default MyApp;
