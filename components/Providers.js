@@ -7,13 +7,13 @@ import { StatisticsProvider } from '../contexts/StatisticsContext';
 
 const Providers = ({ children }) => {
   return (
-    <AuthProvider>
-      <CartProvider>
+    <CartProvider>
+      <AuthProvider>
         <StatisticsProvider>
           {children}
         </StatisticsProvider>
-      </CartProvider>
-    </AuthProvider>
+      </AuthProvider>
+    </CartProvider>
   );
 };
 

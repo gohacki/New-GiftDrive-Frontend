@@ -4,7 +4,6 @@ import { useRouter } from 'next/router';
 import Auth from 'layouts/Auth.js';
 import { AuthContext } from '../../contexts/AuthContext';
 import axios from 'axios';
-import { getLocalCartItems, setLocalCartItems } from '../../utils/localStorageCart';
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -24,30 +23,8 @@ export default function Login() {
     window.location.href = `${apiUrl}/api/auth/facebook`;
   };
 
-  const mergeCarts = async () => {
-    const localCartItems = getLocalCartItems();
-    if (localCartItems.length > 0) {
-      try {
-        await axios.post(
-          `${apiUrl}/api/cart/merge`,
-          {
-            account_id: user.account_id,
-            items: localCartItems,
-          },
-          {
-            withCredentials: true,
-          }
-        );
-        setLocalCartItems([]);
-      } catch (err) {
-        console.error('Error merging carts:', err);
-      }
-    }
-  };
-
   useEffect(() => {
     if (user && user.account_id) {
-      mergeCarts();
       router.push('../visible/profile');
     }
   }, [user]);

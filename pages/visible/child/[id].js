@@ -11,6 +11,7 @@ import { FaArrowLeft } from 'react-icons/fa';
 import Breadcrumbs from 'components/UI/Breadcrumbs'; // Ensure this component exists
 import Image from 'next/image';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const ChildDetailPage = ({ child }) => {
   const router = useRouter();
@@ -34,6 +35,9 @@ const ChildDetailPage = ({ child }) => {
     );
   }
 
+  /**
+   * Handle adding an item to the cart.
+   */
   const handleAddToCart = (item, quantity) => {
     const itemId = item.item_id;
     const configId = item.config_id || null; // Adjust based on your data
@@ -41,16 +45,23 @@ const ChildDetailPage = ({ child }) => {
 
     if (!itemId) {
       console.error('Missing item_id');
+      toast.error('Invalid item. Please try again.');
       return;
     }
 
     addToCart(itemId, configId, childId, quantity);
   };
 
+  /**
+   * Handle removing an item from the cart.
+   */
   const handleRemoveFromCart = (cartItemId) => {
     removeFromCart(cartItemId);
   };
 
+  /**
+   * Check if an item is already added to the cart.
+   */
   const isItemAdded = (item) => {
     return cart?.items?.some(
       (ci) =>
@@ -61,9 +72,7 @@ const ChildDetailPage = ({ child }) => {
   };
 
   /**
-   * Get the cart_item_id for a specific item
-   * @param {object} item - The item object
-   * @returns {number|null} - The cart_item_id or null if not found
+   * Get the cart_item_id for a specific item.
    */
   const getCartItemId = (item) => {
     const cartItem = cart?.items?.find(
@@ -75,7 +84,9 @@ const ChildDetailPage = ({ child }) => {
     return cartItem ? cartItem.cart_item_id : null;
   };
 
-  // Handler for quantity change
+  /**
+   * Handle quantity change for items.
+   */
   const handleQuantityChange = (itemId, value, max) => {
     const newQuantity = Math.max(1, Math.min(Number(value), max));
     setQuantities((prev) => ({
@@ -147,143 +158,143 @@ const ChildDetailPage = ({ child }) => {
 
             {child.items && child.items.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {child.items.map((item) => {
-                  const isAdded = isItemAdded(item);
-                  const cartItemId = getCartItemId(item);
+{child.items.map((item) => {
+  const isAdded = isItemAdded(item);
+  const cartItemId = getCartItemId(item);
 
-                  // We'll use 'item.remaining' to decide if we disable the Add button
-                  const isOutOfStock = item.remaining <= 0;
+  // Determine if the item is out of stock based on remaining
+  const isOutOfStock = item.remaining <= 0;
 
-                  // Determine maximum quantity that can be added
-                  const maxQuantity = Math.min(item.needed - item.purchased, item.remaining);
+  // Determine maximum quantity that can be added
+  const maxQuantity = item.remaining; // Since items in carts are not reserved
 
-                  return (
-                    <div
-                      key={item.child_item_id}
-                      className={`border p-4 rounded-lg shadow-sm ${
-                        isAdded ? 'border-green-500' : 'border-gray-200'
-                      } flex flex-col justify-between`}
-                    >
-                      {/* Item Image */}
-                      {item.item_photo && (
-                        <div className="flex justify-center">
-                          <Image
-                            src={item.item_photo}
-                            alt={item.item_name || 'Item Image'}
-                            width={128}
-                            height={128}
-                            className="object-cover rounded-lg mb-4"
-                          />
-                        </div>
-                      )}
+  return (
+    <div
+      key={item.child_item_id}
+      className={`border p-4 rounded-lg shadow-sm ${
+        isAdded ? 'border-green-500' : 'border-gray-200'
+      } flex flex-col justify-between`}
+    >
+      {/* Item Image */}
+      {item.item_photo && (
+        <div className="flex justify-center">
+          <Image
+            src={item.item_photo}
+            alt={item.item_name || 'Item Image'}
+            width={128}
+            height={128}
+            className="object-cover rounded-lg mb-4"
+          />
+        </div>
+      )}
 
-                      {/* Item Info */}
-                      <div className="flex-grow">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">{item.item_name}</h3>
-                        <p className="text-gray-600 mb-2">${Number(item.price).toFixed(2)}</p>
+      {/* Item Info */}
+      <div className="flex-grow">
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">{item.item_name}</h3>
+        <p className="text-gray-600 mb-2">${Number(item.price).toFixed(2)}</p>
 
-                        {/* Show needed/purchased/remaining */}
-                        <p className="text-gray-600 text-sm">
-                          Needed: {item.needed} | Purchased: {item.purchased} | Remaining: {item.remaining}
-                        </p>
+        {/* Show needed/purchased/remaining */}
+        <p className="text-gray-600 text-sm">
+          Needed: {item.needed} | Purchased: {item.purchased} | Remaining: {item.remaining}
+        </p>
 
-                        {item.description && <p className="text-gray-600 mb-2">{item.description}</p>}
-                      </div>
+        {item.description && <p className="text-gray-600 mb-2">{item.description}</p>}
+      </div>
 
-                      {/* Users with Item in Cart */}
-                      {item.users_with_item_in_cart > 1 && (
-                        <div className="bg-yellow-100 text-yellow-800 text-sm rounded-lg p-2 mb-2">
-                          {item.users_with_item_in_cart} other{' '}
-                          {item.users_with_item_in_cart === 2 ? 'person' : 'people'} have this item in their cart
-                        </div>
-                      )}
+      {/* Users with Item in Cart (optional) */}
+      {item.users_with_item_in_cart > 1 && (
+        <div className="bg-yellow-100 text-yellow-800 text-sm rounded-lg p-2 mb-2">
+          {item.users_with_item_in_cart} other{' '}
+          {item.users_with_item_in_cart === 2 ? 'person' : 'people'} have this item in their cart
+        </div>
+      )}
 
-                      {/* Quantity Selector and Add/Remove Button */}
-                      <div className="mt-4">
-                        {item.needed > 1 ? (
-                          <>
-                            {/* Quantity Selector */}
-                            <div className="flex items-center mb-2">
-                              <label htmlFor={`quantity-${item.child_item_id}`} className="mr-2 text-gray-700">
-                                Quantity:
-                              </label>
-                              <input
-                                type="number"
-                                id={`quantity-${item.child_item_id}`}
-                                name={`quantity-${item.child_item_id}`}
-                                min="1"
-                                max={maxQuantity}
-                                value={quantities[item.item_id] || 1}
-                                onChange={(e) =>
-                                  handleQuantityChange(item.item_id, e.target.value, maxQuantity)
-                                }
-                                className="w-16 px-2 py-1 border rounded text-center"
-                                disabled={isOutOfStock || isAdded}
-                              />
-                            </div>
-                            <button
-                              onClick={() =>
-                                isAdded
-                                  ? handleRemoveFromCart(cartItemId)
-                                  : handleAddToCart(item, quantities[item.item_id] || 1)
-                              }
-                              className={`w-full py-2 rounded-lg text-white transition-colors ${
-                                isAdded
-                                  ? 'bg-red-500 hover:bg-red-600'
-                                  : isOutOfStock
-                                    ? 'bg-gray-400 cursor-not-allowed'
-                                    : 'bg-green-500 hover:bg-green-600'
-                              }`}
-                              aria-label={
-                                isAdded
-                                  ? `Remove ${item.item_name} from cart`
-                                  : isOutOfStock
-                                    ? `${item.item_name} is fully purchased`
-                                    : `Add ${item.item_name} to cart`
-                              }
-                              disabled={isOutOfStock}
-                            >
-                              {isAdded
-                                ? 'Remove'
-                                : isOutOfStock
-                                  ? 'Out of Stock'
-                                  : 'Add'}
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            onClick={() =>
-                              isAdded
-                                ? handleRemoveFromCart(cartItemId)
-                                : handleAddToCart(item, 1)
-                            }
-                            className={`w-full py-2 rounded-lg text-white transition-colors ${
-                              isAdded
-                                ? 'bg-red-500 hover:bg-red-600'
-                                : isOutOfStock
-                                  ? 'bg-gray-400 cursor-not-allowed'
-                                  : 'bg-green-500 hover:bg-green-600'
-                            }`}
-                            aria-label={
-                              isAdded
-                                ? `Remove ${item.item_name} from cart`
-                                : isOutOfStock
-                                  ? `${item.item_name} is fully purchased`
-                                  : `Add ${item.item_name} to cart`
-                            }
-                            disabled={isOutOfStock}
-                          >
-                            {isAdded
-                              ? 'Remove'
-                              : isOutOfStock
-                                ? 'Out of Stock'
-                                : 'Add'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+      {/* Quantity Selector and Add/Remove Button */}
+      <div className="mt-4">
+        {item.needed > 1 ? (
+          <>
+            {/* Quantity Selector */}
+            <div className="flex items-center mb-2">
+              <label htmlFor={`quantity-${item.child_item_id}`} className="mr-2 text-gray-700">
+                Quantity:
+              </label>
+              <input
+                type="number"
+                id={`quantity-${item.child_item_id}`}
+                name={`quantity-${item.child_item_id}`}
+                min="1"
+                max={maxQuantity}
+                value={quantities[item.item_id] || 1}
+                onChange={(e) =>
+                  handleQuantityChange(item.item_id, e.target.value, maxQuantity)
+                }
+                className="w-16 px-2 py-1 border rounded text-center"
+                disabled={isOutOfStock}
+              />
+            </div>
+            <button
+              onClick={() =>
+                isAdded
+                  ? handleRemoveFromCart(cartItemId)
+                  : handleAddToCart(item, quantities[item.item_id] || 1)
+              }
+              className={`w-full py-2 rounded-lg text-white transition-colors ${
+                isAdded
+                  ? 'bg-red-500 hover:bg-red-600'
+                  : isOutOfStock
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-green-500 hover:bg-green-600'
+              }`}
+              aria-label={
+                isAdded
+                  ? `Remove ${item.item_name} from cart`
+                  : isOutOfStock
+                    ? `${item.item_name} is fully purchased`
+                    : `Add ${item.item_name} to cart`
+              }
+              disabled={isOutOfStock}
+            >
+              {isAdded
+                ? 'Remove'
+                : isOutOfStock
+                  ? 'Out of Stock'
+                  : 'Add'}
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() =>
+              isAdded
+                ? handleRemoveFromCart(cartItemId)
+                : handleAddToCart(item, 1)
+            }
+            className={`w-full py-2 rounded-lg text-white transition-colors ${
+              isAdded
+                ? 'bg-red-500 hover:bg-red-600'
+                : isOutOfStock
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-green-500 hover:bg-green-600'
+            }`}
+            aria-label={
+              isAdded
+                ? `Remove ${item.item_name} from cart`
+                : isOutOfStock
+                  ? `${item.item_name} is fully purchased`
+                  : `Add ${item.item_name} to cart`
+            }
+            disabled={isOutOfStock}
+          >
+            {isAdded
+              ? 'Remove'
+              : isOutOfStock
+                ? 'Out of Stock'
+                : 'Add'}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+})}
               </div>
             ) : (
               <p className="text-gray-500">No items are currently needed for this child.</p>
@@ -329,7 +340,9 @@ ChildDetailPage.propTypes = {
 
 export default ChildDetailPage;
 
-// Fetch child data on the server side
+/**
+ * Fetch child data on the server side
+ */
 export async function getServerSideProps(context) {
   const { id } = context.params;
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -370,9 +383,9 @@ export async function getServerSideProps(context) {
           description: item.description || null,
           size: item.size || null,
           color: item.color || null,
-          needed: Number(item.needed) || 0,           // Added
-          purchased: Number(item.purchased) || 0,     // Added
-          remaining: Number(item.remaining) || 0,     // Added
+          needed: Number(item.needed) || 0,        // Added
+          purchased: Number(item.purchased) || 0,  // Added
+          remaining: Number(item.remaining) || 0,  // Added
         }))
       : [];
 

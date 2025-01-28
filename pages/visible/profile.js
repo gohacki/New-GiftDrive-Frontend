@@ -1,4 +1,4 @@
-// pages/account.js
+// pages/visible/profile.js
 
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
@@ -10,7 +10,7 @@ import Footer from '../../components/Footers/Footer'; // Adjust the path as nece
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const AccountPage = () => {
-  const [setCartItems] = useState([]);
+  // Removed cartItems state
   const [orders, setOrders] = useState([]);
   const [error, setError] = useState(null);
   const router = useRouter();
@@ -24,11 +24,14 @@ const AccountPage = () => {
           setError('User not authenticated.');
           return;
         }
-  
+
+        // Removed cart fetching
+        /*
         // Fetch user's cart items
         const cartResponse = await axios.get(`${apiUrl}/api/cart`, { withCredentials: true });
         setCartItems(cartResponse.data || []); // Fallback to empty array
-  
+        */
+
         // Fetch user's orders
         const ordersResponse = await axios.get(`${apiUrl}/api/orders`, { withCredentials: true });
         setOrders(ordersResponse.data || []); // Fallback to empty array
@@ -37,7 +40,7 @@ const AccountPage = () => {
         setError('Failed to load account information.');
       }
     };
-  
+
     if (!loading) {
       fetchAccountData();
     }
@@ -124,33 +127,33 @@ const AccountPage = () => {
               <div className="px-6">
                 <div className="flex flex-wrap justify-center">
                   {/* User Information */}
-                <div className="text-center mt-12">
-                  <h3 className="text-4xl font-semibold leading-normal mb-2 text-blueGray-700">
-                    {user.username}
-                  </h3>
-                  <div className="text-sm leading-normal mt-0 mb-2 text-blueGray-400 font-bold uppercase">
-                    <i className="fas fa-envelope mr-2 text-lg text-blueGray-400"></i>
-                    {user.email}
-                  </div>
-                  <div className="flex flex-wrap justify-center">
-                    <div className="w-full lg:w-9/12 px-4">
-                      <button
-                        className="bg-blueGray-800 text-white active:bg-blueGray-600 text-sm font-bold uppercase px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none mr-1 mb-1 w-full sm:w-auto ease-linear transition-all duration-150"
-                        type="button"
-                        onClick={() => router.push('/account/update-profile')} // Adjust the route as necessary
-                      >
-                        Update Profile
-                      </button>
-                      <button
-                        className="bg-blueGray-600 text-white active:bg-blueGray-500 text-sm font-bold uppercase px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none mr-1 mb-1 w-full sm:w-auto ease-linear transition-all duration-150 mt-2"
-                        type="button"
-                        onClick={() => router.push('/account/change-password')} // Adjust the route as necessary
-                      >
-                        Change Password
-                      </button>
+                  <div className="text-center mt-12">
+                    <h3 className="text-4xl font-semibold leading-normal mb-2 text-blueGray-700">
+                      {user.username}
+                    </h3>
+                    <div className="text-sm leading-normal mt-0 mb-2 text-blueGray-400 font-bold uppercase">
+                      <i className="fas fa-envelope mr-2 text-lg text-blueGray-400"></i>
+                      {user.email}
                     </div>
-                </div>
-                </div>
+                    <div className="flex flex-wrap justify-center">
+                      <div className="w-full lg:w-9/12 px-4">
+                        <button
+                          className="bg-blueGray-800 text-white active:bg-blueGray-600 text-sm font-bold uppercase px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none mr-1 mb-1 w-full sm:w-auto ease-linear transition-all duration-150"
+                          type="button"
+                          onClick={() => router.push('/account/update-profile')} // Adjust the route as necessary
+                        >
+                          Update Profile
+                        </button>
+                        <button
+                          className="bg-blueGray-600 text-white active:bg-blueGray-500 text-sm font-bold uppercase px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none mr-1 mb-1 w-full sm:w-auto ease-linear transition-all duration-150 mt-2"
+                          type="button"
+                          onClick={() => router.push('/account/change-password')} // Adjust the route as necessary
+                        >
+                          Change Password
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Order History */}

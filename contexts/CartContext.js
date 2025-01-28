@@ -1,5 +1,7 @@
+// src/contexts/CartContext.js
+
 import React, { createContext, useState, useEffect } from 'react';
-import PropTypes from 'prop-types'; // Import prop-types for validation
+import PropTypes from 'prop-types';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
@@ -9,11 +11,7 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState(null);
-  const [loading, setLoading] = useState(true); // Optional: To handle loading states
-
-  useEffect(() => {
-    fetchCart();
-  }, []);
+  const [loading, setLoading] = useState(true);
 
   /**
    * Fetches the current cart from the backend.
@@ -22,7 +20,7 @@ export const CartProvider = ({ children }) => {
     setLoading(true);
     try {
       const response = await axios.get(`${apiUrl}/api/cart`, { withCredentials: true });
-      setCart(response.data.cart); // Assuming backend sends { cart: { ... } }
+      setCart(response.data.cart);
     } catch (error) {
       console.error('Error fetching cart:', error.response?.data || error.message);
       toast.error('Failed to load cart. Please try again.');
@@ -31,12 +29,12 @@ export const CartProvider = ({ children }) => {
     }
   };
 
+  useEffect(() => {
+    fetchCart();
+  }, []);
+
   /**
    * Adds an item to the cart.
-   * @param {number} item_id - The ID of the item to add.
-   * @param {number} [config_id] - The configuration ID (optional).
-   * @param {number} [child_id] - The child ID associated with the item (optional).
-   * @param {number} [quantity=1] - The quantity of the item to add.
    */
   const addToCart = async (item_id, config_id = null, child_id = null, quantity = 1) => {
     try {
@@ -55,7 +53,6 @@ export const CartProvider = ({ children }) => {
 
   /**
    * Removes an item from the cart.
-   * @param {number} cart_item_id - The ID of the cart item to remove.
    */
   const removeFromCart = async (cart_item_id) => {
     try {
@@ -74,8 +71,6 @@ export const CartProvider = ({ children }) => {
 
   /**
    * Updates the quantity of a cart item.
-   * @param {number} cart_item_id - The ID of the cart item to update.
-   * @param {number} quantity - The new quantity.
    */
   const updateCartItemQuantity = async (cart_item_id, quantity) => {
     try {
@@ -93,13 +88,13 @@ export const CartProvider = ({ children }) => {
   };
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateCartItemQuantity, loading }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateCartItemQuantity, loading, fetchCart }}>
       {children}
     </CartContext.Provider>
   );
 };
 
-// Prop validation for CartProvider
+// PropTypes validation for CartProvider
 CartProvider.propTypes = {
-  children: PropTypes.node.isRequired, // Ensure children are a valid React node and required
+  children: PropTypes.node.isRequired,
 };
