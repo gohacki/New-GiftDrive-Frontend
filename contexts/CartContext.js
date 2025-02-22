@@ -13,6 +13,10 @@ export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const resetCart = () => {
+    setCart(null); 
+  };
+
   /**
    * Fetches the current cart from the backend.
    */
@@ -88,7 +92,7 @@ export const CartProvider = ({ children }) => {
   };
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateCartItemQuantity, loading, fetchCart }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateCartItemQuantity, loading, fetchCart , resetCart,}}>
       {children}
     </CartContext.Provider>
   );

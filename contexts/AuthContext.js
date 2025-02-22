@@ -12,7 +12,8 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { fetchCart } = useContext(CartContext); // Access CartContext
+  const { fetchCart, resetCart } = useContext(CartContext); // Access CartContext
+
 
   axios.defaults.withCredentials = true;
 
@@ -32,18 +33,22 @@ export const AuthProvider = ({ children }) => {
     };
 
     fetchUser();
+    if (fetchUser) {
+      axios.post(`${apiUrl}/api/cart/merge`, {}, { withCredentials: true })
+        .then(() => fetchCart())
+        .catch((err) => console.error('Cart merge failed:', err));
+    }
   }, []);
 
   const login = async (credentials) => {
       const response = await axios.post(`${apiUrl}/api/auth/login`, credentials);
       setUser(response.data.user);
-      await axios.post(`${apiUrl}/api/cart/merge`, {}, { withCredentials: true });
-      fetchCart(); // Fetch the merged cart after login
   };
 
   const logout = async () => {
       await axios.post(`${apiUrl}/api/auth/logout`);
       setUser(null);
+      resetCart(); 
   };
 
   return (

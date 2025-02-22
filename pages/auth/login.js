@@ -3,8 +3,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Auth from 'layouts/Auth.js';
 import { AuthContext } from '../../contexts/AuthContext';
-import axios from 'axios';
-
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function Login() {
@@ -17,6 +15,7 @@ export default function Login() {
 
   const handleGoogleLogin = () => {
     window.location.href = `${apiUrl}/api/auth/google`;
+    
   };
 
   const handleFacebookLogin = () => {

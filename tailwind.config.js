@@ -37,6 +37,14 @@ module.exports = {
     extend: {
       colors: {
         ...colors,
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+        'ggreen': '#367534',
+        'gyellow': '#f8a716',
+        'secondary_green':'#d4e4d4'
+      },
+      fontFamily: {
+        georgia: ['Georgia Pro', 'serif'],
       },
       minHeight: {
         "screen-75": "75vh",

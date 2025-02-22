@@ -17,17 +17,10 @@ const Navbar = () => {
   useEffect(() => {
     const handleScroll = () => {
       const offset = window.scrollY;
-      if (offset > 50) {
-        setScrolled(true);
-      } else {
-        setScrolled(false);
-      }
+      setScrolled(offset > 50);
     };
 
-    // Add scroll event listener
     window.addEventListener('scroll', handleScroll);
-
-    // Clean up the event listener
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -46,8 +39,8 @@ const Navbar = () => {
   const handleLogout = async (e) => {
     e.preventDefault();
     await logout();
-    setNavbarOpen(false); // Close navbar after logout
-    router.push('/'); // Redirect to homepage after logout
+    setNavbarOpen(false);
+    router.push('/');
   };
 
   // Determine active link
@@ -56,33 +49,33 @@ const Navbar = () => {
   return (
     <nav
       className={`fixed top-0 z-50 w-full transition-colors duration-300 ${
-        scrolled || navbarOpen ? 'bg-blueGray-800 shadow-lg' : 'bg-transparent'
+        scrolled || navbarOpen ? 'bg-secondary_green shadow-lg' : 'bg-transparent'
       }`}
     >
       <div className="container mx-auto px-4 py-3 flex flex-wrap items-center justify-between">
         {/* Brand and Toggle Button */}
         <div className="flex justify-between w-full lg:w-auto">
           <Link href="/">
-            <div className="flex items-center text-white text-sm font-bold leading-relaxed mr-4 py-2 whitespace-nowrap uppercase cursor-pointer">
+            <div className="flex flex-none leading-relaxed mr-4 py-2 whitespace-nowrap cursor-pointer font-georgia text-ggreen text-5xl">
               <Image
-                src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/GiftDriveLogo.png"
-                alt="GiftDrive Logo"
-                width={24}
-                height={24}
-                className="inline-block h-6 w-6 mr-2"
+                src="/MainGift.png"
+                alt="Gyftly Logo"
+                width={64}
+                height={64}
+                className="h-16 w-auto"
+                priority
               />
-              GiftDrive
+              Gyftly
             </div>
           </Link>
           <button
-            className="text-white cursor-pointer text-xl leading-none px-3 py-1 border border-solid border-transparent rounded bg-transparent block lg:hidden outline-none focus:outline-none"
+            className="text-ggreen cursor-pointer text-xl leading-none px-3 py-1 border border-solid border-transparent rounded bg-transparent block lg:hidden outline-none focus:outline-none"
             type="button"
             onClick={() => setNavbarOpen(!navbarOpen)}
             aria-label="Toggle navigation menu"
             aria-expanded={navbarOpen}
             aria-controls="navbar-menu"
           >
-            {/* Hamburger Icon */}
             <svg
               className="h-6 w-6"
               xmlns="http://www.w3.org/2000/svg"
@@ -121,7 +114,7 @@ const Navbar = () => {
             <li className="flex items-center">
               <Link href="/visible/orglist">
                 <span
-                  className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
+                  className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
                     isActive('/visible/orglist') ? 'text-blueGray-300' : ''
                   }`}
                 >
@@ -135,7 +128,7 @@ const Navbar = () => {
                 <li className="flex items-center">
                   <Link href="/visible/profile">
                     <span
-                      className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
+                      className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
                         isActive('/visible/profile') ? 'text-blueGray-300' : ''
                       }`}
                     >
@@ -148,7 +141,7 @@ const Navbar = () => {
                   <li className="flex items-center">
                     <Link href="/admin/dashboard">
                       <span
-                        className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
+                        className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
                           isActive('/admin/dashboard') ? 'text-blueGray-300' : ''
                         }`}
                       >
@@ -158,12 +151,11 @@ const Navbar = () => {
                   </li>
                 )}
 
-                {/* Super Admin Link */}
                 {user.is_super_admin && (
                   <li className="flex items-center">
                     <Link href="/admin/superAdmin">
                       <span
-                        className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
+                        className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
                           isActive('/admin/superAdmin') ? 'text-blueGray-300' : ''
                         }`}
                       >
@@ -176,7 +168,7 @@ const Navbar = () => {
                 <li className="flex items-center">
                   <button
                     onClick={handleLogout}
-                    className="text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 cursor-pointer bg-transparent border-none"
+                    className="text-sm font-bold uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow cursor-pointer bg-transparent border-none"
                   >
                     Logout
                   </button>
@@ -189,7 +181,7 @@ const Navbar = () => {
                 <li className="flex items-center">
                   <Link href="/auth/login">
                     <span
-                      className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
+                      className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
                         isActive('/auth/login') ? 'text-blueGray-300' : ''
                       }`}
                     >
@@ -200,7 +192,7 @@ const Navbar = () => {
                 <li className="flex items-center">
                   <Link href="/auth/register">
                     <span
-                      className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
+                      className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
                         isActive('/auth/register') ? 'text-blueGray-300' : ''
                       }`}
                     >
@@ -230,7 +222,7 @@ const Navbar = () => {
             <li className="flex items-center lg:hidden">
               <Link href="/visible/cart">
                 <span
-                  className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-white hover:text-blueGray-200 ${
+                  className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
                     isActive('/visible/cart') ? 'text-blueGray-300' : ''
                   }`}
                 >
@@ -245,7 +237,7 @@ const Navbar = () => {
         <div className="navbar-cart flex items-center hidden lg:flex">
           <Link href="/visible/cart">
             <span className="flex items-center">
-              <FaShoppingCart className="h-6 w-6 text-white" />
+              <FaShoppingCart className="h-6 w-6 text-ggreen" />
             </span>
           </Link>
         </div>
