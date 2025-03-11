@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import Navbar from 'components/Navbars/AuthNavbar.js';
 import Footer from 'components/Footers/Footer.js';
 import { FaArrowLeft } from 'react-icons/fa';
-import Breadcrumbs from 'components/UI/Breadcrumbs.js'; // Optional: Create a Breadcrumbs component
+import Breadcrumbs from 'components/UI/Breadcrumbs.js'; // optional breadcrumb component
 import Image from 'next/image';
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -81,19 +81,23 @@ const DrivePage = ({ drive }) => {
                 )}
                 {drive.date && (
                   <p className="text-gray-600">
-                    <strong>Date:</strong> {new Date(drive.date).toLocaleDateString()}
+                    <strong>Date:</strong>{' '}
+                    {new Date(drive.date).toLocaleDateString()}
                   </p>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Children Section */}
-          <div>
-            <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-              Children in {drive.name}
-            </h2>
-            {drive.children && drive.children.length > 0 ? (
+          {/* =====================
+              CONDITIONAL RENDER
+              ===================== */}
+          {drive.children && drive.children.length > 0 ? (
+            /* If drive has children, show them */
+            <section className="mb-10">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+                Children in {drive.name}
+              </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {drive.children.map((child) => (
                   <Link
@@ -102,44 +106,95 @@ const DrivePage = ({ drive }) => {
                     passHref
                     className="block bg-white shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                   >
-                      {/* Child Image */}
-                      {child.child_photo && (
-                        <div className="flex justify-center mt-4">
-                          <Image
-                            src={child.child_photo || '/img/default-child.png'}
-                            alt={child.child_name}
-                            width={96} // 48 * 4 (Tailwind's default spacing scale)
-                            height={96}
-                            className="object-cover rounded-full"
-                          />
-                        </div>
-                      )}
-                      {/* Child Info */}
-                      <div className="p-4 text-center">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                          {child.child_name}
-                        </h3>
-                        {/* Optional: Add more child details here */}
-                        {child.age && (
-                          <p className="text-gray-600">
-                            <strong>Age:</strong> {child.age}
-                          </p>
-                        )}
-                        {child.gender && (
-                          <p className="text-gray-600">
-                            <strong>Gender:</strong> {child.gender}
-                          </p>
-                        )}
+                    {/* Child Image */}
+                    {child.child_photo && (
+                      <div className="flex justify-center mt-4">
+                        <Image
+                          src={child.child_photo || '/img/default-child.png'}
+                          alt={child.child_name}
+                          width={96}
+                          height={96}
+                          className="object-cover rounded-full"
+                        />
                       </div>
+                    )}
+                    {/* Child Info */}
+                    <div className="p-4 text-center">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                        {child.child_name}
+                      </h3>
+                      {child.age && (
+                        <p className="text-gray-600">
+                          <strong>Age:</strong> {child.age}
+                        </p>
+                      )}
+                      {child.gender && (
+                        <p className="text-gray-600">
+                          <strong>Gender:</strong> {child.gender}
+                        </p>
+                      )}
+                    </div>
                   </Link>
                 ))}
               </div>
-            ) : (
-              <p className="text-gray-500">
-                No children available in this drive.
-              </p>
-            )}
-          </div>
+            </section>
+          ) : drive.items && drive.items.length > 0 ? (
+            /* Otherwise, if no children but we do have items, show items */
+            <section className="mb-10">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+                Items in {drive.name}
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {drive.items.map((item) => (
+                  <div
+                    key={item.item_id}
+                    className="block bg-white shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-shadow p-4"
+                  >
+                    {/* Item Image */}
+                    {item.item_photo && (
+                      <div className="flex justify-center mb-4">
+                        <Image
+                          src={item.item_photo || '/img/default-item.png'}
+                          alt={item.item_name}
+                          width={96}
+                          height={96}
+                          className="object-cover rounded-md"
+                        />
+                      </div>
+                    )}
+                    {/* Item Info */}
+                    <h3 className="text-lg font-semibold text-gray-800 mb-1">
+                      {item.item_name}
+                    </h3>
+                    <p className="text-gray-600 mb-2">
+                      {item.description}
+                    </p>
+                    {/* Price / Purchase Info */}
+                    <p className="text-gray-800 font-bold mb-2">
+                      ${item.price?.toFixed(2)}
+                    </p>
+                    <p className="text-sm text-gray-600 mb-2">
+                      <strong>Needed:</strong> {item.needed} &nbsp;
+                      <strong>Remaining:</strong> {item.remaining}
+                    </p>
+
+                    {/* (Optional) Add-to-Cart button if you want direct purchase */}
+                    {/*
+                      <button
+                        onClick={() => handleAddToCart(item.item_id, null, drive.drive_id, 1)}
+                        className="bg-blue-500 text-white px-4 py-2 rounded mt-2 hover:bg-blue-600 transition-colors"
+                      >
+                        Add to Cart
+                      </button>
+                    */}
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : (
+            /* If neither children nor items, show a fallback */
+            <p className="text-white text-lg">No children or items for this drive.</p>
+          )}
         </div>
       </div>
       <Footer />
@@ -150,29 +205,40 @@ const DrivePage = ({ drive }) => {
 // PropTypes validation for the DrivePage component
 DrivePage.propTypes = {
   drive: PropTypes.shape({
-    id: PropTypes.string.isRequired, // Assuming drive has an 'id' field
+    id: PropTypes.string.isRequired, // or number, depending on your DB
     name: PropTypes.string.isRequired,
     description: PropTypes.string,
     photo: PropTypes.string,
-    location: PropTypes.string, // Optional: Add if available
-    date: PropTypes.string, // Optional: Add if available
+    location: PropTypes.string, // optional
+    date: PropTypes.string, // optional
     children: PropTypes.arrayOf(
       PropTypes.shape({
         child_id: PropTypes.string.isRequired,
         child_name: PropTypes.string.isRequired,
         child_photo: PropTypes.string,
-        age: PropTypes.number, // Optional: Add if available
-        gender: PropTypes.string, // Optional: Add if available
+        age: PropTypes.number,
+        gender: PropTypes.string,
+      })
+    ),
+    items: PropTypes.arrayOf(
+      PropTypes.shape({
+        item_id: PropTypes.number.isRequired,
+        item_name: PropTypes.string.isRequired,
+        item_photo: PropTypes.string,
+        description: PropTypes.string,
+        price: PropTypes.number,
+        needed: PropTypes.number,
+        remaining: PropTypes.number,
       })
     ),
   }),
 };
 
-// Fetch drive data on the server side
 export async function getServerSideProps(context) {
   const { id } = context.params;
 
   try {
+    // This endpoint should return { ...drive, children: [...], items: [...] }
     const response = await axios.get(`${apiUrl}/api/drives/${id}`);
     const drive = response.data;
 
@@ -183,7 +249,6 @@ export async function getServerSideProps(context) {
     };
   } catch (error) {
     console.error('Error fetching drive data:', error);
-
     return {
       props: {
         drive: null,

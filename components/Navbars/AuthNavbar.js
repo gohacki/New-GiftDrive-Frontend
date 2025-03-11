@@ -137,7 +137,7 @@ const Navbar = () => {
                   </Link>
                 </li>
 
-                {user.is_org_admin && (
+                {!!user.is_org_admin && (
                   <li className="flex items-center">
                     <Link href="/admin/dashboard">
                       <span
@@ -151,7 +151,7 @@ const Navbar = () => {
                   </li>
                 )}
 
-                {user.is_super_admin && (
+                {!!user.is_super_admin && (
                   <li className="flex items-center">
                     <Link href="/admin/superAdmin">
                       <span
@@ -203,7 +203,7 @@ const Navbar = () => {
               </>
             )}
 
-            {user?.is_org_admin && (
+            {!user?.is_org_admin && (
               <li className="flex items-center">
                 <Link href="/visible/registerorg">
                   <span className="text-sm font-bold uppercase px-3 py-2 flex items-center">

@@ -29,27 +29,9 @@ const CurrentDrives = () => {
       console.error('Error fetching current drives:', error);
     }
   };
-
-  const handleAddDrive = async (driveData) => {
-    try {
-      const formData = new FormData();
-      formData.append('name', driveData.name.trim());
-      formData.append('description', driveData.description.trim());
-      if (driveData.photo) {
-        formData.append('photo', driveData.photo);
-      }
-      formData.append('start_date', driveData.start_date);
-      formData.append('end_date', driveData.end_date);
-
-      const response = await axios.post(`${apiUrl}/api/drives`, formData, {
-        withCredentials: true,
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-
-      setDrives([...drives, response.data]);
-    } catch (error) {
-      console.error('Error adding drive:', error);
-    }
+  
+  const handleAddDrive = (newDrive) => {
+    setDrives([...drives, newDrive]);
   };
 
   const handleDeleteDrive = async (driveId) => {

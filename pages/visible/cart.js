@@ -2,7 +2,7 @@
 
 import React, { useContext, useEffect, useState } from 'react';
 import { CartContext } from '../../contexts/CartContext';
-import { AuthContext } from '../../contexts/AuthContext'; // Import AuthContext
+import { AuthContext } from '../../contexts/AuthContext';
 import Link from 'next/link';
 import Navbar from 'components/Navbars/AuthNavbar';
 import Footer from 'components/Footers/Footer';
@@ -16,12 +16,12 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
 
 const CartPage = () => {
   const { cart, removeFromCart, updateCartItemQuantity, loading } = useContext(CartContext);
-  const { user } = useContext(AuthContext); // Access AuthContext
+  const { user } = useContext(AuthContext);
   const [cartItems, setCartItems] = useState([]);
-  const [isProcessing, setIsProcessing] = useState(false); // To handle button state
+  const [isProcessing, setIsProcessing] = useState(false);
   const router = useRouter();
 
-  // State for guest checkout modal
+  // Guest checkout modal state
   const [isGuestCheckout, setIsGuestCheckout] = useState(false);
   const [guestInfo, setGuestInfo] = useState({
     first_name: '',
@@ -42,65 +42,47 @@ const CartPage = () => {
     }
   }, [cart]);
 
-  /**
-   * Handle removing an item from the cart.
-   */
+  // Remove item handler
   const handleRemoveItem = async (cartItemId) => {
     try {
       await removeFromCart(cartItemId);
-      // The CartContext should automatically update cartItems via context
     } catch (error) {
       console.error('Error removing item:', error);
       toast.error('Failed to remove item. Please try again.');
     }
   };
 
-  /**
-   * Handle updating the quantity of a cart item.
-   */
+  // Update quantity handler
   const handleUpdateQuantity = async (cartItemId, quantity) => {
     if (quantity < 1) {
       toast.warn('Quantity must be at least 1.');
       return;
     }
-
     try {
       await updateCartItemQuantity(cartItemId, quantity);
-      // The CartContext should automatically update cartItems via context
     } catch (error) {
       console.error('Error updating quantity:', error);
       toast.error('Failed to update quantity. Please try again.');
     }
   };
 
-  /**
-   * Handle proceeding to checkout for authenticated users.
-   */
+  // Proceed to checkout (authenticated)
   const handleProceedToCheckout = async () => {
-    setIsProcessing(true); // Disable the button to prevent multiple clicks
+    setIsProcessing(true);
     try {
-      // Create a Checkout Session on the Express backend
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/api/checkout/create-checkout-session`,
-        {}, // Include any necessary data here if required by your backend
+        {},
         {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          withCredentials: true, // Ensure cookies are sent if needed for authentication
+          headers: { 'Content-Type': 'application/json' },
+          withCredentials: true,
         }
       );
-
       const { sessionId } = response.data;
+      if (!sessionId) throw new Error('No session ID returned from the server.');
 
-      if (!sessionId) {
-        throw new Error('No session ID returned from the server.');
-      }
-
-      // Redirect to Stripe Checkout
       const stripe = await stripePromise;
       const { error } = await stripe.redirectToCheckout({ sessionId });
-
       if (error) {
         console.error('Stripe Checkout error:', error);
         toast.error('An error occurred while redirecting to checkout.');
@@ -109,19 +91,17 @@ const CartPage = () => {
       console.error('Error proceeding to checkout:', error.response?.data || error.message);
       toast.error('Failed to initiate checkout. Please try again.');
     } finally {
-      setIsProcessing(false); // Re-enable the button
+      setIsProcessing(false);
     }
   };
 
-  /**
-   * Handle guest checkout form submission.
-   */
+  // Guest checkout submission
   const handleGuestCheckout = async (e) => {
     e.preventDefault();
     setIsProcessing(true);
 
     try {
-      // Validate guest info
+      // Basic form validation
       if (
         !guestInfo.first_name ||
         !guestInfo.last_name ||
@@ -136,21 +116,17 @@ const CartPage = () => {
         return;
       }
 
-      // Submit guest checkout info to backend
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/api/checkout/guest`,
         { buyer_info: guestInfo },
         {
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           withCredentials: true,
         }
       );
 
       if (response.data.order_id) {
         toast.success('Order placed successfully!');
-        // Optionally, redirect to order confirmation page
         router.push(`/visible/order-success?order_id=${response.data.order_id}`);
       } else {
         throw new Error('No order ID returned.');
@@ -160,23 +136,18 @@ const CartPage = () => {
       toast.error(error.response?.data?.error || 'Failed to place order. Please try again.');
     } finally {
       setIsProcessing(false);
-      setIsGuestCheckout(false); // Close the modal
+      setIsGuestCheckout(false);
     }
   };
 
-  /**
-   * Calculate the total price of items in the cart.
-   */
+  // Calculate total price
   const totalPrice = cartItems.reduce(
     (total, item) => total + (item.price || 0) * (item.quantity || 1),
     0
   );
 
-  /**
-   * Increment the quantity of a cart item.
-   */
+  // Increment quantity
   const incrementQuantity = (item) => {
-    // Only update if we haven't reached the max
     if (item.quantity < item.maxAvailable) {
       handleUpdateQuantity(item.cart_item_id, item.quantity + 1);
     } else {
@@ -184,11 +155,8 @@ const CartPage = () => {
     }
   };
 
-  /**
-   * Decrement the quantity of a cart item.
-   */
+  // Decrement quantity
   const decrementQuantity = (item) => {
-    // If we’re at 1, prompt to remove the item entirely
     if (item.quantity === 1) {
       const confirmRemove = window.confirm('Do you want to remove this item from your cart?');
       if (confirmRemove) {
@@ -232,6 +200,7 @@ const CartPage = () => {
                   <tbody>
                     {cartItems.map((item) => (
                       <tr key={item.cart_item_id} className="border-b">
+                        {/* Product Info */}
                         <td className="px-6 py-4 flex items-center">
                           {item.image_url ? (
                             <img
@@ -243,30 +212,48 @@ const CartPage = () => {
                             <div className="w-16 h-16 bg-gray-300 mr-4 rounded"></div>
                           )}
                           <div>
-                            <Link href={`/visible/child/${item.child_id}`} className="text-blue-500 hover:underline">
-                              {item.item_name}
-                            </Link>
+                            <div className="font-semibold">{item.item_name}</div>
                             {(item.size || item.color) && (
                               <div className="text-sm text-gray-600">
                                 {item.size && <span>Size: {item.size} </span>}
                                 {item.color && <span>Color: {item.color}</span>}
                               </div>
                             )}
+                            {/* Child-based or Drive-based indicator */}
+                            {item.child_id ? (
+                              <div className="text-sm text-gray-600">
+                                Child:&nbsp;
+                                <Link
+                                  href={`/visible/child/${item.child_id}`}
+                                  className="text-blue-500 hover:underline"
+                                >
+                                  {item.child_name || 'View Child'}
+                                </Link>
+                              </div>
+                            ) : (
+                              item.drive_id && (
+                                <div className="text-sm text-gray-600 italic">
+                                  Item-only drive
+                                </div>
+                              )
+                            )}
                           </div>
                         </td>
+
+                        {/* Price */}
                         <td className="px-6 py-4">${Number(item.price).toFixed(2)}</td>
+
+                        {/* Quantity Controls */}
                         <td className="px-6 py-4">
                           <div className="flex items-center">
                             <button
                               onClick={() => decrementQuantity(item)}
-                              className={`px-2 py-1 border rounded-lg`}
+                              className="px-2 py-1 border rounded-lg"
                               aria-label={`Decrease quantity of ${item.item_name}`}
                             >
                               -
                             </button>
-
                             <span className="mx-2 w-8 text-center">{item.quantity}</span>
-
                             <button
                               onClick={() => incrementQuantity(item)}
                               className={`px-2 py-1 border rounded-lg ${
@@ -279,9 +266,13 @@ const CartPage = () => {
                             </button>
                           </div>
                         </td>
+
+                        {/* Subtotal */}
                         <td className="px-6 py-4">
                           ${(Number(item.price) * Number(item.quantity)).toFixed(2)}
                         </td>
+
+                        {/* Remove Button */}
                         <td className="px-6 py-4">
                           <button
                             onClick={() => handleRemoveItem(item.cart_item_id)}
@@ -303,6 +294,7 @@ const CartPage = () => {
                   </tbody>
                 </table>
               </div>
+              {/* Checkout Buttons */}
               <div className="flex justify-end mt-6 space-x-4">
                 {user ? (
                   <button
@@ -352,7 +344,6 @@ const CartPage = () => {
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300"
                   />
                 </div>
-
                 <div>
                   <label htmlFor="last_name" className="block text-gray-700">
                     Last Name<span className="text-red-500">*</span>
@@ -367,7 +358,6 @@ const CartPage = () => {
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300"
                   />
                 </div>
-
                 <div>
                   <label htmlFor="email" className="block text-gray-700">
                     Email<span className="text-red-500">*</span>
@@ -382,7 +372,6 @@ const CartPage = () => {
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300"
                   />
                 </div>
-
                 <div>
                   <label htmlFor="address" className="block text-gray-700">
                     Address<span className="text-red-500">*</span>
@@ -397,7 +386,6 @@ const CartPage = () => {
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300"
                   />
                 </div>
-
                 <div className="flex space-x-4">
                   <div className="w-1/2">
                     <label htmlFor="city" className="block text-gray-700">
@@ -428,7 +416,6 @@ const CartPage = () => {
                     />
                   </div>
                 </div>
-
                 <div>
                   <label htmlFor="zip_code" className="block text-gray-700">
                     ZIP Code<span className="text-red-500">*</span>
@@ -443,7 +430,6 @@ const CartPage = () => {
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300"
                   />
                 </div>
-
                 <div>
                   <label htmlFor="phone_number" className="block text-gray-700">
                     Phone Number
@@ -457,7 +443,6 @@ const CartPage = () => {
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300"
                   />
                 </div>
-
                 <div className="flex justify-end space-x-4">
                   <button
                     type="button"

@@ -11,6 +11,7 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
     photo: null,
     start_date: '',
     end_date: '',
+    is_item_only: false, // NEW FIELD
   });
 
   const [errors, setErrors] = useState({});
@@ -20,7 +21,9 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
   useEffect(() => {
     if (modalRef.current) {
       const firstInput = modalRef.current.querySelector('input, textarea, button');
-      if (firstInput) firstInput.focus();
+      if (firstInput) {
+        firstInput.focus();
+      }
     }
 
     const handleKeyDown = (e) => {
@@ -28,22 +31,28 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
         onClose();
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
 
-    // Cleanup on unmount
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [onClose]);
 
+  // Handle form fields, including the checkbox
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setDriveData({ ...driveData, [name]: value });
+    const { name, value, type, checked } = e.target;
+    if (type === 'checkbox') {
+      setDriveData({ ...driveData, [name]: checked });
+    } else {
+      setDriveData({ ...driveData, [name]: value });
+    }
   };
 
   const handleFileChange = (e) => {
     setDriveData({ ...driveData, photo: e.target.files[0] });
   };
 
+  // Basic validations
   const validateForm = () => {
     const newErrors = {};
 
@@ -66,11 +75,12 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Submit the form (POST new drive)
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!validateForm()) return;
 
+    // Build FormData
     const formData = new FormData();
     formData.append('name', driveData.name.trim());
     formData.append('description', driveData.description.trim());
@@ -79,22 +89,19 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
     }
     formData.append('start_date', driveData.start_date);
     formData.append('end_date', driveData.end_date);
+    formData.append('is_item_only', driveData.is_item_only); // NEW LINE
 
     try {
-      const response = await axios.post(
-        `${apiUrl}/api/drives`,
-        formData,
-        {
-          withCredentials: true,
-          headers: { 'Content-Type': 'multipart/form-data' },
-        }
-      );
+      const response = await axios.post(`${apiUrl}/api/drives`, formData, {
+        withCredentials: true,
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
 
-      onAddDrive(response.data); // Refresh the drive list or perform other actions
-      onClose(); // Close the modal
+      onAddDrive(response.data);
+      onClose();
     } catch (error) {
       console.error('Error adding drive:', error);
-      // Optionally, set a global error message here
+      // Optionally set a global or local error message here
     }
   };
 
@@ -120,6 +127,7 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
           Add New Drive
         </h2>
         <form onSubmit={handleSubmit} noValidate>
+          {/* Drive Name */}
           <div className="mb-4">
             <label htmlFor="drive-name" className="block font-medium mb-1">
               Drive Name
@@ -145,6 +153,7 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
             )}
           </div>
 
+          {/* Description */}
           <div className="mb-4">
             <label htmlFor="drive-description" className="block font-medium mb-1">
               Description
@@ -159,7 +168,9 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
               } rounded p-2`}
               maxLength={500}
               aria-invalid={errors.description ? 'true' : 'false'}
-              aria-describedby={errors.description ? 'drive-description-error' : undefined}
+              aria-describedby={
+                errors.description ? 'drive-description-error' : undefined
+              }
             />
             {errors.description && (
               <p id="drive-description-error" className="text-red-500 text-sm">
@@ -168,6 +179,7 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
             )}
           </div>
 
+          {/* Photo */}
           <div className="mb-4">
             <label htmlFor="drive-photo" className="block font-medium mb-1">
               Photo
@@ -179,7 +191,6 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
               onChange={handleFileChange}
               className="w-full"
             />
-            {/* Optionally, display a preview of the uploaded photo */}
             {driveData.photo && (
               <div className="mt-2">
                 <img
@@ -191,6 +202,7 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
             )}
           </div>
 
+          {/* Dates */}
           <div className="mb-4">
             <label htmlFor="start-date" className="block font-medium mb-1">
               Start Date
@@ -206,7 +218,9 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
               } rounded p-2`}
               required
               aria-invalid={errors.start_date ? 'true' : 'false'}
-              aria-describedby={errors.start_date ? 'start-date-error' : undefined}
+              aria-describedby={
+                errors.start_date ? 'start-date-error' : undefined
+              }
             />
             {errors.start_date && (
               <p id="start-date-error" className="text-red-500 text-sm">
@@ -239,6 +253,25 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
             )}
           </div>
 
+          {/* NEW: Checkbox for "Item Only" */}
+          <div className="mb-4">
+            <label htmlFor="is_item_only" className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="is_item_only"
+                name="is_item_only"
+                checked={driveData.is_item_only}
+                onChange={handleInputChange}
+                className="mr-2"
+              />
+              <span className="block font-medium">Is Item-Only Drive?</span>
+            </label>
+            <p className="text-sm text-gray-500">
+              If checked, you’ll manage items directly for this drive instead of children.
+            </p>
+          </div>
+
+          {/* Buttons */}
           <div className="flex justify-end space-x-4">
             <button
               type="button"
@@ -260,7 +293,6 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
   );
 };
 
-// PropTypes Validation
 AddDriveModal.propTypes = {
   onClose: PropTypes.func.isRequired,
   onAddDrive: PropTypes.func.isRequired,

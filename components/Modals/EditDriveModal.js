@@ -5,12 +5,14 @@ import axios from 'axios';
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
+  // We initialize from existing props
   const [driveData, setDriveData] = useState({
     name: drive.name || '',
     description: drive.description || '',
     photo: null, // New photo file if uploaded
     start_date: drive.start_date || '',
     end_date: drive.end_date || '',
+    is_item_only: drive.is_item_only || false, // NEW
   });
 
   const [errors, setErrors] = useState({});
@@ -20,7 +22,9 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
   useEffect(() => {
     if (modalRef.current) {
       const firstInput = modalRef.current.querySelector('input, textarea, button');
-      if (firstInput) firstInput.focus();
+      if (firstInput) {
+        firstInput.focus();
+      }
     }
 
     const handleKeyDown = (e) => {
@@ -28,16 +32,19 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
         onClose();
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
 
-    // Cleanup on unmount
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
+  // Handle changes, including the checkbox
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setDriveData({ ...driveData, [name]: value });
+    const { name, value, type, checked } = e.target;
+    if (type === 'checkbox') {
+      setDriveData({ ...driveData, [name]: checked });
+    } else {
+      setDriveData({ ...driveData, [name]: value });
+    }
   };
 
   const handleFileChange = (e) => {
@@ -50,15 +57,12 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
     if (!driveData.name || driveData.name.trim().length < 3) {
       newErrors.name = 'Drive name must be at least 3 characters long.';
     }
-
     if (driveData.description.length > 500) {
       newErrors.description = 'Description must be under 500 characters.';
     }
-
     if (!driveData.start_date) {
       newErrors.start_date = 'Start date is required.';
     }
-
     if (!driveData.end_date) {
       newErrors.end_date = 'End date is required.';
     } else if (driveData.end_date < driveData.start_date) {
@@ -82,6 +86,7 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
     }
     formData.append('start_date', driveData.start_date);
     formData.append('end_date', driveData.end_date);
+    formData.append('is_item_only', driveData.is_item_only); // NEW
 
     try {
       const response = await axios.put(
@@ -93,11 +98,11 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
         }
       );
 
-      onUpdateDrive(response.data); // Update the drive in the parent component
-      onClose(); // Close the modal
+      onUpdateDrive(response.data); // Update the drive in the parent
+      onClose();
     } catch (error) {
       console.error('Error updating drive:', error);
-      // Optionally, set a global error message here
+      // Optionally set a global or local error message here
     }
   };
 
@@ -123,6 +128,7 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
           Edit Drive
         </h2>
         <form onSubmit={handleSubmit} noValidate>
+          {/* Drive Name */}
           <div className="mb-4">
             <label htmlFor="drive-name" className="block font-medium mb-1">
               Drive Name
@@ -148,6 +154,7 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
             )}
           </div>
 
+          {/* Description */}
           <div className="mb-4">
             <label htmlFor="drive-description" className="block font-medium mb-1">
               Description
@@ -162,7 +169,9 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
               } rounded p-2`}
               maxLength={500}
               aria-invalid={errors.description ? 'true' : 'false'}
-              aria-describedby={errors.description ? 'drive-description-error' : undefined}
+              aria-describedby={
+                errors.description ? 'drive-description-error' : undefined
+              }
             />
             {errors.description && (
               <p id="drive-description-error" className="text-red-500 text-sm">
@@ -171,6 +180,7 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
             )}
           </div>
 
+          {/* Photo */}
           <div className="mb-4">
             <label htmlFor="drive-photo" className="block font-medium mb-1">
               Photo
@@ -182,7 +192,7 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
               onChange={handleFileChange}
               className="w-full"
             />
-            {/* Display current photo if exists and no new photo is uploaded */}
+            {/* If old photo exists and no new photo is chosen, show old one */}
             {drive.photo && !driveData.photo && (
               <div className="mt-2">
                 <p>Current Photo:</p>
@@ -193,7 +203,7 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
                 />
               </div>
             )}
-            {/* Preview of the new photo */}
+            {/* Preview of new photo, if chosen */}
             {driveData.photo && (
               <div className="mt-2">
                 <img
@@ -205,6 +215,7 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
             )}
           </div>
 
+          {/* Dates */}
           <div className="mb-4">
             <label htmlFor="start-date" className="block font-medium mb-1">
               Start Date
@@ -220,7 +231,9 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
               } rounded p-2`}
               required
               aria-invalid={errors.start_date ? 'true' : 'false'}
-              aria-describedby={errors.start_date ? 'start-date-error' : undefined}
+              aria-describedby={
+                errors.start_date ? 'start-date-error' : undefined
+              }
             />
             {errors.start_date && (
               <p id="start-date-error" className="text-red-500 text-sm">
@@ -253,6 +266,25 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
             )}
           </div>
 
+          {/* NEW: is_item_only field */}
+          <div className="mb-4">
+            <label htmlFor="is_item_only" className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="is_item_only"
+                name="is_item_only"
+                checked={driveData.is_item_only}
+                onChange={handleInputChange}
+                className="mr-2"
+              />
+              <span className="block font-medium">Is Item-Only Drive?</span>
+            </label>
+            <p className="text-sm text-gray-500">
+              If checked, you manage items directly instead of children.
+            </p>
+          </div>
+
+          {/* Buttons */}
           <div className="flex justify-end space-x-4">
             <button
               type="button"
@@ -274,7 +306,6 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
   );
 };
 
-// PropTypes Validation
 EditDriveModal.propTypes = {
   drive: PropTypes.shape({
     drive_id: PropTypes.number.isRequired,
@@ -283,6 +314,7 @@ EditDriveModal.propTypes = {
     start_date: PropTypes.string,
     end_date: PropTypes.string,
     photo: PropTypes.string,
+    is_item_only: PropTypes.bool, // new
   }).isRequired,
   onClose: PropTypes.func.isRequired,
   onUpdateDrive: PropTypes.func.isRequired,

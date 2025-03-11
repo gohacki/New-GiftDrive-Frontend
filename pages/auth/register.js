@@ -27,7 +27,7 @@ const RegisterPage = () => {
   // Redirect logic
   useEffect(() => {
     if (user) {
-      router.push('/account');
+      router.push('../visible/profile');
     }
   }, [user, router]);
 
@@ -59,7 +59,7 @@ const RegisterPage = () => {
       await login({ email: formData.email, password: formData.password });
 
       // Redirect to the account page
-      router.push('/account');
+      router.push('../visible/profile');
     } catch (err) {
       console.error('Registration failed:', err);
       setError(err.response?.data?.message || 'An error occurred during registration.');
