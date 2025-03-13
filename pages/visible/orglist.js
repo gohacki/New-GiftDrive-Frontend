@@ -10,33 +10,30 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function OrgList() {
   const [organizations, setOrganizations] = useState([]);
-  const [searchInput, setSearchInput] = useState(''); // State for the search input field
-  const [searchQuery, setSearchQuery] = useState(''); // Actual query used for fetching
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedState, setSelectedState] = useState('All');
   const [selectedCity, setSelectedCity] = useState('All');
-  const [featuredOnly, setFeaturedOnly] = useState(true); // Load featured by default
+  const [featuredOnly, setFeaturedOnly] = useState(true);
   const [states, setStates] = useState([]);
   const [cities, setCities] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null); // To handle errors
+  const [error, setError] = useState(null);
 
   // Fetch filter options (states and cities)
   useEffect(() => {
     const fetchFilterOptions = async () => {
       try {
-        // Fetch unique states
         const statesResponse = await axios.get(`${apiUrl}/api/organizations/states`);
         setStates(statesResponse.data);
 
-        // Fetch unique cities
         const citiesResponse = await axios.get(`${apiUrl}/api/organizations/cities`);
         setCities(citiesResponse.data);
       } catch (error) {
         console.error('Error fetching filter options:', error);
         setError('Failed to load filter options. Please try again later.');
-        // Fallback to predefined states and cities if API fails
         setStates(['California', 'Texas', 'New York']);
         setCities(['Los Angeles', 'Houston', 'New York City']);
       }
@@ -45,40 +42,37 @@ export default function OrgList() {
     fetchFilterOptions();
   }, []);
 
-  // Handle search form submission (optional)
+  // Handle search form submission
   const handleSearch = (e) => {
     e.preventDefault();
-    // Update searchQuery immediately if user submits the form
     setSearchQuery(searchInput.trim());
-    setFeaturedOnly(searchInput.trim() === '' ? true : false); // Clear "Featured Only" when searching if search is not empty
+    setFeaturedOnly(searchInput.trim() === '' ? true : false);
   };
 
-  // Debounce the search input to update searchQuery after user stops typing
+  // Debounce search input updates
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       const trimmedInput = searchInput.trim();
       setSearchQuery(trimmedInput);
       if (trimmedInput !== '') {
-        setFeaturedOnly(false); // Clear "Featured Only" when searching
+        setFeaturedOnly(false);
       } else {
-        setFeaturedOnly(true); // Reset "Featured Only" when search is cleared
+        setFeaturedOnly(true);
       }
-    }, 500); // 500ms delay
+    }, 500);
 
-    // Cleanup the timeout if searchInput changes before 500ms
     return () => clearTimeout(delayDebounceFn);
   }, [searchInput]);
 
   // Fetch organizations with filtering and pagination
   const fetchOrganizations = async (currentPage, reset = false) => {
     setLoading(true);
-    setError(null); // Reset error state
+    setError(null);
     try {
-      // Build query parameters
       const params = {
         page: currentPage,
-        limit: 6, // Adjust as needed
-        featured: featuredOnly.toString(), // Convert to string
+        limit: 6,
+        featured: featuredOnly.toString(),
       };
 
       if (searchQuery !== '') {
@@ -93,41 +87,38 @@ export default function OrgList() {
         params.city = selectedCity;
       }
 
-      // Use the unified endpoint
       const response = await axios.get(`${apiUrl}/api/organizations/featured`, { params });
 
       if (response.data && response.data.length > 0) {
         setOrganizations((prev) => (reset ? response.data : [...prev, ...response.data]));
         if (response.data.length < 6) {
-          setHasMore(false); // No more data to load
+          setHasMore(false);
         }
       } else {
-        setHasMore(false); // No more data to load
+        setHasMore(false);
       }
     } catch (error) {
       console.error('Error fetching organizations:', error);
       setError('Failed to load organizations. Please try again later.');
-      setHasMore(false); // Stop further fetching on error
+      setHasMore(false);
     }
     setLoading(false);
   };
 
-  // useEffect to handle filter and search changes
+  // Refetch when filters/search change
   useEffect(() => {
-    // Reset organizations and pagination when filters or search query change
     setOrganizations([]);
     setPage(1);
     setHasMore(true);
     fetchOrganizations(1, true);
   }, [featuredOnly, selectedState, selectedCity, searchQuery]);
 
-  // Fetch more organizations when 'page' changes
+  // Pagination: fetch more organizations when page changes
   useEffect(() => {
-    if (page === 1) return; // Already fetched in the filter/search useEffect
+    if (page === 1) return;
     fetchOrganizations(page, false);
   }, [page]);
 
-  // Load more organizations (for "Load More" button)
   const loadMore = () => {
     if (hasMore && !loading) {
       setPage((prev) => prev + 1);
@@ -138,7 +129,6 @@ export default function OrgList() {
   useEffect(() => {
     const fetchCitiesByState = async () => {
       if (selectedState === 'All') {
-        // Reset to all cities
         try {
           const citiesResponse = await axios.get(`${apiUrl}/api/organizations/cities`);
           setCities(citiesResponse.data);
@@ -154,10 +144,10 @@ export default function OrgList() {
           setCities(citiesResponse.data);
         } catch (error) {
           console.error('Error fetching cities:', error);
-          setCities(['Los Angeles', 'San Francisco', 'New York City']); // Fallback
+          setCities(['Los Angeles', 'San Francisco', 'New York City']);
         }
       }
-      setSelectedCity('All'); // Reset city selection when state changes
+      setSelectedCity('All');
     };
 
     fetchCitiesByState();
@@ -166,11 +156,11 @@ export default function OrgList() {
   return (
     <>
       <Navbar transparent />
-      <main>
+      <main className="min-h-screen bg-secondary_green text-gray-800 relative">
         {/* Search and Filter Bar Section */}
-        <section className="relative py-20 bg-blueGray-600">
-          <div className="container mx-auto px-4">
-            <h2 className="text-2xl md:text-3xl font-semibold text-blueGray-800 text-center mb-6">
+        <section className="relative px-4 py-12 sm:py-20 bg-background ">
+          <div className="container mx-auto">
+            <h2 className="font-georgia text-black text-3xl sm:text-4xl text-center mb-6 pt-12">
               Find the Perfect Organization for Your Cause
             </h2>
             <form onSubmit={handleSearch} className="w-full max-w-4xl mx-auto">
@@ -179,7 +169,7 @@ export default function OrgList() {
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-3 flex items-center">
                     <svg
-                      className="h-5 w-5 text-blueGray-400"
+                      className="h-5 w-5 text-gray-400"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"
@@ -199,7 +189,7 @@ export default function OrgList() {
                     placeholder="Search for organizations..."
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
-                    className="block w-full pl-10 pr-4 py-3 border border-blueGray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ggreen focus:border-transparent"
                     aria-label="Search for organizations"
                   />
                 </div>
@@ -216,7 +206,7 @@ export default function OrgList() {
                     name="state"
                     value={selectedState}
                     onChange={(e) => setSelectedState(e.target.value)}
-                    className="block w-full pl-3 pr-10 py-3 border border-blueGray-300 bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
+                    className="block w-full pl-3 pr-10 py-3 border border-gray-300 bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-ggreen focus:border-transparent sm:text-sm"
                     aria-label="Filter by state"
                   >
                     <option value="All">All States</option>
@@ -237,7 +227,7 @@ export default function OrgList() {
                     name="city"
                     value={selectedCity}
                     onChange={(e) => setSelectedCity(e.target.value)}
-                    className="block w-full pl-3 pr-10 py-3 border border-blueGray-300 bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm"
+                    className="block w-full pl-3 pr-10 py-3 border border-gray-300 bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-ggreen focus:border-transparent sm:text-sm"
                     aria-label="Filter by city"
                   >
                     <option value="All">All Cities</option>
@@ -255,18 +245,18 @@ export default function OrgList() {
                     type="checkbox"
                     checked={featuredOnly}
                     onChange={(e) => setFeaturedOnly(e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-ggreen focus:ring-ggreen border-gray-300 rounded"
                     aria-label="Filter by featured organizations"
                   />
-                  <label htmlFor="featured" className="ml-2 block text-sm text-blueGray-800">
+                  <label htmlFor="featured" className="ml-2 block text-sm text-gray-800">
                     Featured Only
                   </label>
                 </div>
-                {/* Optional: Additional Filters can be added here */}
+                {/* Search Button */}
                 <div className="flex items-center">
                   <button
                     type="submit"
-                    className="ml-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="ml-2 bg-ggreen text-white px-4 py-2 rounded-md hover:bg-ggreen-dark focus:outline-none focus:ring-2 focus:ring-ggreen"
                   >
                     Search
                   </button>
@@ -286,30 +276,27 @@ export default function OrgList() {
         )}
 
         {/* Organizations Section */}
-        <section id="organizations" className="relative py-20 bg-blueGray-200">
+        <section id="organizations" className="relative py-20 bg-white">
           <div className="container mx-auto px-4">
-            {/* Section Header */}
             <div className="text-center mb-12">
-              <h3 className="text-3xl font-semibold text-blueGray-800">Organizations</h3>
-              <p className="text-blueGray-600 mt-2">Discover organizations making a real impact</p>
+              <h3 className="font-georgia text-black text-3xl">Organizations</h3>
+              <p className="text-gray-600 mt-2">Discover organizations making a real impact</p>
             </div>
-            {/* Organizations Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {organizations.length > 0 ? (
                 organizations.map((org) => (
                   <OrganizationCard key={org.org_id} org={org} />
                 ))
               ) : (
-                <p className="text-center text-blueGray-600 col-span-full">No organizations found.</p>
+                <p className="text-center text-gray-600 col-span-full">No organizations found.</p>
               )}
             </div>
-            {/* Load More Button */}
             {hasMore && (
               <div className="flex justify-center mt-8">
                 <button
                   onClick={loadMore}
                   disabled={loading}
-                  className={`bg-blueGray-800 text-white active:bg-blueGray-700 text-sm font-bold uppercase px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none ${
+                  className={`bg-ggreen text-white active:bg-ggreen-dark text-sm font-bold uppercase px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none ${
                     loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                   } transition-all duration-150`}
                 >
@@ -318,7 +305,7 @@ export default function OrgList() {
               </div>
             )}
             {!hasMore && organizations.length > 0 && (
-              <p className="text-center text-blueGray-600 mt-4">No more organizations to display.</p>
+              <p className="text-center text-gray-600 mt-4">No more organizations to display.</p>
             )}
           </div>
         </section>

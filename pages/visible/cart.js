@@ -1,5 +1,3 @@
-// pages/visible/cart.js
-
 import React, { useContext, useEffect, useState } from 'react';
 import { CartContext } from '../../contexts/CartContext';
 import { AuthContext } from '../../contexts/AuthContext';
@@ -170,24 +168,24 @@ const CartPage = () => {
   return (
     <>
       <Navbar transparent />
-      <main className="pt-20 min-h-[80vh] bg-gray-800">
+      <main className="pt-24 min-h-screen bg-secondary_green text-gray-800">
         <div className="container mx-auto px-4 py-8">
           {loading ? (
-            <div className="flex justify-center items-center text-white">
+            <div className="flex justify-center items-center">
               <p>Loading your cart...</p>
             </div>
           ) : cartItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center text-white">
+            <div className="flex flex-col items-center justify-center">
               <h2 className="text-3xl font-semibold mb-4">Your Cart is Empty</h2>
-              <Link href="/visible/orglist" className="text-blue-400 hover:underline">
+              <Link href="/visible/orglist" className="text-ggreen hover:underline">
                 Browse Organizations
               </Link>
             </div>
           ) : (
             <>
-              <h2 className="text-3xl font-semibold mb-6 text-white">Your Cart</h2>
-              <div className="overflow-x-auto">
-                <table className="w-full bg-white rounded-lg shadow-md">
+              <h2 className="text-3xl font-semibold mb-6">Your Cart</h2>
+              <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+                <table className="w-full">
                   <thead>
                     <tr className="text-left border-b">
                       <th className="px-6 py-4">Product</th>
@@ -219,15 +217,11 @@ const CartPage = () => {
                                 {item.color && <span>Color: {item.color}</span>}
                               </div>
                             )}
-                            {/* Child-based or Drive-based indicator */}
                             {item.child_id ? (
                               <div className="text-sm text-gray-600">
                                 Child:&nbsp;
-                                <Link
-                                  href={`/visible/child/${item.child_id}`}
-                                  className="text-blue-500 hover:underline"
-                                >
-                                  {item.child_name || 'View Child'}
+                                <Link href={`/visible/child/${item.child_id}`} className="text-ggreen hover:underline">
+                                    {item.child_name || 'View Child'}
                                 </Link>
                               </div>
                             ) : (
@@ -248,7 +242,7 @@ const CartPage = () => {
                           <div className="flex items-center">
                             <button
                               onClick={() => decrementQuantity(item)}
-                              className="px-2 py-1 border rounded-lg"
+                              className="px-2 py-1 border border-gray-300 rounded-lg text-gray-800"
                               aria-label={`Decrease quantity of ${item.item_name}`}
                             >
                               -
@@ -256,8 +250,8 @@ const CartPage = () => {
                             <span className="mx-2 w-8 text-center">{item.quantity}</span>
                             <button
                               onClick={() => incrementQuantity(item)}
-                              className={`px-2 py-1 border rounded-lg ${
-                                item.quantity >= item.maxAvailable ? 'bg-gray-300 cursor-not-allowed' : ''
+                              className={`px-2 py-1 border border-gray-300 rounded-lg text-gray-800 ${
+                                item.quantity >= item.maxAvailable ? 'bg-gray-200 cursor-not-allowed' : ''
                               }`}
                               disabled={item.quantity >= item.maxAvailable}
                               aria-label={`Increase quantity of ${item.item_name}`}
@@ -299,7 +293,7 @@ const CartPage = () => {
                 {user ? (
                   <button
                     onClick={handleProceedToCheckout}
-                    className={`bg-blue-500 text-white px-6 py-3 rounded hover:bg-blue-600 ${
+                    className={`bg-ggreen text-white font-semibold px-6 py-3 rounded-full hover:shadow-lg transition-all duration-150 ${
                       isProcessing ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
                     disabled={isProcessing}
@@ -310,7 +304,7 @@ const CartPage = () => {
                 ) : (
                   <button
                     onClick={() => setIsGuestCheckout(true)}
-                    className={`bg-green-500 text-white px-6 py-3 rounded hover:bg-green-600 ${
+                    className={`bg-ggreen text-white font-semibold px-6 py-3 rounded-full hover:shadow-lg transition-all duration-150 ${
                       isProcessing ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
                     disabled={isProcessing}
@@ -331,7 +325,7 @@ const CartPage = () => {
               <h2 className="text-2xl font-semibold mb-4">Guest Checkout</h2>
               <form onSubmit={handleGuestCheckout} className="space-y-4">
                 <div>
-                  <label htmlFor="first_name" className="block text-gray-700">
+                  <label htmlFor="first_name" className="block text-gray-800">
                     First Name<span className="text-red-500">*</span>
                   </label>
                   <input
@@ -339,13 +333,15 @@ const CartPage = () => {
                     id="first_name"
                     name="first_name"
                     value={guestInfo.first_name}
-                    onChange={(e) => setGuestInfo({ ...guestInfo, first_name: e.target.value })}
+                    onChange={(e) =>
+                      setGuestInfo({ ...guestInfo, first_name: e.target.value })
+                    }
                     required
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300"
+                    className="w-full px-3 py-2 border border-gray-300 rounded text-gray-800 focus:outline-none focus:ring transition-all duration-150"
                   />
                 </div>
                 <div>
-                  <label htmlFor="last_name" className="block text-gray-700">
+                  <label htmlFor="last_name" className="block text-gray-800">
                     Last Name<span className="text-red-500">*</span>
                   </label>
                   <input
@@ -353,13 +349,15 @@ const CartPage = () => {
                     id="last_name"
                     name="last_name"
                     value={guestInfo.last_name}
-                    onChange={(e) => setGuestInfo({ ...guestInfo, last_name: e.target.value })}
+                    onChange={(e) =>
+                      setGuestInfo({ ...guestInfo, last_name: e.target.value })
+                    }
                     required
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300"
+                    className="w-full px-3 py-2 border border-gray-300 rounded text-gray-800 focus:outline-none focus:ring transition-all duration-150"
                   />
                 </div>
                 <div>
-                  <label htmlFor="email" className="block text-gray-700">
+                  <label htmlFor="email" className="block text-gray-800">
                     Email<span className="text-red-500">*</span>
                   </label>
                   <input
@@ -367,13 +365,15 @@ const CartPage = () => {
                     id="email"
                     name="email"
                     value={guestInfo.email}
-                    onChange={(e) => setGuestInfo({ ...guestInfo, email: e.target.value })}
+                    onChange={(e) =>
+                      setGuestInfo({ ...guestInfo, email: e.target.value })
+                    }
                     required
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300"
+                    className="w-full px-3 py-2 border border-gray-300 rounded text-gray-800 focus:outline-none focus:ring transition-all duration-150"
                   />
                 </div>
                 <div>
-                  <label htmlFor="address" className="block text-gray-700">
+                  <label htmlFor="address" className="block text-gray-800">
                     Address<span className="text-red-500">*</span>
                   </label>
                   <input
@@ -381,14 +381,16 @@ const CartPage = () => {
                     id="address"
                     name="address"
                     value={guestInfo.address}
-                    onChange={(e) => setGuestInfo({ ...guestInfo, address: e.target.value })}
+                    onChange={(e) =>
+                      setGuestInfo({ ...guestInfo, address: e.target.value })
+                    }
                     required
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300"
+                    className="w-full px-3 py-2 border border-gray-300 rounded text-gray-800 focus:outline-none focus:ring transition-all duration-150"
                   />
                 </div>
                 <div className="flex space-x-4">
                   <div className="w-1/2">
-                    <label htmlFor="city" className="block text-gray-700">
+                    <label htmlFor="city" className="block text-gray-800">
                       City<span className="text-red-500">*</span>
                     </label>
                     <input
@@ -396,13 +398,15 @@ const CartPage = () => {
                       id="city"
                       name="city"
                       value={guestInfo.city}
-                      onChange={(e) => setGuestInfo({ ...guestInfo, city: e.target.value })}
+                      onChange={(e) =>
+                        setGuestInfo({ ...guestInfo, city: e.target.value })
+                      }
                       required
-                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300"
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-gray-800 focus:outline-none focus:ring transition-all duration-150"
                     />
                   </div>
                   <div className="w-1/2">
-                    <label htmlFor="state" className="block text-gray-700">
+                    <label htmlFor="state" className="block text-gray-800">
                       State<span className="text-red-500">*</span>
                     </label>
                     <input
@@ -410,14 +414,16 @@ const CartPage = () => {
                       id="state"
                       name="state"
                       value={guestInfo.state}
-                      onChange={(e) => setGuestInfo({ ...guestInfo, state: e.target.value })}
+                      onChange={(e) =>
+                        setGuestInfo({ ...guestInfo, state: e.target.value })
+                      }
                       required
-                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300"
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-gray-800 focus:outline-none focus:ring transition-all duration-150"
                     />
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="zip_code" className="block text-gray-700">
+                  <label htmlFor="zip_code" className="block text-gray-800">
                     ZIP Code<span className="text-red-500">*</span>
                   </label>
                   <input
@@ -425,13 +431,15 @@ const CartPage = () => {
                     id="zip_code"
                     name="zip_code"
                     value={guestInfo.zip_code}
-                    onChange={(e) => setGuestInfo({ ...guestInfo, zip_code: e.target.value })}
+                    onChange={(e) =>
+                      setGuestInfo({ ...guestInfo, zip_code: e.target.value })
+                    }
                     required
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300"
+                    className="w-full px-3 py-2 border border-gray-300 rounded text-gray-800 focus:outline-none focus:ring transition-all duration-150"
                   />
                 </div>
                 <div>
-                  <label htmlFor="phone_number" className="block text-gray-700">
+                  <label htmlFor="phone_number" className="block text-gray-800">
                     Phone Number
                   </label>
                   <input
@@ -439,22 +447,24 @@ const CartPage = () => {
                     id="phone_number"
                     name="phone_number"
                     value={guestInfo.phone_number}
-                    onChange={(e) => setGuestInfo({ ...guestInfo, phone_number: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300"
+                    onChange={(e) =>
+                      setGuestInfo({ ...guestInfo, phone_number: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded text-gray-800 focus:outline-none focus:ring transition-all duration-150"
                   />
                 </div>
                 <div className="flex justify-end space-x-4">
                   <button
                     type="button"
                     onClick={() => setIsGuestCheckout(false)}
-                    className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+                    className="px-4 py-2 bg-gray-800 text-white rounded-full hover:bg-gray-700 transition-colors"
                     aria-label="Cancel Guest Checkout"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className={`px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors ${
+                    className={`px-4 py-2 bg-ggreen text-white rounded-full hover:shadow-lg transition-colors ${
                       isProcessing ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
                     disabled={isProcessing}

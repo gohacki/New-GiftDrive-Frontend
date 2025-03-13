@@ -1,6 +1,6 @@
 // pages/register-org.js
 
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import Auth from 'layouts/Auth.js';
@@ -9,11 +9,17 @@ import { AuthContext } from 'contexts/AuthContext';
 const RegisterOrganization = () => {
   const router = useRouter();
   const { user, loading } = useContext(AuthContext);
-  
-  // If the user is already an org admin, redirect to drive setup
-  if (!loading && user && user.is_org_admin) {
-    router.push('visible/registerdrive');
-  }
+
+  // If not loading and no user, force login
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        router.push('/auth/login');
+      } else if (user && user.is_org_admin) {
+        router.push('/visible/registerdrive');
+      }
+    }
+  }, [user, loading, router]);
 
   const [orgData, setOrgData] = useState({
     orgName: '',
@@ -38,22 +44,19 @@ const RegisterOrganization = () => {
     // Build payload to match your backend expectations
     const payload = {
       name: orgData.orgName,
-      description: '', // Add if you want an optional description
+      description: '',
       address: orgData.streetAddress,
       city: orgData.city,
       state: orgData.state,
       zip_code: orgData.zipCode,
-      website_link: '', // Optional if available
-      // You might also send orgEmail, preferredDropOffTime, and contactPhone if needed.
+      website_link: '',
     };
 
     try {
-      // Post to the organization registration endpoint
       await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/organizations/register`, payload, {
         withCredentials: true,
       });
-      // On success, redirect to the drive setup page
-      router.push('/registerdrive');
+      router.push('visible/registerdrive');
     } catch (err) {
       console.error('Error registering organization:', err);
       alert('Failed to register organization. Please check your input and try again.');
@@ -61,7 +64,7 @@ const RegisterOrganization = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 pt-40 pb-32">
       <h2 className="text-2xl font-bold mb-4">Register Your Organization</h2>
       <div className="space-y-4">
         <input
@@ -114,7 +117,6 @@ const RegisterOrganization = () => {
           placeholder="Zip Code"
           className="border px-3 py-2 w-full"
         />
-        {/* Optionally, include fields for preferredDropOffTime and contactPhone */}
       </div>
       <button
         onClick={handleSubmit}

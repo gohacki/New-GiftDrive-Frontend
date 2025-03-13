@@ -13,6 +13,10 @@ const Navbar = () => {
   const [navbarOpen, setNavbarOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const router = useRouter();
+  const { cart } = useContext(CartContext);
+  const itemCount = cart?.items
+  ? cart.items.reduce((total, item) => total + item.quantity, 0)
+  : 0;
 
   // Handle scroll event to toggle navbar background
   useEffect(() => {
@@ -218,30 +222,39 @@ const Navbar = () => {
                 </Link>
               </li>
             )}
-
             {/* Cart Icon for Small Screens */}
             <li className="flex items-center lg:hidden">
               <Link href="/visible/cart">
-                <span
-                  className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
-                    isActive('/visible/cart') ? 'text-blueGray-300' : ''
-                  }`}
-                >
-                  <FaShoppingCart className="h-6 w-6 mr-1" /> Cart
-                </span>
+                <div className="relative flex items-center">
+                  <FaShoppingCart className="h-6 w-6 mr-1" />
+                  {itemCount > 0 && (
+                    <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+                      {itemCount}
+                    </span>
+                  )}
+                  <span className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${isActive('/visible/cart') ? 'text-blueGray-300' : ''}`}>
+                    Cart
+                  </span>
+                </div>
               </Link>
             </li>
+
           </ul>
         </div>
-
         {/* Cart Icon for Large Screens */}
         <div className="navbar-cart flex items-center hidden lg:flex">
           <Link href="/visible/cart">
-            <span className="flex items-center">
+            <div className="relative">
               <FaShoppingCart className="h-6 w-6 text-ggreen" />
-            </span>
+              {itemCount > 0 && (
+                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+                  {itemCount}
+                </span>
+              )}
+            </div>
           </Link>
         </div>
+
       </div>
     </nav>
   );

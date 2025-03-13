@@ -19,9 +19,9 @@ const OrganizationPage = ({ organization }) => {
     return (
       <>
         <Navbar transparent />
-        <div className="min-h-screen flex items-center justify-center bg-gray-00">
-          <p className="text-gray-500 text-lg">Organization not found.</p>
-        </div>
+        <main className="min-h-screen flex items-center justify-center bg-secondary_green text-gray-800 relative">
+          <p className="text-gray-600 text-lg">Organization not found.</p>
+        </main>
         <Footer />
       </>
     );
@@ -30,7 +30,7 @@ const OrganizationPage = ({ organization }) => {
   return (
     <>
       <Navbar transparent />
-      <div className="min-h-screen bg-gray-500 py-16">
+      <main className="min-h-screen bg-secondary_green text-gray-800 relative py-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Breadcrumb Navigation */}
           <Breadcrumbs
@@ -44,7 +44,7 @@ const OrganizationPage = ({ organization }) => {
           {/* Back Button */}
           <button
             onClick={() => router.back()}
-            className="flex items-center mb-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            className="flex items-center mb-6 px-4 py-2 bg-ggreen text-white rounded-md hover:bg-ggreen-dark transition-colors focus:outline-none focus:ring-2 focus:ring-ggreen"
             aria-label="Go back to previous page"
           >
             <svg
@@ -68,7 +68,7 @@ const OrganizationPage = ({ organization }) => {
                   <Image
                     src={organization.photo || '/img/default-org.png'}
                     alt={organization.name}
-                    width={256} // 64 * 4
+                    width={256}
                     height={256}
                     className="object-cover rounded-lg"
                   />
@@ -76,11 +76,10 @@ const OrganizationPage = ({ organization }) => {
               )}
               {/* Organization Info */}
               <div className="md:w-2/3 p-6 flex flex-col justify-center">
-                <h2 className="text-3xl font-bold text-gray-800 mb-4">
+                <h2 className="text-3xl font-bold text-black font-georgia mb-4">
                   {organization.name}
                 </h2>
                 <p className="text-gray-600 mb-4">{organization.description}</p>
-                {/* Optional: Add more organization details here */}
                 {organization.location && (
                   <p className="text-gray-600 mb-2">
                     <strong>Location:</strong> {organization.location}
@@ -97,7 +96,7 @@ const OrganizationPage = ({ organization }) => {
 
           {/* Drives Section */}
           <div>
-            <h3 className="text-2xl font-semibold text-gray-800 mb-6">Drives</h3>
+            <h3 className="text-2xl font-semibold text-black font-georgia mb-6">Drives</h3>
             {organization.drives && organization.drives.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {organization.drives.map((drive) => (
@@ -118,7 +117,7 @@ const OrganizationPage = ({ organization }) => {
                       </div>
                     )}
                     <div className="p-4">
-                      <h4 className="text-lg font-semibold text-gray-800 mb-2">
+                      <h4 className="text-lg font-semibold text-black mb-2">
                         {drive.name}
                       </h4>
                       <p className="text-gray-600">{drive.description}</p>
@@ -127,25 +126,24 @@ const OrganizationPage = ({ organization }) => {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500">No drives available for this organization.</p>
+              <p className="text-gray-600">No drives available for this organization.</p>
             )}
           </div>
         </div>
-      </div>
+      </main>
       <Footer />
     </>
   );
 };
 
-// PropTypes validation for the OrganizationPage component
 OrganizationPage.propTypes = {
   organization: PropTypes.shape({
     org_id: PropTypes.number.isRequired,
     photo: PropTypes.string,
     name: PropTypes.string.isRequired,
     description: PropTypes.string,
-    location: PropTypes.string, // Optional: Add if available
-    founded: PropTypes.string, // Optional: Add if available
+    location: PropTypes.string,
+    founded: PropTypes.string,
     drives: PropTypes.arrayOf(
       PropTypes.shape({
         drive_id: PropTypes.number.isRequired,
@@ -157,7 +155,6 @@ OrganizationPage.propTypes = {
   }).isRequired,
 };
 
-// Fetch organization data on the server side
 export async function getServerSideProps(context) {
   const { id } = context.params;
 

@@ -11,18 +11,20 @@ const NewDriveWizard = () => {
   const { user, loading } = useContext(AuthContext);
 
   // If the user is not logged in or not an org admin, you might want to redirect them to login or organization registration
-  if (!loading && (!user || !user.is_org_admin)) {
+  if (!loading && (!user)) {
     router.push('/auth/login');
   }
+  else if (!loading && (!user.is_org_admin)) {
+    router.push('/visible/registerorg');
+  }
+
+
 
   const [driveData, setDriveData] = useState({
     startDate: '',
     endDate: '',
     driveTitle: '',
     driveDescription: '',
-    itemsNeededApprox: 0,
-    driveCategory: '',
-    isItemOnly: false,
   });
 
   const handleChange = (e) => {
@@ -39,7 +41,6 @@ const NewDriveWizard = () => {
       description: driveData.driveDescription,
       start_date: driveData.startDate,
       end_date: driveData.endDate,
-      // Additional fields can be included as needed.
     };
 
     try {
@@ -47,7 +48,7 @@ const NewDriveWizard = () => {
       await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/drives`, payload, {
         withCredentials: true,
       });
-      router.push('admin/currenDrives'); // Or another page indicating success
+      router.push('../admin/currentDrives'); // Or another page indicating success
     } catch (err) {
       console.error('Error creating new drive:', err);
       alert('Failed to create drive. Please check your input and try again.');
@@ -55,23 +56,9 @@ const NewDriveWizard = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-32">
       <h2 className="text-2xl font-bold mb-4">Create a New Drive</h2>
       <div className="space-y-4">
-        <input
-          type="date"
-          name="startDate"
-          value={driveData.startDate}
-          onChange={handleChange}
-          className="border px-3 py-2 w-full"
-        />
-        <input
-          type="date"
-          name="endDate"
-          value={driveData.endDate}
-          onChange={handleChange}
-          className="border px-3 py-2 w-full"
-        />
         <input
           type="text"
           name="driveTitle"
@@ -88,55 +75,23 @@ const NewDriveWizard = () => {
           rows={3}
           className="border px-3 py-2 w-full"
         />
-        <input
-          type="number"
-          name="itemsNeededApprox"
-          value={driveData.itemsNeededApprox}
-          onChange={handleChange}
-          placeholder="Approximate number of items needed"
-          className="border px-3 py-2 w-full"
-          min={0}
-        />
-        <div className="flex space-x-2">
-          <button
-            type="button"
-            className={`px-3 py-1 border rounded ${
-              driveData.driveCategory === 'Angel Tree' ? 'bg-blue-300' : ''
-            }`}
-            onClick={() => handleChange({ target: { name: 'driveCategory', value: 'Angel Tree' } })}
-          >
-            Angel Tree
-          </button>
-          <button
-            type="button"
-            className={`px-3 py-1 border rounded ${
-              driveData.driveCategory === 'Food & Meal' ? 'bg-blue-300' : ''
-            }`}
-            onClick={() => handleChange({ target: { name: 'driveCategory', value: 'Food & Meal' } })}
-          >
-            Food & Meal
-          </button>
-          <button
-            type="button"
-            className={`px-3 py-1 border rounded ${
-              driveData.driveCategory === 'Clothing' ? 'bg-blue-300' : ''
-            }`}
-            onClick={() => handleChange({ target: { name: 'driveCategory', value: 'Clothing' } })}
-          >
-            Clothing
-          </button>
-        </div>
-        <label className="flex items-center">
-          <input
-            type="checkbox"
-            name="isItemOnly"
-            checked={driveData.isItemOnly}
-            onChange={handleChange}
-            className="mr-2"
-          />
-          Make this drive item-only
-        </label>
       </div>
+      <h3 className="text-xl font-bold my-2">Start Date</h3>
+      <input
+          type="date"
+          name="startDate"
+          value={driveData.startDate}
+          onChange={handleChange}
+          className="border px-3 py-2 w-full"
+        />
+        <h3 className="text-xl font-bold my-2">End Date</h3>
+        <input
+          type="date"
+          name="endDate"
+          value={driveData.endDate}
+          onChange={handleChange}
+          className="border px-3 py-2 w-full"
+        />
       <button
         onClick={handleSubmit}
         className="mt-6 bg-teal-700 text-white px-4 py-2 rounded hover:bg-teal-800"
