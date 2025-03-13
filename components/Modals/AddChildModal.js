@@ -54,9 +54,9 @@ const AddChildModal = ({ onClose, onAddChild, driveId }) => {
       await axios.post(
         `${apiUrl}/api/children`,
         {
-          child_id: selectedChildId,
-          item_ids: selectedItemIds,
-          drive_id: driveId,
+          default_child_id: parseInt(selectedChildId, 10),
+          item_ids: selectedItemIds.map(Number),
+          drive_id: parseInt(driveId, 10),
         },
         { withCredentials: true }
       );
@@ -85,10 +85,11 @@ const AddChildModal = ({ onClose, onAddChild, driveId }) => {
                 -- Select a Child --
               </option>
               {defaultChildren.map((child) => (
-                <option key={child.child_id} value={child.child_id}>
-                  {child.name}
-                </option>
-              ))}
+  <option key={child.default_child_id} value={child.default_child_id}>
+    {child.name}
+  </option>
+))}
+
             </select>
           </div>
 

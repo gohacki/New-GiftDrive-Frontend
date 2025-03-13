@@ -29,6 +29,11 @@ const Sidebar = () => {
       icon: <FaBullhorn className="mr-2 text-sm" />,
     },
     {
+      name: "Future Drives",
+      href: "/admin/futureDrives",
+      icon: <FaHistory className="mr-2 text-sm" />,
+    },
+    {
       name: "Past Drives",
       href: "/admin/pastDrives",
       icon: <FaHistory className="mr-2 text-sm" />,

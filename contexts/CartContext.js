@@ -40,11 +40,11 @@ export const CartProvider = ({ children }) => {
   /**
    * Adds an item to the cart.
    */
-  const addToCart = async (item_id, config_id = null, child_id = null, quantity = 1) => {
+  const addToCart = async (item_id, config_id = null, child_id = null, drive_id = null, quantity = 1) => {
     try {
       await axios.post(
         `${apiUrl}/api/cart/add`,
-        { item_id, config_id, child_id, quantity },
+        { item_id, config_id, child_id, drive_id, quantity },
         { withCredentials: true }
       );
       fetchCart();
@@ -54,6 +54,7 @@ export const CartProvider = ({ children }) => {
       toast.error(error.response?.data?.error || 'Failed to add item to cart.');
     }
   };
+  
 
   /**
    * Removes an item from the cart.

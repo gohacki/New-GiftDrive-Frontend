@@ -6,6 +6,7 @@ import { AuthContext } from '../../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { FaShoppingCart } from 'react-icons/fa';
+import { CartContext } from '../../contexts/CartContext';
 
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);

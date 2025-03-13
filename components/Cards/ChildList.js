@@ -117,7 +117,8 @@ const ChildList = ({ driveId }) => {
   /**
    * Triggers the modal to add a new child.
    */
-  const triggerAddChildModal = () => {
+  const triggerAddChildModal = (e) => {
+    e.stopPropagation()
     openModal(MODAL_TYPES.ADD_CHILD, {
       driveId,
       onAddChild: fetchChildrenWithItems, // Refresh the list after adding

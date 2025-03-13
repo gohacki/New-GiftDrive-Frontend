@@ -61,8 +61,8 @@ const DriveItemList = ({ driveId }) => {
     }
   };
 
-  const handleAddItem = () => {
-    // You could open a modal with a list of items to add
+  const handleAddItem = (e) => {
+    e.stopPropagation(); // Prevent the click from bubbling up
     openModal(MODAL_TYPES.ITEM_SELECTION, {
       driveId,
       onItemSelected: () => {
@@ -70,6 +70,7 @@ const DriveItemList = ({ driveId }) => {
       },
     });
   };
+  
 
   if (loading) return <p>Loading items...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
@@ -79,10 +80,10 @@ const DriveItemList = ({ driveId }) => {
       <div className="flex justify-between items-center mb-4">
         <h4 className="text-lg font-semibold">Drive Items</h4>
         <button
-          onClick={handleAddItem}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-        >
-          Add Item
+            onClick={handleAddItem}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            >
+            Add Item
         </button>
       </div>
       {driveItems.length === 0 ? (

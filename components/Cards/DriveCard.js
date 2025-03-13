@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import ChildList from './ChildList';
-import DriveItemList from './DriveItemList'; // NEW IMPORT
+import DriveItemList from './DriveItemList';
 import { useModal, MODAL_TYPES } from '../../contexts/ModalContext';
 
 const DriveCard = ({ drive, onDelete, onUpdateDrive }) => {
@@ -17,16 +17,14 @@ const DriveCard = ({ drive, onDelete, onUpdateDrive }) => {
   };
 
   const handleEdit = (e) => {
-    e.stopPropagation(); // Prevent toggling details
+    e.stopPropagation();
     openModal(MODAL_TYPES.EDIT_DRIVE, {
       drive,
       onUpdateDrive,
     });
   };
 
-  // Toggle the details section
   const toggleDetails = (e) => {
-    // If triggered by keyboard enter or direct click, toggle
     if (!e.key || e.key === 'Enter') {
       setShowDetails((prev) => !prev);
     }
@@ -46,11 +44,7 @@ const DriveCard = ({ drive, onDelete, onUpdateDrive }) => {
           <h3 className="text-xl font-bold mb-2">{drive.name}</h3>
           <p className="text-gray-600">{drive.description}</p>
         </div>
-        <div
-          className="flex items-center space-x-2"
-          onClick={(e) => e.stopPropagation()} // Stop from toggling details
-        >
-          {/* Manage Items or Children */}
+        <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={toggleDetails}
             aria-expanded={showDetails}
@@ -60,14 +54,12 @@ const DriveCard = ({ drive, onDelete, onUpdateDrive }) => {
           >
             Manage
           </button>
-          {/* Edit Drive Info */}
           <button
             onClick={handleEdit}
             className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
           >
             Edit
           </button>
-          {/* Delete Drive */}
           <button
             onClick={handleDelete}
             className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
@@ -77,7 +69,7 @@ const DriveCard = ({ drive, onDelete, onUpdateDrive }) => {
         </div>
       </div>
 
-      {/* Expanded Details */}
+      {/* Expanded Details: Show both drive items and children */}
       {showDetails && (
         <div className="mt-6">
           <p>
@@ -89,12 +81,12 @@ const DriveCard = ({ drive, onDelete, onUpdateDrive }) => {
             {new Date(drive.end_date).toLocaleDateString()}
           </p>
           <div className="mt-4">
-            {/* If drive.is_item_only, show DriveItemList; else ChildList */}
-            {drive.is_item_only ? (
-              <DriveItemList driveId={drive.drive_id} />
-            ) : (
-              <ChildList driveId={drive.drive_id} />
-            )}
+            <h4 className="text-lg font-semibold">Drive Items</h4>
+            <DriveItemList driveId={drive.drive_id} />
+          </div>
+          <div className="mt-4">
+            <h4 className="text-lg font-semibold">Children with Items</h4>
+            <ChildList driveId={drive.drive_id} />
           </div>
         </div>
       )}
@@ -109,7 +101,6 @@ DriveCard.propTypes = {
     description: PropTypes.string,
     start_date: PropTypes.string.isRequired,
     end_date: PropTypes.string.isRequired,
-    is_item_only: PropTypes.bool, // added
   }).isRequired,
   onDelete: PropTypes.func.isRequired,
   onUpdateDrive: PropTypes.func.isRequired,
