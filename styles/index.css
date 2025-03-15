@@ -16,7 +16,36 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* globals.css */
+
+.inter-semi-bold {
+  font-family: "Inter", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 600;
+  font-style: normal;
+}
+
+.inter-medium {
+  font-family: "Inter", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.inter-regular {
+  font-family: "Inter", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 500;
+  font-style: normal;
+}
+
+.inter-bold {
+  font-family: "Inter", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* 
 @font-face {
   font-family: 'Georgia Pro';
   src: url('/fonts/GeorgiaPro-Regular.ttf') format('truetype');
@@ -36,7 +65,7 @@ body {
   src: url('/fonts/GeorgiaPro-Italic.ttf') format('truetype');
   font-weight: 400;
   font-style: italic;
-}
+} */
 
 .uniform-image-size {
     width: 100%; /* Ensure the image spans the full width of the container */

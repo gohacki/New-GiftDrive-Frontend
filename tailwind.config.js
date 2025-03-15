@@ -39,9 +39,9 @@ module.exports = {
         ...colors,
         background: "var(--background)",
         foreground: "var(--foreground)",
-        'ggreen': '#367534',
+        'ggreen': '#11393B',
         'gyellow': '#f8a716',
-        'secondary_green':'#d4e4d4'
+        'secondary_green':'#F6F3EE'
       },
       fontFamily: {
         georgia: ['Georgia Pro', 'serif'],

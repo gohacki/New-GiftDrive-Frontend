@@ -57,22 +57,23 @@ const Navbar = () => {
         scrolled || navbarOpen ? 'bg-secondary_green shadow-lg' : 'bg-transparent'
       }`}
     >
-      <div className="container mx-auto px-4 py-3 flex flex-wrap items-center justify-between">
-        {/* Brand and Toggle Button */}
-        <div className="flex justify-between w-full lg:w-auto">
-          <Link href="/">
-            <div className="flex flex-none leading-relaxed mr-4 py-2 whitespace-nowrap cursor-pointer font-georgia text-ggreen text-5xl">
-              <Image
-                src="/MainGift.png"
-                alt="Gyftly Logo"
-                width={64}
-                height={64}
-                className="h-16 w-auto"
-                priority
-              />
-              Gyftly
-            </div>
-          </Link>
+  <div className="container mx-auto px-4 py-3 flex flex-wrap items-center">
+    {/* Brand + Toggler in one row */}
+    <div className="flex w-full lg:w-auto items-center">
+      {/* Brand (Gyftly) centered */}
+      <Link href="/">
+        <div className="mx-auto leading-relaxed py-2 whitespace-nowrap cursor-pointer inter-semi-bold text-ggreen text-2xl flex items-center">
+          <Image
+            src="/MainGift.png"
+            alt="Gyftly Logo"
+            width={128}
+            height={128}
+            className="h-12 w-auto"
+            priority
+          />
+          Gyftly
+        </div>
+      </Link>
           <button
             className="text-ggreen cursor-pointer text-xl leading-none px-3 py-1 border border-solid border-transparent rounded bg-transparent block lg:hidden outline-none focus:outline-none"
             type="button"
@@ -111,7 +112,7 @@ const Navbar = () => {
         {/* Navbar Links */}
         <div
           className={`lg:flex flex-grow items-center transition-all duration-300 ease-in-out ${
-            navbarOpen ? 'block bg-blueGray-800 lg:bg-transparent' : 'hidden'
+            navbarOpen ? 'block bg-secondary-green lg:bg-transparent' : 'hidden'
           }`}
           id="navbar-menu"
         >
@@ -119,7 +120,7 @@ const Navbar = () => {
             <li className="flex items-center">
               <Link href="/visible/orglist">
                 <span
-                  className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
+                  className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
                     isActive('/visible/orglist') ? 'text-blueGray-300' : ''
                   }`}
                 >
@@ -133,7 +134,7 @@ const Navbar = () => {
                 <li className="flex items-center">
                   <Link href="/visible/profile">
                     <span
-                      className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
+                      className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
                         isActive('/visible/profile') ? 'text-blueGray-300' : ''
                       }`}
                     >
@@ -146,7 +147,7 @@ const Navbar = () => {
                   <li className="flex items-center">
                     <Link href="/admin/dashboard">
                       <span
-                        className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
+                        className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
                           isActive('/admin/dashboard') ? 'text-blueGray-300' : ''
                         }`}
                       >
@@ -160,7 +161,7 @@ const Navbar = () => {
                   <li className="flex items-center">
                     <Link href="/admin/superAdmin">
                       <span
-                        className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
+                        className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
                           isActive('/admin/superAdmin') ? 'text-blueGray-300' : ''
                         }`}
                       >
@@ -173,7 +174,7 @@ const Navbar = () => {
                 <li className="flex items-center">
                   <button
                     onClick={handleLogout}
-                    className="text-sm font-bold uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow cursor-pointer bg-transparent border-none"
+                    className="text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow cursor-pointer bg-transparent border-none"
                   >
                     Logout
                   </button>
@@ -186,7 +187,7 @@ const Navbar = () => {
                 <li className="flex items-center">
                   <Link href="/auth/login">
                     <span
-                      className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
+                      className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
                         isActive('/auth/login') ? 'text-blueGray-300' : ''
                       }`}
                     >
@@ -197,7 +198,7 @@ const Navbar = () => {
                 <li className="flex items-center">
                   <Link href="/auth/register">
                     <span
-                      className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
+                      className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
                         isActive('/auth/register') ? 'text-blueGray-300' : ''
                       }`}
                     >
@@ -211,12 +212,12 @@ const Navbar = () => {
             {!user?.is_org_admin && (
               <li className="flex items-center">
                 <Link href="/visible/registerorg">
-                  <span className="text-sm font-bold uppercase px-3 py-2 flex items-center">
+                  <span className="text-sm inter-regular uppercase px-3 py-2 flex items-center">
                     <button
-                      className="bg-white text-blueGray-700 active:bg-blueGray-50 text-xs font-bold uppercase px-4 py-2 rounded shadow hover:shadow-md outline-none focus:outline-none ease-linear transition-all duration-150"
+                      className="bg-white text-blueGray-700 active:bg-blueGray-50 text-xs inter-regular uppercase px-4 py-2 rounded-full shadow hover:shadow-md outline-none focus:outline-none ease-linear transition-all duration-150"
                       type="button"
                     >
-                      Enroll Your Org Now
+                      Create A Drive
                     </button>
                   </span>
                 </Link>
@@ -228,11 +229,11 @@ const Navbar = () => {
                 <div className="relative flex items-center">
                   <FaShoppingCart className="h-6 w-6 mr-1" />
                   {itemCount > 0 && (
-                    <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+                    <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs inter-regular leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
                       {itemCount}
                     </span>
                   )}
-                  <span className={`text-sm font-bold uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${isActive('/visible/cart') ? 'text-blueGray-300' : ''}`}>
+                  <span className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${isActive('/visible/cart') ? 'text-blueGray-300' : ''}`}>
                     Cart
                   </span>
                 </div>
@@ -247,7 +248,7 @@ const Navbar = () => {
             <div className="relative">
               <FaShoppingCart className="h-6 w-6 text-ggreen" />
               {itemCount > 0 && (
-                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs inter-regular leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
                   {itemCount}
                 </span>
               )}

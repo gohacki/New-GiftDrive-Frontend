@@ -1,50 +1,94 @@
 // src/components/Footers/Footer.js
 
 import React from "react";
+// If you want actual icons, install react-icons and uncomment the imports below:
+// import { FaFacebookF, FaInstagram, FaTwitter } from "react-icons/fa";
 
 export default function Footer() {
   return (
-    <footer className="bg-green-900 text-white px-4 py-8">
-    <div className="w-full mx-auto flex flex-col sm:flex-row justify-between">
-      {/* Footer Links */}
-      <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-12 mb-6 sm:mb-0">
-        <div>
-          <h4 className="font-semibold mb-2">Features</h4>
-          <ul className="text-sm space-y-1">
-            <li>Organize Drives</li>
-            <li>Support Kids</li>
-          </ul>
+    <footer className="bg-ggreen text-white px-6 py-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Top Section: 4 columns of links */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
+          <div>
+            <h4 className="font-semibold mb-2">Start a Drive</h4>
+            <ul className="space-y-1 text-sm">
+              <li>
+                <a href="#">Find a Drive</a>
+              </li>
+              <li>
+                <a href="#">Testimonials</a>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-semibold mb-2">Register</h4>
+            <ul className="space-y-1 text-sm">
+              <li>
+                <a href="#">Login</a>
+              </li>
+              <li>
+                <a href="#">Dashboard</a>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-semibold mb-2">Help Center</h4>
+            <ul className="space-y-1 text-sm">
+              <li>
+                <a href="#">Resources</a>
+              </li>
+              <li>
+                <a href="#">Contact Us</a>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-semibold mb-2">Privacy Policy</h4>
+            <ul className="space-y-1 text-sm">
+              <li>
+                <a href="#">Terms of Service</a>
+              </li>
+              <li>
+                <a href="#">About Us</a>
+              </li>
+            </ul>
+          </div>
         </div>
-        <div>
-          <h4 className="font-semibold mb-2">Help</h4>
-          <ul className="text-sm space-y-1">
-            <li>About Us</li>
-            <li><a
-        href="mailto:lbvaughan25@gmail.com?subject=Inquiry from Gyftly Website&body=Hello Gyftly Team,"
-        >
-        Contact
-      </a></li>
-          </ul>
-        </div>
-        <div>
-          <h4 className="font-semibold mb-2">Privacy Policy</h4>
-          <ul className="text-sm space-y-1">
-            <li>Terms of Service</li>
-            <li>Media</li>
-          </ul>
-        </div>
-      </div>
-    </div>
 
-    {/* Bottom Legal Info */}
-    <div className="border-t border-gray-700 mt-6 pt-4 text-sm text-gray-300">
-      <div className="flex flex-col sm:flex-row justify-between items-center">
-        <div className="mb-2 sm:mb-0">
-          <p>Privacy Notice &bull; Your Privacy Choices</p>
+        {/* Bottom Section: border, copyright, icons, and extra link */}
+        <div className="border-t border-gray-700 mt-8 pt-4 flex flex-col sm:flex-row items-center justify-between text-sm">
+          {/* Left: Copyright text */}
+          <div className="mb-4 sm:mb-0">
+            <p>© 2025 Gyftly, LLC. All rights reserved.</p>
+          </div>
+
+          {/* Right: Icons + Extra Link */}
+          <div className="flex items-center space-x-6">
+            {/* Social Icons (replace # with your links) */}
+            <div className="flex space-x-4">
+              <a href="#" aria-label="Facebook">
+                {/* <FaFacebookF /> */}
+                FB
+              </a>
+              <a href="#" aria-label="Instagram">
+                {/* <FaInstagram /> */}
+                IG
+              </a>
+              <a href="#" aria-label="X">
+                {/* <FaTwitter /> or another X icon */}
+                X
+              </a>
+            </div>
+            <a
+              href="#"
+              className="inline-flex items-center text-gray-300 hover:text-white"
+            >
+              Tips, tricks, and advice around donation drives &rarr;
+            </a>
+          </div>
         </div>
-        <p className="text-center">Gyftly ©2025</p>
       </div>
-    </div>
-  </footer>
+    </footer>
   );
 }
