@@ -172,7 +172,7 @@ export default function Landing() {
       {/* Card 1 */}
       <div className="bg-white border border-gray-200 rounded-lg p-6 shadow">
         <p className="text-gray-700 mb-4">
-          “Gyftly made organizing our school's back-to-school supplies drive 
+          “Gyftly made organizing our school&apos;s back-to-school supplies drive 
           easier than ever. We reached our goal way faster than in previous years, 
           and it was super simple to share with everyone!”
         </p>
@@ -194,9 +194,9 @@ export default function Landing() {
       {/* Card 3 */}
       <div className="bg-white border border-gray-200 rounded-lg p-6 shadow">
         <p className="text-gray-700 mb-4">
-          “You won't regret taking your drive online with Gyftly. Being able 
+          “You won&apos;t regret taking your drive online with Gyftly. Being able 
           to track progress in real time and have items shipped directly to us 
-          saved so much hassle. There's no going back!”
+          saved so much hassle. There&apos;s no going back!”
         </p>
         <p className="font-semibold text-gray-900">Jaxon Tremont</p>
         <p className="text-sm text-gray-500">

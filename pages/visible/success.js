@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import axios from 'axios';
 import Navbar from 'components/Navbars/AuthNavbar';
 import Footer from 'components/Footers/Footer';
+import Link from 'next/link';
 
 const SuccessPage = () => {
   const router = useRouter();
@@ -34,9 +35,9 @@ const SuccessPage = () => {
               {/* Display order details */}
             </div>
           )}
-          <a href="/visible/orglist" className="text-blue-400 hover:underline">
+          <Link href="/visible/orglist" className="text-blue-400 hover:underline">
             Continue Shopping
-          </a>
+          </Link>
         </div>
       </main>
       <Footer />

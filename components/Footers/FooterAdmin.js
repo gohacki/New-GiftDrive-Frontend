@@ -22,12 +22,12 @@ export default function FooterAdmin() {
             <div className="w-full md:w-8/12 px-4">
               <ul className="flex flex-wrap list-none md:justify-end  justify-center">
                 <li>
-                  <a
+                  <Link
                     href="/visible/about"
                     className="text-blueGray-600 hover:text-blueGray-800 text-sm font-semibold block py-1 px-3"
                   >
                     About Us
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
