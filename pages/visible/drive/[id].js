@@ -1,7 +1,5 @@
-// src/pages/drive/[id].js
-
 import axios from 'axios';
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import Link from 'next/link';
 import PropTypes from 'prop-types';
 import { useRouter } from 'next/router';
@@ -19,7 +17,23 @@ const DrivePage = ({ drive }) => {
   const { cart, addToCart, removeFromCart } = useContext(CartContext);
   const [driveQuantities, setDriveQuantities] = useState({});
 
-  // Helper: Check if a drive item is already added to the cart
+  // --- Compute progress if items are available ---
+  const totalNeeded = drive.items?.reduce((sum, item) => sum + (item.needed || 0), 0) || 0;
+  const totalDonated = drive.items?.reduce((sum, item) => {
+    // Adjust if your logic is different
+    return sum + ((item.needed || 0) - (item.remaining || 0));
+  }, 0) || 0;
+  const totalRemaining = totalNeeded - totalDonated;
+  const progressPercentage = totalNeeded ? (totalDonated / totalNeeded) * 100 : 0;
+
+  // If you have real top-donors data, replace this placeholder array
+  const topDonors = [
+    { name: 'Bethia Maglioni', items: 5 },
+    { name: 'Margaret Whitman', items: 3 },
+    { name: 'Maxwell Krupp', items: 3 },
+  ];
+
+  // Helper: Check if a drive item is already in the cart
   const isDriveItemAdded = (item) => {
     return cart?.items?.some(
       (ci) =>
@@ -60,7 +74,7 @@ const DrivePage = ({ drive }) => {
     return (
       <>
         <Navbar />
-        <main className="min-h-screen flex items-center justify-center bg-secondary_green text-gray-800 relative">
+        <main className="min-h-screen flex items-center justify-center bg-secondary_green text-gray-800">
           <p className="text-gray-600 text-lg">Drive not found.</p>
         </main>
         <Footer />
@@ -71,7 +85,7 @@ const DrivePage = ({ drive }) => {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen bg-secondary_green text-gray-800 relative pt-32 pb-16">
+      <main className="min-h-screen bg-secondary_green text-gray-800 relative pt-24 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Breadcrumb Navigation */}
           <Breadcrumbs
@@ -92,202 +106,267 @@ const DrivePage = ({ drive }) => {
             Back
           </button>
 
-          {/* Drive Header */}
-          <div className="bg-white shadow-md rounded-lg overflow-hidden mb-10">
-            <div className="flex flex-col md:flex-row">
-              {/* Drive Image */}
-              {drive.photo && (
-                <div className="md:w-1/3 flex justify-center items-center p-4">
-                  <Image
-                    src={drive.photo || '/img/default-drive.png'}
-                    alt={drive.name}
-                    width={192}
-                    height={192}
-                    className="object-cover rounded-md"
-                  />
-                </div>
-              )}
-              {/* Drive Info */}
-              <div className="md:w-2/3 p-6">
-                <h1 className="text-3xl inter-regular text-ggreen mb-4">
-                  {drive.name}
-                </h1>
-                <p className="text-gray-600 mb-4">{drive.description}</p>
-                {drive.location && (
-                  <p className="text-gray-600">
-                    <strong>Location:</strong> {drive.location}
-                  </p>
-                )}
-                {drive.date && (
-                  <p className="text-gray-600">
-                    <strong>Date:</strong> {new Date(drive.date).toLocaleDateString()}
-                  </p>
-                )}
-              </div>
+          {/* Drive Title & Basic Info */}
+          <div className="mb-6">
+            <h1 className="text-3xl font-semibold text-ggreen mb-2">{drive.name}</h1>
+            <div className="text-gray-600 flex flex-wrap gap-4 items-center">
+              {/* Example: “70 Items Needed” – adapt if you have the data */}
+              <p className="font-medium">{totalNeeded} Items Needed</p>
+              {drive.location && <p className="font-medium">{drive.location}</p>}
             </div>
           </div>
 
-          {/* Children Section */}
-          {drive.children && drive.children.length > 0 && (
-            <section className="mb-10">
-              <h2 className="text-2xl inter-semi-bold text-ggreen mb-6">
-                Children in {drive.name}
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {drive.children.map((child) => (
-                  <Link
-                    key={child.child_id}
-                    href={`/visible/child/${child.child_id}`}
-                    passHref
-                    className="block bg-white shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
-                  >
-                    {child.child_photo && (
-                      <div className="flex justify-center mt-4">
-                        <Image
-                          src={child.child_photo || '/img/default-child.png'}
-                          alt={child.child_name}
-                          width={96}
-                          height={96}
-                          className="object-cover rounded-full"
-                        />
-                      </div>
-                    )}
-                    <div className="p-4 text-center">
-                      <h3 className="text-lg inter-semi-bold text-ggreen mb-2">
-                        {child.child_name}
-                      </h3>
-                      {child.age && (
-                        <p className="text-gray-600">
-                          <strong>Age:</strong> {child.age}
-                        </p>
-                      )}
-                      {child.gender && (
-                        <p className="text-gray-600">
-                          <strong>Gender:</strong> {child.gender}
-                        </p>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          )}
+          {/* Two-column layout: Left = progress/items, Right = org info */}
+          <div className="flex flex-col md:flex-row gap-8">
+            {/* Left Column */}
+            <div className="md:w-2/3 space-y-6">
+              {/* Drive Progress / Top Donors */}
+              <div className="bg-white shadow rounded-lg p-6">
+                <h2 className="text-xl font-semibold text-ggreen mb-4">Drive Progress</h2>
+                <div className="w-full bg-gray-200 h-4 rounded mb-2">
+                  <div
+                    className="bg-ggreen h-4 rounded"
+                    style={{ width: `${progressPercentage}%` }}
+                  ></div>
+                </div>
+                <p className="text-sm text-gray-700 mb-2">
+                  Items Donated: <strong>{totalDonated}</strong>
+                </p>
+                <p className="text-sm text-gray-700 mb-4">
+                  Items Still Needed: <strong>{totalRemaining}</strong>
+                </p>
 
-          {/* Items Section */}
-          {drive.items && drive.items.length > 0 && (
-            <section className="mb-10">
-              <h2 className="text-2xl inter-semi-bold text-ggreen mb-6">
-                Items in {drive.name}
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {drive.items.map((item) => {
-                  const added = isDriveItemAdded(item);
-                  const cartItemId = getDriveCartItemId(item);
-                  const isOutOfStock = item.remaining <= 0;
-                  const maxQuantity = item.remaining;
-                  return (
-                    <div
-                      key={item.drive_item_id}
-                      className={`border bg-white p-4 rounded-lg shadow-sm ${
-                        added ? 'border-green-500' : 'border-gray-200'
-                      } flex flex-col justify-between`}
-                    >
-                      {item.item_photo && (
-                        <div className="flex justify-center mb-4">
-                          <Image
-                            src={item.item_photo || '/img/default-item.png'}
-                            alt={item.item_name}
-                            width={96}
-                            height={96}
-                            className="object-cover rounded-md"
-                          />
-                        </div>
-                      )}
-                      <h3 className="text-lg inter-regular text-ggreen mb-1">
-                        {item.item_name}
-                      </h3>
-                      <p className="text-gray-600 mb-2">{item.description}</p>
-                      <p className="text-gray-800 inter-bold mb-2">
-                        ${Number(item.price).toFixed(2)}
-                      </p>
-                      <p className="text-sm text-gray-600 mb-2">
-                        <strong>Needed:</strong> {item.needed} &nbsp;
-                        <strong>Remaining:</strong> {item.remaining}
-                      </p>
-                      <div className="mt-4">
-                        {item.needed > 1 ? (
-                          <>
-                            <div className="flex items-center mb-2">
-                              <label
-                                htmlFor={`quantity-drive-${item.drive_item_id}`}
-                                className="mr-2 text-gray-700"
-                              >
-                                Quantity:
-                              </label>
-                              <input
-                                type="number"
-                                id={`quantity-drive-${item.drive_item_id}`}
-                                min="1"
-                                max={maxQuantity}
-                                value={driveQuantities[item.item_id] || 1}
-                                onChange={(e) =>
-                                  handleDriveQuantityChange(
-                                    item.item_id,
-                                    e.target.value,
-                                    maxQuantity
-                                  )
-                                }
-                                className="w-16 px-2 py-1 border border-gray-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-ggreen"
-                                disabled={isOutOfStock}
+                <h3 className="text-lg font-semibold text-ggreen mb-2">Top Donors</h3>
+                <ul className="text-sm text-gray-700 list-disc list-inside space-y-1">
+                  {topDonors.map((donor, idx) => (
+                    <li key={idx}>
+                      {idx + 1}. {donor.name} ({donor.items} items)
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Items Section */}
+              {drive.items && drive.items.length > 0 && (
+                <section>
+                  <h2 className="text-2xl font-semibold text-ggreen mb-4">
+                    Items in {drive.name}
+                  </h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {drive.items.map((item) => {
+                      const added = isDriveItemAdded(item);
+                      const cartItemId = getDriveCartItemId(item);
+                      const isOutOfStock = item.remaining <= 0;
+                      const maxQuantity = item.remaining;
+                      return (
+                        <div
+                          key={item.drive_item_id}
+                          className="border border-gray-200 bg-white p-4 rounded-lg shadow-sm flex flex-col justify-between"
+                        >
+                          {/* Item image */}
+                          {item.item_photo && (
+                            <div className="flex justify-center mb-4">
+                              <Image
+                                src={item.item_photo || '/img/default-item.png'}
+                                alt={item.item_name}
+                                width={96}
+                                height={96}
+                                className="object-cover rounded-md"
                               />
                             </div>
-                            <button
-                              onClick={() =>
-                                added
-                                  ? removeFromCart(cartItemId)
-                                  : handleAddToCartDrive(item, driveQuantities[item.item_id] || 1)
-                              }
-                              className={`w-full py-2 rounded-lg text-white transition-colors ${
-                                added
-                                  ? 'bg-red-500 hover:bg-red-600'
-                                  : isOutOfStock
-                                  ? 'bg-gray-400 cursor-not-allowed'
-                                  : 'bg-ggreen hover:bg-ggreen-dark'
-                              }`}
-                              disabled={isOutOfStock}
-                            >
-                              {added ? 'Remove' : isOutOfStock ? 'Out of Stock' : 'Add'}
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            onClick={() =>
-                              added ? removeFromCart(cartItemId) : handleAddToCartDrive(item, 1)
-                            }
-                            className={`w-full py-2 rounded-lg text-white transition-colors ${
-                              added
-                                ? 'bg-red-500 hover:bg-red-600'
-                                : isOutOfStock
-                                ? 'bg-gray-400 cursor-not-allowed'
-                                : 'bg-ggreen hover:bg-ggreen-dark'
-                            }`}
-                            disabled={isOutOfStock}
-                          >
-                            {added ? 'Remove' : isOutOfStock ? 'Out of Stock' : 'Add'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          )}
+                          )}
+                          {/* Item name & details */}
+                          <h3 className="text-lg text-ggreen font-medium mb-1">
+                            {item.item_name}
+                          </h3>
+                          <p className="text-gray-600 text-sm mb-2">{item.description}</p>
+                          <p className="text-gray-800 font-bold mb-2">
+                            ${Number(item.price).toFixed(2)}
+                          </p>
+                          <p className="text-sm text-gray-600 mb-2">
+                            <strong>Needed:</strong> {item.needed} &nbsp;
+                            <strong>Remaining:</strong> {item.remaining}
+                          </p>
 
-          {(!drive.children || drive.children.length === 0) &&
-            (!drive.items || drive.items.length === 0) && (
-              <p className="text-ggreen text-lg">No children or items for this drive.</p>
-            )}
+                          {/* Quantity + Buttons */}
+                          <div className="mt-4">
+                            {item.needed > 1 ? (
+                              <>
+                                <div className="flex items-center mb-2">
+                                  <label
+                                    htmlFor={`quantity-drive-${item.drive_item_id}`}
+                                    className="mr-2 text-gray-700"
+                                  >
+                                    Quantity:
+                                  </label>
+                                  <input
+                                    type="number"
+                                    id={`quantity-drive-${item.drive_item_id}`}
+                                    min="1"
+                                    max={maxQuantity}
+                                    value={driveQuantities[item.item_id] || 1}
+                                    onChange={(e) =>
+                                      handleDriveQuantityChange(
+                                        item.item_id,
+                                        e.target.value,
+                                        maxQuantity
+                                      )
+                                    }
+                                    className="w-16 px-2 py-1 border border-gray-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-ggreen"
+                                    disabled={isOutOfStock}
+                                  />
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() =>
+                                      added
+                                        ? removeFromCart(cartItemId)
+                                        : handleAddToCartDrive(
+                                            item,
+                                            driveQuantities[item.item_id] || 1
+                                          )
+                                    }
+                                    className={`w-full py-2 rounded-lg text-white transition-colors ${
+                                      added
+                                        ? 'bg-red-500 hover:bg-red-600'
+                                        : isOutOfStock
+                                        ? 'bg-gray-400 cursor-not-allowed'
+                                        : 'bg-ggreen hover:bg-ggreen-dark'
+                                    }`}
+                                    disabled={isOutOfStock}
+                                  >
+                                    {added
+                                      ? 'Remove'
+                                      : isOutOfStock
+                                      ? 'Out of Stock'
+                                      : 'Add to Cart'}
+                                  </button>
+                                  {/* Purchase in Person button */}
+                                  <button
+                                    className={`w-full py-2 rounded-lg border transition-colors ${
+                                      isOutOfStock
+                                        ? 'border-gray-400 text-gray-400 cursor-not-allowed'
+                                        : 'border-ggreen text-ggreen hover:bg-gray-100'
+                                    }`}
+                                    disabled={isOutOfStock}
+                                  >
+                                    Purchase in Person
+                                  </button>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() =>
+                                    added ? removeFromCart(cartItemId) : handleAddToCartDrive(item, 1)
+                                  }
+                                  className={`w-full py-2 rounded-lg text-white transition-colors ${
+                                    added
+                                      ? 'bg-red-500 hover:bg-red-600'
+                                      : isOutOfStock
+                                      ? 'bg-gray-400 cursor-not-allowed'
+                                      : 'bg-ggreen hover:bg-ggreen-dark'
+                                  }`}
+                                  disabled={isOutOfStock}
+                                >
+                                  {added ? 'Remove' : isOutOfStock ? 'Out of Stock' : 'Add'}
+                                </button>
+                                {/* Purchase in Person button */}
+                                <button
+                                  className={`w-full py-2 rounded-lg border transition-colors ${
+                                    isOutOfStock
+                                      ? 'border-gray-400 text-gray-400 cursor-not-allowed'
+                                      : 'border-ggreen text-ggreen hover:bg-gray-100'
+                                  }`}
+                                  disabled={isOutOfStock}
+                                >
+                                  Purchase in Person
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {/* Children Section (if you still want it) */}
+              {drive.children && drive.children.length > 0 && (
+                <section>
+                  <h2 className="text-2xl font-semibold text-ggreen mb-4">
+                    Children in {drive.name}
+                  </h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {drive.children.map((child) => (
+                      <Link
+                        key={child.child_id}
+                        href={`/visible/child/${child.child_id}`}
+                        passHref
+                        className="block bg-white shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+                      >
+                        {child.child_photo && (
+                          <div className="flex justify-center mt-4">
+                            <Image
+                              src={child.child_photo || '/img/default-child.png'}
+                              alt={child.child_name}
+                              width={96}
+                              height={96}
+                              className="object-cover rounded-full"
+                            />
+                          </div>
+                        )}
+                        <div className="p-4 text-center">
+                          <h3 className="text-lg font-semibold text-ggreen mb-2">
+                            {child.child_name}
+                          </h3>
+                          {child.age && (
+                            <p className="text-gray-600">
+                              <strong>Age:</strong> {child.age}
+                            </p>
+                          )}
+                          {child.gender && (
+                            <p className="text-gray-600">
+                              <strong>Gender:</strong> {child.gender}
+                            </p>
+                          )}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* If no children/items */}
+              {(!drive.children || drive.children.length === 0) &&
+                (!drive.items || drive.items.length === 0) && (
+                  <p className="text-ggreen text-lg">No children or items for this drive.</p>
+                )}
+            </div>
+
+            {/* Right Column: Organization / Share Info */}
+            <div className="md:w-1/3 space-y-6">
+              <div className="bg-white shadow rounded-lg p-6">
+                <h2 className="text-xl font-semibold text-ggreen mb-4">Organization</h2>
+                {/* You can customize these fields to match your data */}
+                <p className="text-gray-700 mb-2">
+                  <strong>Org Name:</strong> {drive.organization_name || 'Williston Federated Church'}
+                </p>
+                <p className="text-gray-700 mb-2">
+                  <strong>Drive Organizer:</strong> {drive.organizer_name || 'Logan Vaughan'}
+                </p>
+                <p className="text-gray-700 mb-4">
+                  <strong>Donors:</strong> {drive.donorsCount || 8}
+                </p>
+                <button className="px-4 py-2 bg-ggreen text-white rounded-md hover:bg-ggreen-dark">
+                  Share / Add
+                </button>
+              </div>
+
+              {/* Optionally, if you have more info or want to add a donation summary, place it here */}
+            </div>
+          </div>
         </div>
       </main>
       <Footer />
@@ -304,6 +383,9 @@ DrivePage.propTypes = {
     photo: PropTypes.string,
     location: PropTypes.string,
     date: PropTypes.string,
+    organization_name: PropTypes.string,
+    organizer_name: PropTypes.string,
+    donorsCount: PropTypes.number,
     children: PropTypes.arrayOf(
       PropTypes.shape({
         child_id: PropTypes.string.isRequired,
