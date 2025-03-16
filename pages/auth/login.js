@@ -123,20 +123,6 @@ export default function Login() {
                   autoComplete="current-password"
                 />
               </div>
-              <div className="flex flex-wrap">
-                <div className="w-1/2">
-                  <label className="inline-flex items-center cursor-pointer">
-                    <input
-                      id="customCheckLogin"
-                      type="checkbox"
-                      className="form-checkbox border-0 rounded text-gray-800 ml-1 w-5 h-5 transition-all duration-150"
-                    />
-                    <span className="ml-2 text-sm font-semibold text-gray-800">
-                      Remember me
-                    </span>
-                  </label>
-                </div>
-              </div>
 
               <div className="text-center mt-6">
                 <button

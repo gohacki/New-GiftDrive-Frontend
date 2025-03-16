@@ -62,13 +62,13 @@ const Navbar = () => {
     <div className="flex w-full lg:w-auto items-center">
       {/* Brand (Gyftly) centered */}
       <Link href="/">
-        <div className="mx-auto leading-relaxed py-2 whitespace-nowrap cursor-pointer inter-semi-bold text-ggreen text-2xl flex items-center">
+        <div className="mx-auto leading-relaxed py-2 whitespace-nowrap cursor-pointer inter-semi-bold text-ggreen text-2xl flex items-center gap-2">
           <Image
             src="/MainGift.png"
             alt="Gyftly Logo"
             width={128}
             height={128}
-            className="h-12 w-auto"
+            className="h-8 w-auto"
             priority
           />
           Gyftly

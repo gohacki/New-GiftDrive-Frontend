@@ -119,7 +119,7 @@ const ChildDetailPage = ({ child }) => {
               )}
               {/* Child Info */}
               <div className="md:w-2/3 p-6 flex flex-col justify-center">
-                <h1 className="text-3xl font-bold text-black font-georgia mb-2">
+                <h1 className="text-3xl inter-bold text-ggreen mb-2">
                   {child.child_name}
                 </h1>
                 <p className="text-gray-600 mb-2">
@@ -147,7 +147,7 @@ const ChildDetailPage = ({ child }) => {
 
           {/* Items Needed */}
           <div className="bg-white shadow-md rounded-lg p-6">
-            <h2 className="text-2xl font-semibold text-black font-georgia mb-6">
+            <h2 className="text-2xl inter-semi-bold text-ggreen mb-6">
               Items Needed
             </h2>
             {child.items && child.items.length > 0 ? (
@@ -178,7 +178,7 @@ const ChildDetailPage = ({ child }) => {
                       )}
                       {/* Item Info */}
                       <div className="flex-grow">
-                        <h3 className="text-lg font-semibold text-black mb-2">
+                        <h3 className="text-lg inter-semi-bold text-ggreen mb-2">
                           {item.item_name}
                         </h3>
                         <p className="text-gray-600 mb-2">

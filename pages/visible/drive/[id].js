@@ -109,7 +109,7 @@ const DrivePage = ({ drive }) => {
               )}
               {/* Drive Info */}
               <div className="md:w-2/3 p-6">
-                <h1 className="text-3xl font-bold text-black font-georgia mb-4">
+                <h1 className="text-3xl inter-regular text-ggreen mb-4">
                   {drive.name}
                 </h1>
                 <p className="text-gray-600 mb-4">{drive.description}</p>
@@ -130,7 +130,7 @@ const DrivePage = ({ drive }) => {
           {/* Children Section */}
           {drive.children && drive.children.length > 0 && (
             <section className="mb-10">
-              <h2 className="text-2xl font-semibold text-black font-georgia mb-6">
+              <h2 className="text-2xl inter-semi-bold text-ggreen mb-6">
                 Children in {drive.name}
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -153,7 +153,7 @@ const DrivePage = ({ drive }) => {
                       </div>
                     )}
                     <div className="p-4 text-center">
-                      <h3 className="text-lg font-semibold text-black mb-2">
+                      <h3 className="text-lg inter-semi-bold text-ggreen mb-2">
                         {child.child_name}
                       </h3>
                       {child.age && (
@@ -176,7 +176,7 @@ const DrivePage = ({ drive }) => {
           {/* Items Section */}
           {drive.items && drive.items.length > 0 && (
             <section className="mb-10">
-              <h2 className="text-2xl font-semibold text-black font-georgia mb-6">
+              <h2 className="text-2xl inter-semi-bold text-ggreen mb-6">
                 Items in {drive.name}
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -203,11 +203,11 @@ const DrivePage = ({ drive }) => {
                           />
                         </div>
                       )}
-                      <h3 className="text-lg font-semibold text-black mb-1">
+                      <h3 className="text-lg inter-regular text-ggreen mb-1">
                         {item.item_name}
                       </h3>
                       <p className="text-gray-600 mb-2">{item.description}</p>
-                      <p className="text-gray-800 font-bold mb-2">
+                      <p className="text-gray-800 inter-bold mb-2">
                         ${Number(item.price).toFixed(2)}
                       </p>
                       <p className="text-sm text-gray-600 mb-2">
@@ -286,7 +286,7 @@ const DrivePage = ({ drive }) => {
 
           {(!drive.children || drive.children.length === 0) &&
             (!drive.items || drive.items.length === 0) && (
-              <p className="text-black text-lg">No children or items for this drive.</p>
+              <p className="text-ggreen text-lg">No children or items for this drive.</p>
             )}
         </div>
       </main>

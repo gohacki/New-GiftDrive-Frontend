@@ -176,14 +176,14 @@ const CartPage = () => {
             </div>
           ) : cartItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center">
-              <h2 className="text-3xl font-semibold mb-4">Your Cart is Empty</h2>
+              <h2 className="text-3xl inter-semi-bold mb-4">Your Cart is Empty</h2>
               <Link href="/visible/orglist" className="text-ggreen hover:underline">
                 Browse Organizations
               </Link>
             </div>
           ) : (
             <>
-              <h2 className="text-3xl font-semibold mb-6">Your Cart</h2>
+              <h2 className="text-3xl inter-semi-bold mb-6">Your Cart</h2>
               <div className="bg-white shadow-lg rounded-lg overflow-hidden">
                 <table className="w-full">
                   <thead>
@@ -210,7 +210,7 @@ const CartPage = () => {
                             <div className="w-16 h-16 bg-gray-300 mr-4 rounded"></div>
                           )}
                           <div>
-                            <div className="font-semibold">{item.item_name}</div>
+                            <div className="inter-semi-bold">{item.item_name}</div>
                             {(item.size || item.color) && (
                               <div className="text-sm text-gray-600">
                                 {item.size && <span>Size: {item.size} </span>}
@@ -279,10 +279,10 @@ const CartPage = () => {
                       </tr>
                     ))}
                     <tr>
-                      <td colSpan="3" className="px-6 py-4 text-right font-semibold">
+                      <td colSpan="3" className="px-6 py-4 text-right inter-semi-bold">
                         Total:
                       </td>
-                      <td className="px-6 py-4 font-semibold">${totalPrice.toFixed(2)}</td>
+                      <td className="px-6 py-4 inter-semi-bold">${totalPrice.toFixed(2)}</td>
                       <td></td>
                     </tr>
                   </tbody>
@@ -293,7 +293,7 @@ const CartPage = () => {
                 {user ? (
                   <button
                     onClick={handleProceedToCheckout}
-                    className={`bg-ggreen text-white font-semibold px-6 py-3 rounded-full hover:shadow-lg transition-all duration-150 ${
+                    className={`bg-ggreen text-white inter-semi-bold px-6 py-3 rounded-full hover:shadow-lg transition-all duration-150 ${
                       isProcessing ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
                     disabled={isProcessing}
@@ -304,7 +304,7 @@ const CartPage = () => {
                 ) : (
                   <button
                     onClick={() => setIsGuestCheckout(true)}
-                    className={`bg-ggreen text-white font-semibold px-6 py-3 rounded-full hover:shadow-lg transition-all duration-150 ${
+                    className={`bg-ggreen text-white inter-semi-bold px-6 py-3 rounded-full hover:shadow-lg transition-all duration-150 ${
                       isProcessing ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
                     disabled={isProcessing}
@@ -322,7 +322,7 @@ const CartPage = () => {
         {isGuestCheckout && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg shadow-lg w-11/12 md:w-1/2 lg:w-1/3 p-6">
-              <h2 className="text-2xl font-semibold mb-4">Guest Checkout</h2>
+              <h2 className="text-2xl inter-semi-bold mb-4">Guest Checkout</h2>
               <form onSubmit={handleGuestCheckout} className="space-y-4">
                 <div>
                   <label htmlFor="first_name" className="block text-gray-800">

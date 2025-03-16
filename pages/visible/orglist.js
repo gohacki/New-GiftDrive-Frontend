@@ -160,7 +160,7 @@ export default function OrgList() {
         {/* Search and Filter Bar Section */}
         <section className="relative px-4 py-12 sm:py-20 bg-background ">
           <div className="container mx-auto">
-            <h2 className="font-georgia text-black text-3xl sm:text-4xl text-center mb-6 pt-12">
+            <h2 className="inter-regular text-ggreen text-3xl sm:text-4xl text-center mb-6 pt-12">
               Find the Perfect Organization for Your Cause
             </h2>
             <form onSubmit={handleSearch} className="w-full max-w-4xl mx-auto">
@@ -279,7 +279,7 @@ export default function OrgList() {
         <section id="organizations" className="relative py-20 bg-white">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
-              <h3 className="font-georgia text-black text-3xl">Organizations</h3>
+              <h3 className="inter-semi-bold text-ggreen text-3xl">Organizations</h3>
               <p className="text-gray-600 mt-2">Discover organizations making a real impact</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -296,7 +296,7 @@ export default function OrgList() {
                 <button
                   onClick={loadMore}
                   disabled={loading}
-                  className={`bg-ggreen text-white active:bg-ggreen-dark text-sm font-bold uppercase px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none ${
+                  className={`bg-ggreen text-white active:bg-ggreen-dark text-sm inter-bold uppercase px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none ${
                     loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                   } transition-all duration-150`}
                 >

@@ -16,7 +16,7 @@ export default function Landing() {
         {/* Hero Section */}
         <section className="bg-background px-4 py-12 sm:py-20">
           <div className="max-w-7xl mx-auto flex flex-col items-center text-center">
-            <h1 className="inter-regular text-black text-3xl sm:text-5xl mt-20 mb-4">
+            <h1 className="inter-regular text-ggreen text-3xl sm:text-5xl mt-20 mb-4">
               Making donation drives as
               <br />
               simple as online shopping.
@@ -24,12 +24,12 @@ export default function Landing() {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-6">
-              <Link href="/visible/orglist">
+              <Link href="/visible/registerorg">
                 <div className="px-6 py-3 bg-ggreen text-white inter-semi-bold rounded-full cursor-pointer">
                   Get Started, It&apos;s Free
                 </div>
               </Link>
-              <Link href="/visible/registerorg">
+              <Link href="/visible/orglist">
                 <div className="px-6 py-3 text-ggreen inter-semi-bold cursor-pointer">
                   Find a Donation Drive Page
                 </div>
@@ -40,11 +40,11 @@ export default function Landing() {
             <div className="flex items-center justify-center mt-8">
               <div className="w-full sm:w-1/2 h-auto flex items-center justify-center">
                 <Image
-                  src="/AllGifts.png"
+                  src="/mainimage.png"
                   alt="All Gifts"
-                  width={1200}
-                  height={800}
-                  className="h-auto w-auto"
+                  width={2400}
+                  height={2400}
+                  className="h-full w-full rounded-2xl"
                 />
               </div>
             </div>
@@ -61,11 +61,8 @@ export default function Landing() {
               {[1, 2, 3, 4].map((step) => (
                 <div
                   key={step}
-                  className="bg-white rounded-full p-6 shadow w-64 h-64 mx-auto flex flex-col"
+                  className="bg-white rounded-xl p-6 shadow w-64 h-64 mx-auto flex flex-col"
                 >
-                  <div className="mb-4 w-12 h-12 mx-auto rounded-full bg-ggreen flex items-center justify-center inter-semi-bold text-white mt-6">
-                    {step}
-                  </div>
                   <h3 className="inter-semi-bold mb-2">
                     {step === 1 && "Identify a Drive"}
                     {step === 2 && "Choose a Child"}
@@ -99,50 +96,55 @@ export default function Landing() {
       <p className="inter-medium text-gray-600 mb-6">
         Gyftly is designed for anyone organizing a donation drive for physical goods.
       </p>
+      <div className="grid grid-cols-2 gap-2">
       <ul className="inter-medium list-disc list-inside text-gray-700 space-y-2">
         <li>Giving & Angel Tree</li>
         <li>Food & Meal</li>
         <li>School Supplies</li>
         <li>Disaster Relief</li>
-        <li>Toy & Clothing</li>
+
+      </ul>
+      <ul className="inter-medium list-disc list-inside text-gray-700 space-y-2">
+      <li>Toy & Clothing</li>
         <li>Homeless Shelter</li>
         <li>Healthcare Supplies</li>
         <li>Refuge Support</li>
-      </ul>
+        </ul>
+      </div>
     </div>
 
     {/* Right side: 2×2 grid of images */}
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-2 gap-2 mx-24">
       <div className="w-full h-40 relative">
         <Image
           src="/example1.png"
           alt="Example 1"
-          width={500}
-          height={500}
+          width={200}
+          height={200}
         />
       </div>
-      <div className="w-full h-40 mb-36 relative">
+      <div className="w-full h-40 mb-12 relative">
         <Image
           src="/example2.png"
           alt="Example 2"
-          width={500}
-          height={500}
-        />
-      </div>
-      <div className="w-full h-640 relative">
-        <Image
-          src="/example3.png"
-          alt="Example 3"
-          width={500}
-          height={500}
+          width={200}
+          height={200}
         />
       </div>
       <div className="w-full h-40 relative">
         <Image
+          src="/example3.png"
+          alt="Example 3"
+          width={200}
+          height={200}
+        />
+      </div>
+      <div className="w-full h-40 mb-8 relative">
+        <Image
           src="/example4.png"
           alt="Example 4"
-          width={500}
-          height={500}
+          width={200}
+          height={200}
         />
       </div>
     </div>
@@ -150,7 +152,7 @@ export default function Landing() {
 </section>
 
 {/* Recommended By Section */}
-<section className="bg-secondary-green px-4 py-12">
+<section className="bg-secondary_green px-4 py-12">
   <div className="max-w-7xl mx-auto">
     {/* Section Heading */}
     <h2 className="text-center text-2xl sm:text-3xl inter-bold mb-8">
@@ -176,7 +178,7 @@ export default function Landing() {
           easier than ever. We reached our goal way faster than in previous years, 
           and it was super simple to share with everyone!”
         </p>
-        <p className="font-semibold text-gray-900">Rowan Vexley</p>
+        <p className="inter-semi-bold text-gray-900">Rowan Vexley</p>
         <p className="text-sm text-gray-500">Westbrook Elementary, Oregon</p>
       </div>
 
@@ -184,10 +186,10 @@ export default function Landing() {
       <div className="bg-white border border-gray-200 rounded-lg p-6 shadow">
         <p className="text-gray-700 mb-4">
           “Thanks to Gyftly, we were finally able to take our drive online, 
-          something we’ve been aiming to do for years! We hit our goal and 
+          something we&apos;ve been aiming to do for years! We hit our goal and 
           saved a lot of time and effort in the busy holiday season!”
         </p>
-        <p className="font-semibold text-gray-900">Lila Fairbrooke</p>
+        <p className="inter-semi-bold text-gray-900">Lila Fairbrooke</p>
         <p className="text-sm text-gray-500">Haven Hope Shelter, Maine</p>
       </div>
 
@@ -198,7 +200,7 @@ export default function Landing() {
           to track progress in real time and have items shipped directly to us 
           saved so much hassle. There&apos;s no going back!”
         </p>
-        <p className="font-semibold text-gray-900">Jaxon Tremont</p>
+        <p className="inter-semi-bold text-gray-900">Jaxon Tremont</p>
         <p className="text-sm text-gray-500">
           Star Community Church, Illinois
         </p>
@@ -210,7 +212,7 @@ export default function Landing() {
         {/* Final Call to Action */}
 {/* Final Call to Action */}
 <section className="px-4 py-12 bg-white">
-  <div className="max-w-7xl mx-auto bg-secondary-green rounded-xl shadow p-6 md:p-12 flex flex-col md:flex-row items-center gap-8">
+  <div className="max-w-7xl mx-auto bg-secondary_green rounded-xl shadow p-6 md:p-12 flex flex-col md:flex-row items-center gap-8">
     {/* Image (Left Column) */}
     <div className="w-full md:w-1/2">
       <Image

@@ -40,7 +40,7 @@ module.exports = {
         background: "var(--background)",
         foreground: "var(--foreground)",
         'ggreen': '#11393B',
-        'gyellow': '#f8a716',
+        'gyellow': 'rgb(0, 190, 29)',
         'secondary_green':'#F6F3EE'
       },
       fontFamily: {

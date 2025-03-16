@@ -76,7 +76,7 @@ const OrganizationPage = ({ organization }) => {
               )}
               {/* Organization Info */}
               <div className="md:w-2/3 p-6 flex flex-col justify-center">
-                <h2 className="text-3xl font-bold text-black font-georgia mb-4">
+                <h2 className="text-3xl inter-bold text-ggreen mb-4">
                   {organization.name}
                 </h2>
                 <p className="text-gray-600 mb-4">{organization.description}</p>
@@ -96,7 +96,7 @@ const OrganizationPage = ({ organization }) => {
 
           {/* Drives Section */}
           <div>
-            <h3 className="text-2xl font-semibold text-black font-georgia mb-6">Drives</h3>
+            <h3 className="text-2xl inter-semi-bold text-ggreen mb-6">Drives</h3>
             {organization.drives && organization.drives.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {organization.drives.map((drive) => (
@@ -117,7 +117,7 @@ const OrganizationPage = ({ organization }) => {
                       </div>
                     )}
                     <div className="p-4">
-                      <h4 className="text-lg font-semibold text-black mb-2">
+                      <h4 className="text-lg inter-semi-bold text-ggreen mb-2">
                         {drive.name}
                       </h4>
                       <p className="text-gray-600">{drive.description}</p>
