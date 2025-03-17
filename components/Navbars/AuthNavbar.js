@@ -128,6 +128,17 @@ const Navbar = () => {
                 </span>
               </Link>
             </li>
+            <li className="flex items-center">
+              <Link href="/visible/drivelist">
+                <span
+                  className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
+                    isActive('/visible/drivelist') ? 'text-blueGray-300' : ''
+                  }`}
+                >
+                  Browse all Drives
+                </span>
+              </Link>
+            </li>
 
             {user && (
               <>
