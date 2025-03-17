@@ -37,17 +37,18 @@ export default function Landing() {
             </div>
 
             {/* Hero Image */}
-            <div className="flex items-center justify-center mt-8">
-              <div className="w-full sm:w-1/2 h-auto flex items-center justify-center">
-                <Image
-                  src="/mainimage.png"
-                  alt="All Gifts"
-                  width={2400}
-                  height={2400}
-                  className="h-full w-full rounded-2xl"
-                />
-              </div>
-            </div>
+<div className="flex items-center justify-center mt-8">
+  <div className="w-full h-auto flex items-center justify-center">
+    <Image
+      src="/mainimage.jpg"
+      alt="All Gifts"
+      width={2400}
+      height={2400}
+      className="h-full w-full rounded-2xl"
+    />
+  </div>
+</div>
+
           </div>
         </section>
 
