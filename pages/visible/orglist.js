@@ -278,11 +278,7 @@ export default function OrgList() {
         {/* Organizations Section */}
         <section id="organizations" className="relative py-20 bg-white">
           <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <h3 className="inter-semi-bold text-ggreen text-3xl">Organizations</h3>
-              <p className="text-gray-600 mt-2">Discover organizations making a real impact</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
               {organizations.length > 0 ? (
                 organizations.map((org) => (
                   <OrganizationCard key={org.org_id} org={org} />
