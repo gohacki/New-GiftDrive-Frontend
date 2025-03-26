@@ -1,5 +1,3 @@
-// pages/registerdrive.js
-
 import React, { useState, useContext, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
@@ -21,7 +19,7 @@ const NewDriveWizard = () => {
     }
   }, [user, loading, router]);
 
-  // State for drive data; note the new "drivePhoto" field.
+  // State for drive data
   const [driveData, setDriveData] = useState({
     startDate: '',
     endDate: '',
@@ -30,7 +28,7 @@ const NewDriveWizard = () => {
     drivePhoto: null,
   });
 
-  // Track current step for the wizard (3 steps now)
+  // Track current step (3 steps)
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
 
@@ -101,65 +99,79 @@ const NewDriveWizard = () => {
       case 1:
         return (
           <div className="space-y-4">
+            <h2 className="text-2xl font-bold mb-4">First, Let&apos;s Set Up Your Drive</h2>
+            <h3 className="text-lg font-semibold">Drive Title</h3>
             <input
               type="text"
               name="driveTitle"
               value={driveData.driveTitle}
               onChange={handleChange}
-              placeholder="Drive Title"
-              className="border px-3 py-2 w-full"
+              placeholder="e.g. Food Drive 2025"
               required
+              className="border px-3 py-2 w-full rounded"
             />
+            <h3 className="text-lg font-semibold">Drive Description</h3>
             <textarea
               name="driveDescription"
               value={driveData.driveDescription}
               onChange={handleChange}
-              placeholder="Drive Description"
-              rows={3}
-              className="border px-3 py-2 w-full"
+              placeholder="Describe your drive..."
               required
+              className="border px-3 py-2 w-full rounded"
             />
           </div>
         );
       case 2:
         return (
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-xl font-bold my-2">Start Date</h3>
-              <input
-                type="date"
-                name="startDate"
-                value={driveData.startDate}
-                onChange={handleChange}
-                className="border px-3 py-2 w-full"
-                required
-              />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold my-2">End Date</h3>
-              <input
-                type="date"
-                name="endDate"
-                value={driveData.endDate}
-                onChange={handleChange}
-                className="border px-3 py-2 w-full"
-                required
-              />
+          <div className="space-y-8">
+            <h2 className="text-2xl font-bold mb-4">Set the Dates for Your Drive</h2>
+            <div className="flex space-x-4">
+              <div className="w-1/2">
+                <h3 className="text-lg font-semibold">Start Date</h3>
+                <input
+                  type="date"
+                  name="startDate"
+                  value={driveData.startDate}
+                  onChange={handleChange}
+                  required
+                  className="border px-3 py-2 w-full rounded"
+                />
+              </div>
+              <div className="w-1/2">
+                <h3 className="text-lg font-semibold">End Date</h3>
+                <input
+                  type="date"
+                  name="endDate"
+                  value={driveData.endDate}
+                  onChange={handleChange}
+                  required
+                  className="border px-3 py-2 w-full rounded"
+                />
+              </div>
             </div>
           </div>
         );
       case 3:
         return (
           <div className="space-y-4">
-            <label className="block">
-              <span className="text-gray-700">Drive Photo</span>
-              <input
-                type="file"
-                name="drivePhoto"
-                onChange={handleChange}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-teal-700 file:text-white hover:file:bg-teal-800"
-                required
-              />
+            <label className="block text-lg font-semibold">Pick a Photo For Your Drive</label>
+            <div className="mb-4 border-2 border-dashed border-gray-300 p-4 rounded text-center">
+              <p>No image selected. Please upload your drive&apos;s photo.</p>
+            </div>
+            <input
+              type="file"
+              name="drivePhoto"
+              onChange={handleChange}
+              accept="image/*"
+              required
+              className="hidden"
+              id="drivePhotoInput"
+            />
+            <label
+              htmlFor="drivePhotoInput"
+              className="cursor-pointer inline-block bg-ggreen text-white px-6 py-2 rounded-full hover:bg-teal-800"
+            >
+              Choose Photo
             </label>
           </div>
         );
@@ -172,44 +184,45 @@ const NewDriveWizard = () => {
   const progressPercentage = (currentStep / totalSteps) * 100;
 
   return (
-    <div className="container mx-auto px-4 py-32">
-      <h2 className="text-2xl font-bold mb-4">Create a New Drive</h2>
-      {renderStep()}
-
-      {/* Navigation Buttons */}
-      <div className="flex justify-between mt-6">
-        {currentStep > 1 && (
-          <button
-            onClick={prevStep}
-            className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-          >
-            Back
-          </button>
-        )}
-        <button
-          onClick={nextStep}
-          disabled={!isStepValid}
-          className={`bg-teal-700 text-white px-4 py-2 rounded hover:bg-teal-800 ml-auto ${
-            !isStepValid ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
-        >
-          {currentStep === totalSteps ? 'Create Drive' : 'Next'}
-        </button>
+    <div className="container mx-auto mt-20 px-4 min-h-screen flex flex-col pt-20 pb-64">
+      {/* Main Content */}
+      <div className="flex-1">
+        {renderStep()}
       </div>
 
-      {/* Progress Bar */}
-      <div className="mt-4">
-        <div className="w-full bg-gray-200 rounded">
-          <div
-            style={{ width: `${progressPercentage}%` }}
-            className="bg-teal-700 text-xs font-medium text-blue-100 text-center p-1 leading-none rounded"
-          >
-            {progressPercentage}%
+      {/* Footer / Navigation Buttons */}
+      <div className="mt-12 flex">
+        <div className="w-full mr-8">
+          <div className="w-full bg-gray-200 rounded-full">
+            <div
+              style={{ width: `${Math.round(progressPercentage)}%` }}
+              className="bg-ggreen text-xs font-medium text-blue-100 text-center p-1 leading-none rounded-full"
+            />
           </div>
+          <p className="text-center mt-2">
+            Step {currentStep} of {totalSteps}
+          </p>
         </div>
-        <p className="text-center mt-2">
-          Step {currentStep} of {totalSteps}
-        </p>
+
+        <div className="flex justify-between">
+          {currentStep > 1 && (
+            <button
+              onClick={prevStep}
+              className="border-2 border-ggreen text-ggreen px-12 py-3 mr-4 rounded-full hover:bg-ggreen hover:text-white"
+            >
+              Back
+            </button>
+          )}
+          <button
+            onClick={nextStep}
+            disabled={!isStepValid}
+            className={`border-2 border-ggreen bg-ggreen text-white px-12 py-3 rounded-full hover:bg-teal-800 ${
+              !isStepValid ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+          >
+            {currentStep === totalSteps ? 'Create Drive' : 'Next'}
+          </button>
+        </div>
       </div>
     </div>
   );
