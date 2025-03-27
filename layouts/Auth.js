@@ -5,7 +5,6 @@ import PropTypes from "prop-types"; // Import PropTypes
 
 // components
 import Navbar from "components/Navbars/AuthNavbar.js";
-import Footer from "components/Footers/Footer.js";
 
 export default function Auth({ children }) {
   return (
@@ -13,7 +12,6 @@ export default function Auth({ children }) {
       <Navbar transparent />
       <main>
           {children}
-          <Footer absolute />
       </main>
     </>
   );

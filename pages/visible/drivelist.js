@@ -87,7 +87,13 @@ export default function DriveList() {
             <h2 className="inter-regular text-ggreen text-3xl sm:text-4xl text-center mb-6 pt-12">
               Find a Drive to Support
             </h2>
-            <div className="w-full max-w-2xl mx-auto mb-6">
+            <form
+              className="w-full max-w-4xl mx-auto mb-6"
+              onSubmit={(e) => {
+                e.preventDefault();
+                setSearchQuery(searchInput.trim());
+              }}
+            >
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 pl-3 flex items-center">
                   <svg
@@ -115,7 +121,7 @@ export default function DriveList() {
                   aria-label="Search for drives"
                 />
               </div>
-            </div>
+            </form>
           </div>
         </section>
 
@@ -131,7 +137,7 @@ export default function DriveList() {
         {/* Drives Section */}
         <section id="drives" className="relative py-20 bg-white">
           <div className="container mx-auto px-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
               {drives.length > 0 ? (
                 drives.map((drive) => (
                   <DriveListCard key={drive.drive_id} drive={drive} />

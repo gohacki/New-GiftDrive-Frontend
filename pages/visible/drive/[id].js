@@ -1,5 +1,5 @@
 import axios from 'axios';
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState } from 'react';
 import Link from 'next/link';
 import PropTypes from 'prop-types';
 import { useRouter } from 'next/router';
@@ -17,16 +17,29 @@ const DrivePage = ({ drive }) => {
   const { cart, addToCart, removeFromCart } = useContext(CartContext);
   const [driveQuantities, setDriveQuantities] = useState({});
 
-  // --- Compute progress if items are available ---
-  const totalNeeded = drive.items?.reduce((sum, item) => sum + (item.needed || 0), 0) || 0;
-  const totalDonated = drive.items?.reduce((sum, item) => {
-    // Adjust if your logic is different
-    return sum + ((item.needed || 0) - (item.remaining || 0));
-  }, 0) || 0;
+  // Early return if drive is null to avoid runtime errors
+  if (!drive) {
+    return (
+      <>
+        <Navbar />
+        <main className="min-h-screen flex items-center justify-center bg-secondary_green text-gray-800">
+          <p className="text-gray-600 text-lg">Drive not found.</p>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  // Use aggregated totals if available
+  const totalNeeded =
+    drive.totalNeeded || drive.items?.reduce((sum, item) => sum + (item.needed || 0), 0);
+  const totalDonated =
+    drive.totalPurchased ||
+    drive.items?.reduce((sum, item) => sum + ((item.needed || 0) - (item.remaining || 0)), 0);
   const totalRemaining = totalNeeded - totalDonated;
   const progressPercentage = totalNeeded ? (totalDonated / totalNeeded) * 100 : 0;
 
-  // If you have real top-donors data, replace this placeholder array
+  // Placeholder top donors
   const topDonors = [
     { name: 'Bethia Maglioni', items: 5 },
     { name: 'Margaret Whitman', items: 3 },
@@ -70,18 +83,6 @@ const DrivePage = ({ drive }) => {
     addToCart(itemId, configId, null, drive.drive_id, quantity);
   };
 
-  if (!drive) {
-    return (
-      <>
-        <Navbar />
-        <main className="min-h-screen flex items-center justify-center bg-secondary_green text-gray-800">
-          <p className="text-gray-600 text-lg">Drive not found.</p>
-        </main>
-        <Footer />
-      </>
-    );
-  }
-
   return (
     <>
       <Navbar />
@@ -110,7 +111,6 @@ const DrivePage = ({ drive }) => {
           <div className="mb-6">
             <h1 className="text-3xl font-semibold text-ggreen mb-2">{drive.name}</h1>
             <div className="text-gray-600 flex flex-wrap gap-4 items-center">
-              {/* Example: “70 Items Needed” – adapt if you have the data */}
               <p className="font-medium">{totalNeeded} Items Needed</p>
               {drive.location && <p className="font-medium">{drive.location}</p>}
             </div>
@@ -120,24 +120,27 @@ const DrivePage = ({ drive }) => {
           <div className="flex flex-col md:flex-row gap-8">
             {/* Left Column */}
             <div className="md:w-2/3 space-y-6">
+              <div className="flex">
               {/* Drive Progress / Top Donors */}
-              <div className="bg-white shadow rounded-lg p-6">
+              <div className="border-2 border-ggreen  shadow rounded-lg p-6 w-1/2 mr-4">
                 <h2 className="text-xl font-semibold text-ggreen mb-4">Drive Progress</h2>
-                <div className="w-full bg-gray-200 h-4 rounded mb-2">
-                  <div
-                    className="bg-ggreen h-4 rounded"
-                    style={{ width: `${progressPercentage}%` }}
-                  ></div>
-                </div>
+                <div className="bg-gray-200 w-full h-4 rounded-full mb-2">
+                <div
+                  className="border-2 border-ggreen bg-ggreen h-4 rounded-full"
+                  style={{ width: `${progressPercentage}%` }}
+                ></div>
+              </div>
                 <p className="text-sm text-gray-700 mb-2">
                   Items Donated: <strong>{totalDonated}</strong>
                 </p>
                 <p className="text-sm text-gray-700 mb-4">
                   Items Still Needed: <strong>{totalRemaining}</strong>
                 </p>
+              </div>
 
-                <h3 className="text-lg font-semibold text-ggreen mb-2">Top Donors</h3>
-                <ul className="text-sm text-gray-700 list-disc list-inside space-y-1">
+              <div className="border-2 border-ggreen shadow rounded-lg p-6 w-1/2">
+              <h3 className="text-lg font-semibold text-ggreen mb-2">Top Donors</h3>
+                <ul className="text-sm text-gray-700 list-disc list-inside space-y-1 list-none">
                   {topDonors.map((donor, idx) => (
                     <li key={idx}>
                       {idx + 1}. {donor.name} ({donor.items} items)
@@ -145,13 +148,11 @@ const DrivePage = ({ drive }) => {
                   ))}
                 </ul>
               </div>
+              </div>
 
               {/* Items Section */}
               {drive.items && drive.items.length > 0 && (
                 <section>
-                  <h2 className="text-2xl font-semibold text-ggreen mb-4">
-                    Items in {drive.name}
-                  </h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {drive.items.map((item) => {
                       const added = isDriveItemAdded(item);
@@ -161,7 +162,7 @@ const DrivePage = ({ drive }) => {
                       return (
                         <div
                           key={item.drive_item_id}
-                          className="border border-gray-200 bg-white p-4 rounded-lg shadow-sm flex flex-col justify-between"
+                          className="border-2 border-ggreen  p-4 rounded-lg shadow-sm flex flex-col justify-between"
                         >
                           {/* Item image */}
                           {item.item_photo && (
@@ -241,7 +242,6 @@ const DrivePage = ({ drive }) => {
                                       ? 'Out of Stock'
                                       : 'Add to Cart'}
                                   </button>
-                                  {/* Purchase in Person button */}
                                   <button
                                     className={`w-full py-2 rounded-lg border transition-colors ${
                                       isOutOfStock
@@ -271,7 +271,6 @@ const DrivePage = ({ drive }) => {
                                 >
                                   {added ? 'Remove' : isOutOfStock ? 'Out of Stock' : 'Add'}
                                 </button>
-                                {/* Purchase in Person button */}
                                 <button
                                   className={`w-full py-2 rounded-lg border transition-colors ${
                                     isOutOfStock
@@ -292,7 +291,7 @@ const DrivePage = ({ drive }) => {
                 </section>
               )}
 
-              {/* Children Section (if you still want it) */}
+              {/* Children Section */}
               {drive.children && drive.children.length > 0 && (
                 <section>
                   <h2 className="text-2xl font-semibold text-ggreen mb-4">
@@ -304,7 +303,7 @@ const DrivePage = ({ drive }) => {
                         key={child.child_id}
                         href={`/visible/child/${child.child_id}`}
                         passHref
-                        className="block bg-white shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+                        className="block border-2 border-ggreen shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                       >
                         {child.child_photo && (
                           <div className="flex justify-center mt-4">
@@ -338,7 +337,6 @@ const DrivePage = ({ drive }) => {
                 </section>
               )}
 
-              {/* If no children/items */}
               {(!drive.children || drive.children.length === 0) &&
                 (!drive.items || drive.items.length === 0) && (
                   <p className="text-ggreen text-lg">No children or items for this drive.</p>
@@ -347,9 +345,8 @@ const DrivePage = ({ drive }) => {
 
             {/* Right Column: Organization / Share Info */}
             <div className="md:w-1/3 space-y-6">
-              <div className="bg-white shadow rounded-lg p-6">
+              <div className="border-2 border-ggreen  shadow rounded-lg p-6">
                 <h2 className="text-xl font-semibold text-ggreen mb-4">Organization</h2>
-                {/* You can customize these fields to match your data */}
                 <p className="text-gray-700 mb-2">
                   <strong>Org Name:</strong> {drive.organization_name || 'Williston Federated Church'}
                 </p>
@@ -363,8 +360,6 @@ const DrivePage = ({ drive }) => {
                   Share / Add
                 </button>
               </div>
-
-              {/* Optionally, if you have more info or want to add a donation summary, place it here */}
             </div>
           </div>
         </div>
@@ -382,10 +377,11 @@ DrivePage.propTypes = {
     description: PropTypes.string,
     photo: PropTypes.string,
     location: PropTypes.string,
-    date: PropTypes.string,
     organization_name: PropTypes.string,
     organizer_name: PropTypes.string,
     donorsCount: PropTypes.number,
+    totalNeeded: PropTypes.number,
+    totalPurchased: PropTypes.number,
     children: PropTypes.arrayOf(
       PropTypes.shape({
         child_id: PropTypes.string.isRequired,
@@ -419,19 +415,21 @@ export async function getServerSideProps(context) {
     const itemsResponse = await axios.get(`${apiUrl}/api/drives/${id}/items`);
     drive.items = itemsResponse.data;
 
+    // Fetch aggregated totals from your backend (make sure to implement this endpoint)
+    const aggregateResponse = await axios.get(`${apiUrl}/api/drives/${id}/aggregate`);
+    const aggregate = aggregateResponse.data;
+    drive.totalNeeded = aggregate.totalNeeded;
+    drive.totalPurchased = aggregate.totalPurchased;
+
     drive.id = drive.drive_id;
 
     return {
-      props: {
-        drive,
-      },
+      props: { drive },
     };
   } catch (error) {
     console.error('Error fetching drive data:', error.message);
     return {
-      props: {
-        drive: null,
-      },
+      props: { drive: null },
     };
   }
 }

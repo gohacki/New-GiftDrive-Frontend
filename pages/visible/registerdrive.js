@@ -184,7 +184,7 @@ const NewDriveWizard = () => {
   const progressPercentage = (currentStep / totalSteps) * 100;
 
   return (
-    <div className="container mx-auto mt-20 px-4 min-h-screen flex flex-col pt-20 pb-64">
+    <div className="container mx-auto px-4 min-h-screen flex flex-col pt-40 pb-64">
       {/* Main Content */}
       <div className="flex-1">
         {renderStep()}

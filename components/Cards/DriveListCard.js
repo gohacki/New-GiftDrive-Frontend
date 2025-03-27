@@ -1,12 +1,9 @@
-// components/Cards/DriveListCard.js
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import PropTypes from 'prop-types';
 
-import { MapPinIcon, ArrowRightIcon } from '@heroicons/react/24/solid';
-
-
+import { ArrowRightIcon } from '@heroicons/react/24/solid';
 
 const DriveListCard = ({ drive }) => {
   const {
@@ -20,35 +17,30 @@ const DriveListCard = ({ drive }) => {
     totalPurchased = 0,
   } = drive;
 
-  // Calculate how many are left to go
+  // Calculate how many are left to go and progress percent
   const remaining = Math.max(totalNeeded - totalPurchased, 0);
-  // Calculate progress percentage for the bar
   const progressPercent = totalNeeded > 0 ? (totalPurchased / totalNeeded) * 100 : 0;
 
   return (
     <Link href={`/visible/drive/${drive_id}`} className="block group">
-      <div className="border border-gray-200 rounded-lg shadow-sm bg-white overflow-hidden hover:shadow-md transition-shadow duration-200">
-        {/* Drive Image */}
-        <div className="relative w-full h-36 sm:h-40 md:h-44">
+      <div className="border border-ggreen rounded-lg shadow-md h-full transition-shadow duration-300 hover:shadow-lg bg-white flex flex-col">
+        {/* Inset Image Container with Location Overlay */}
+        <div className="relative mx-4 mt-4 h-40 overflow-hidden">
           <Image
             src={photo || '/img/default-drive.png'}
             alt={name}
             fill
-            className="object-cover"
+            className="object-cover rounded-lg"
           />
+          {(org_city && org_state) && (
+            <div className="absolute bottom-2 left-2 bg-white/80 text-gray-800 px-3 py-1 rounded-full text-xs shadow">
+              {org_city}, {org_state}
+            </div>
+          )}
         </div>
 
         {/* Card Content */}
-        <div className="p-4">
-          {/* Location Row */}
-          <div className="flex items-center text-sm text-gray-500 mb-2">
-            {/* Location icon */}
-            <MapPinIcon className="w-4 h-4 mr-1" />
-            <span>
-              {org_city}, {org_state}
-            </span>
-          </div>
-
+        <div className="flex flex-col flex-grow p-4">
           {/* Drive Name */}
           <h4 className="text-lg font-semibold text-gray-800 mb-1">
             {name}
@@ -73,7 +65,7 @@ const DriveListCard = ({ drive }) => {
           </p>
 
           {/* "View Drive" Button */}
-          <div className="flex">
+          <div className="mt-auto">
             <div className="inline-flex items-center bg-ggreen text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-green-700 transition-colors">
               View Drive
               <ArrowRightIcon className="w-4 h-4 ml-2" />
