@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { useRouter } from 'next/router'; 
+import { useRouter } from 'next/router';
 import axios from 'axios';
 import { AuthContext } from '../../contexts/AuthContext';
 import Link from 'next/link';
@@ -64,13 +64,13 @@ const RegisterPage = () => {
     }
   };
 
-  const handleGoogleLogin = () => {
-    window.location.href = `${apiUrl}/api/auth/google`;
-  };
+  // const handleGoogleLogin = () => {
+  //   window.location.href = `${apiUrl}/api/auth/google`;
+  // };
 
-  const handleFacebookLogin = () => {
-    window.location.href = `${apiUrl}/api/auth/facebook`;
-  };
+  // const handleFacebookLogin = () => {
+  //   window.location.href = `${apiUrl}/api/auth/facebook`;
+  // };
 
   return (
     <div className="min-h-screen bg-secondary_green flex items-center justify-center px-4 pt-24">
@@ -78,13 +78,13 @@ const RegisterPage = () => {
         <div className="relative flex flex-col min-w-0 break-words w-full mb-6 shadow-lg rounded-lg bg-white border-0">
           {/* Header Section with Social Logins */}
           <div className="rounded-t mb-0 px-6 py-6">
-            <div className="text-center mb-3">
+            {/* <div className="text-center mb-3">
               <h6 className="text-gray-800 text-sm font-bold font-georgia">
                 Sign up with
               </h6>
             </div>
             <div className="btn-wrapper text-center space-x-2">
-              {/* Google Button */}
+
               <button
                 className="bg-ggreen text-white font-semibold px-6 py-3 rounded-full shadow hover:shadow-lg transition-all duration-150 inline-flex items-center"
                 type="button"
@@ -93,7 +93,6 @@ const RegisterPage = () => {
                 <img alt="Google" className="w-5 mr-2" src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" />
                 Google
               </button>
-              {/* Facebook Button */}
               <button
                 className="bg-ggreen text-white font-semibold px-6 py-3 rounded-full shadow hover:shadow-lg transition-all duration-150 inline-flex items-center"
                 type="button"
@@ -103,13 +102,13 @@ const RegisterPage = () => {
                 Facebook
               </button>
             </div>
-            <hr className="mt-6 border-b-1 border-gray-300" />
+            <hr className="mt-6 border-b-1 border-gray-300" />*/}
           </div>
           {/* Form Section */}
           <div className="flex-auto px-4 lg:px-10 py-10 pt-0">
-            <div className="text-gray-600 text-center mb-3 font-bold">
+            {/* <div className="text-gray-600 text-center mb-3 font-bold">
               <small>Or sign up with your credentials</small>
-            </div>
+            </div> */}
             {/* Display Error Message */}
             {error && (
               <div
@@ -238,7 +237,7 @@ const RegisterPage = () => {
         <div className="flex flex-wrap mt-6 relative">
           <div className="w-full text-center">
             <Link href="/auth/login" className="text-gray-800">
-                <small>Already have an account?</small>
+              <small>Already have an account?</small>
             </Link>
           </div>
         </div>

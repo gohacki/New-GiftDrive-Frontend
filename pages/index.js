@@ -16,10 +16,8 @@ export default function Landing() {
         {/* Hero Section */}
         <section className="bg-background px-4 py-12 sm:py-20">
           <div className="max-w-7xl mx-auto flex flex-col items-center text-center">
-            <h1 className="inter-regular text-ggreen text-3xl sm:text-5xl mt-20 mb-4">
+            <h1 className="inter-regular text-ggreen text-6xl sm:text-5xl mt-20 mb-4">
               Organize physical item donation
-              <br />
-
             </h1>
             <h1 className="inter-regular text-ggreen text-3xl sm:text-5xl mt-4 mb-4">
               drives for any occassion.

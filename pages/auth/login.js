@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Auth from 'layouts/Auth.js';
 import { AuthContext } from '../../contexts/AuthContext';
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+// const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function Login() {
   const { user, login } = useContext(AuthContext);
@@ -11,15 +11,15 @@ export default function Login() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [setError] = useState('');
 
-  const handleGoogleLogin = () => {
-    window.location.href = `${apiUrl}/api/auth/google`;
-  };
+  // const handleGoogleLogin = () => {
+  //   window.location.href = `${apiUrl}/api/auth/google`;
+  // };
 
-  const handleFacebookLogin = () => {
-    window.location.href = `${apiUrl}/api/auth/facebook`;
-  };
+  // const handleFacebookLogin = () => {
+  //   window.location.href = `${apiUrl}/api/auth/facebook`;
+  // };
 
   useEffect(() => {
     if (user && user.account_id) {
@@ -42,18 +42,18 @@ export default function Login() {
     <div className="min-h-screen bg-secondary_green flex items-center justify-center px-4">
       <div className="w-full lg:w-4/12">
         <div className="relative flex flex-col min-w-0 break-words w-full mb-6 shadow-lg rounded-lg bg-white border-0">
-          <div className="rounded-t mb-0 px-6 py-6">
-            <div className="text-center mb-3">
+          {/* <div className="rounded-t mb-0 px-6 py-6"> */}
+          {/* <div className="text-center mb-3">
               <h6 className="text-gray-800 text-sm font-bold font-georgia">
                 Sign in with
               </h6>
-            </div>
-            {error && (
+            </div> */}
+          {/* {error && (
               <div className="text-center mb-3">
                 <p className="text-red-500 text-sm">{error}</p>
               </div>
-            )}
-            <div className="btn-wrapper text-center space-x-2">
+            )} */}
+          {/* <div className="btn-wrapper text-center space-x-2">
               <button
                 className="bg-ggreen text-white font-semibold px-6 py-3 rounded-full shadow hover:shadow-lg transition-all duration-150 inline-flex items-center"
                 type="button"
@@ -77,14 +77,14 @@ export default function Login() {
                   src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png"
                 />
                 Google
-              </button>
-            </div>
-            <hr className="mt-6 border-b-1 border-gray-300" />
-          </div>
+              </button> */}
+          {/* </div> */}
+          {/* <hr className="mt-6 border-b-1 border-gray-300" /> */}
+          {/* </div> */}
           <div className="flex-auto px-4 lg:px-10 py-10">
-            <div className="text-gray-600 text-center mb-3 font-bold">
-              <small>Or sign in with credentials</small>
-            </div>
+            {/* <div className="text-gray-600 text-center mb-3 font-bold">
+              <small>Sign In Below</small>
+            </div> */}
             <form onSubmit={handleSubmit}>
               <div className="relative w-full mb-3">
                 <label
@@ -147,7 +147,7 @@ export default function Login() {
           </div>
           <div className="w-1/2 text-right">
             <Link href="/auth/register" className="text-gray-800">
-                <small>Create new account</small>
+              <small>Create new account</small>
             </Link>
           </div>
         </div>
