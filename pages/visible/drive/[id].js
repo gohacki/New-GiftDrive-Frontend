@@ -51,10 +51,16 @@ const DrivePage = ({ drive }) => {
 
   // Use aggregated totals if available
   const totalNeeded =
-    drive.totalNeeded || drive.items?.reduce((sum, item) => sum + (item.needed || 0), 0);
+    Number(drive.totalNeeded) ||
+    drive.items?.reduce((sum, item) => sum + (Number(item.needed) || 0), 0);
   const totalDonated =
-    drive.totalPurchased ||
-    drive.items?.reduce((sum, item) => sum + ((item.needed || 0) - (item.remaining || 0)), 0);
+    Number(drive.totalPurchased) ||
+    drive.items?.reduce(
+      (sum, item) =>
+        sum + ((Number(item.needed) || 0) - (Number(item.remaining) || 0)),
+      0
+    );
+
   const totalRemaining = totalNeeded - totalDonated;
   const progressPercentage = totalNeeded ? (totalDonated / totalNeeded) * 100 : 0;
 
@@ -248,10 +254,10 @@ const DrivePage = ({ drive }) => {
                                         )
                                     }
                                     className={`w-full py-2 rounded-lg text-white transition-colors ${added
-                                        ? 'bg-red-500 hover:bg-red-600'
-                                        : isOutOfStock
-                                          ? 'bg-gray-400 cursor-not-allowed'
-                                          : 'bg-ggreen hover:bg-ggreen-dark'
+                                      ? 'bg-red-500 hover:bg-red-600'
+                                      : isOutOfStock
+                                        ? 'bg-gray-400 cursor-not-allowed'
+                                        : 'bg-ggreen hover:bg-ggreen-dark'
                                       }`}
                                     disabled={isOutOfStock}
                                   >
@@ -263,8 +269,8 @@ const DrivePage = ({ drive }) => {
                                   </button>
                                   <button
                                     className={`w-full py-2 rounded-lg border transition-colors ${isOutOfStock
-                                        ? 'border-gray-400 text-gray-400 cursor-not-allowed'
-                                        : 'border-ggreen text-ggreen hover:bg-gray-100'
+                                      ? 'border-gray-400 text-gray-400 cursor-not-allowed'
+                                      : 'border-ggreen text-ggreen hover:bg-gray-100'
                                       }`}
                                     disabled={isOutOfStock}
                                   >
@@ -281,10 +287,10 @@ const DrivePage = ({ drive }) => {
                                       : handleAddToCartDrive(item, 1)
                                   }
                                   className={`w-full py-2 rounded-lg text-white transition-colors ${added
-                                      ? 'bg-red-500 hover:bg-red-600'
-                                      : isOutOfStock
-                                        ? 'bg-gray-400 cursor-not-allowed'
-                                        : 'bg-ggreen hover:bg-ggreen-dark'
+                                    ? 'bg-red-500 hover:bg-red-600'
+                                    : isOutOfStock
+                                      ? 'bg-gray-400 cursor-not-allowed'
+                                      : 'bg-ggreen hover:bg-ggreen-dark'
                                     }`}
                                   disabled={isOutOfStock}
                                 >
@@ -292,8 +298,8 @@ const DrivePage = ({ drive }) => {
                                 </button>
                                 <button
                                   className={`w-full py-2 rounded-lg border transition-colors ${isOutOfStock
-                                      ? 'border-gray-400 text-gray-400 cursor-not-allowed'
-                                      : 'border-ggreen text-ggreen hover:bg-gray-100'
+                                    ? 'border-gray-400 text-gray-400 cursor-not-allowed'
+                                    : 'border-ggreen text-ggreen hover:bg-gray-100'
                                     }`}
                                   disabled={isOutOfStock}
                                 >
