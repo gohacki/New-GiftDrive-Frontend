@@ -160,9 +160,8 @@ const ChildDetailPage = ({ child }) => {
                   return (
                     <div
                       key={item.child_item_id}
-                      className={`border p-4 rounded-lg shadow-sm ${
-                        isAdded ? 'border-green-500' : 'border-gray-200'
-                      } flex flex-col justify-between`}
+                      className={`border p-4 rounded-lg shadow-sm ${isAdded ? 'border-green-500' : 'border-gray-200'
+                        } flex flex-col justify-between`}
                     >
                       {/* Item Image */}
                       {item.item_photo && (
@@ -225,19 +224,18 @@ const ChildDetailPage = ({ child }) => {
                                   ? handleRemoveFromCart(cartItemId)
                                   : handleAddToCart(item, quantities[item.item_id] || 1)
                               }
-                              className={`w-full py-2 rounded-lg text-white transition-colors ${
-                                isAdded
+                              className={`w-full py-2 rounded-lg text-white transition-colors ${isAdded
                                   ? 'bg-red-500 hover:bg-red-600'
                                   : isOutOfStock
-                                  ? 'bg-gray-400 cursor-not-allowed'
-                                  : 'bg-ggreen hover:bg-ggreen-dark'
-                              }`}
+                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    : 'bg-ggreen hover:bg-ggreen-dark'
+                                }`}
                               aria-label={
                                 isAdded
                                   ? `Remove ${item.item_name} from cart`
                                   : isOutOfStock
-                                  ? `${item.item_name} is fully purchased`
-                                  : `Add ${item.item_name} to cart`
+                                    ? `${item.item_name} is fully purchased`
+                                    : `Add ${item.item_name} to cart`
                               }
                               disabled={isOutOfStock}
                             >
@@ -249,19 +247,18 @@ const ChildDetailPage = ({ child }) => {
                             onClick={() =>
                               isAdded ? handleRemoveFromCart(cartItemId) : handleAddToCart(item, 1)
                             }
-                            className={`w-full py-2 rounded-lg text-white transition-colors ${
-                              isAdded
+                            className={`w-full py-2 rounded-lg text-white transition-colors ${isAdded
                                 ? 'bg-red-500 hover:bg-red-600'
                                 : isOutOfStock
-                                ? 'bg-gray-400 cursor-not-allowed'
-                                : 'bg-ggreen hover:bg-ggreen-dark'
-                            }`}
+                                  ? 'bg-gray-400 cursor-not-allowed'
+                                  : 'bg-ggreen hover:bg-ggreen-dark'
+                              }`}
                             aria-label={
                               isAdded
                                 ? `Remove ${item.item_name} from cart`
                                 : isOutOfStock
-                                ? `${item.item_name} is fully purchased`
-                                : `Add ${item.item_name} to cart`
+                                  ? `${item.item_name} is fully purchased`
+                                  : `Add ${item.item_name} to cart`
                             }
                             disabled={isOutOfStock}
                           >
@@ -342,20 +339,20 @@ export async function getServerSideProps(context) {
 
     const items = Array.isArray(itemsData)
       ? itemsData.map((item) => ({
-          child_item_id: item.child_item_id,
-          item_id: item.item_id,
-          config_id: item.config_id || null,
-          item_name: item.item_name,
-          item_photo: item.item_photo || '/img/default-item.png',
-          price: Number(item.price),
-          users_with_item_in_cart: Number(item.users_with_item_in_cart) || 0,
-          description: item.description || null,
-          size: item.size || null,
-          color: item.color || null,
-          needed: Number(item.needed) || 0,
-          purchased: Number(item.purchased) || 0,
-          remaining: Number(item.remaining) || 0,
-        }))
+        child_item_id: item.child_item_id,
+        item_id: item.item_id,
+        config_id: item.config_id || null,
+        item_name: item.item_name,
+        item_photo: item.item_photo || '/img/default-item.png',
+        price: Number(item.price),
+        users_with_item_in_cart: Number(item.users_with_item_in_cart) || 0,
+        description: item.description || null,
+        size: item.size || null,
+        color: item.color || null,
+        needed: Number(item.needed) || 0,
+        purchased: Number(item.purchased) || 0,
+        remaining: Number(item.remaining) || 0,
+      }))
       : [];
 
     const child = {

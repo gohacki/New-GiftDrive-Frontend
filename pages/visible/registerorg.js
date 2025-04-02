@@ -100,7 +100,7 @@ const RegisterOrganization = () => {
         return;
       }
     }
-    
+
     if (currentStep < totalSteps) {
       setCurrentStep((prev) => prev + 1);
     } else {
@@ -245,7 +245,7 @@ const RegisterOrganization = () => {
       <div className="flex-1">
         {renderStep()}
       </div>
-      
+
       {/* Footer / Navigation Buttons */}
       <div className="mt-12 flex">
         <div className="w-full mr-8">
@@ -259,7 +259,7 @@ const RegisterOrganization = () => {
             Step {currentStep} of {totalSteps}
           </p>
         </div>
-  
+
         <div className="flex justify-between">
           {currentStep > 1 && (
             <button

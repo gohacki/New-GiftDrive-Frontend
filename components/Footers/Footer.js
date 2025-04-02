@@ -60,7 +60,7 @@ export default function Footer() {
         <div className="border-t border-gray-700 mt-8 pt-4 flex flex-col sm:flex-row items-center justify-between text-sm">
           {/* Left: Copyright text */}
           <div className="mb-4 sm:mb-0">
-            <p>© 2025 Gyftly, LLC. All rights reserved.</p>
+            <p>© 2025 GiftDrive, LLC. All rights reserved.</p>
           </div>
 
           {/* Right: Icons + Extra Link */}

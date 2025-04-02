@@ -1,6 +1,6 @@
 import axios from 'axios';
 import React, { useContext, useState } from 'react';
-import Link from 'next/link';
+// Removed Link from 'next/link' because we won't navigate away now
 import PropTypes from 'prop-types';
 import { useRouter } from 'next/router';
 import Navbar from 'components/Navbars/AuthNavbar.js';
@@ -10,12 +10,31 @@ import Breadcrumbs from 'components/UI/Breadcrumbs.js';
 import Image from 'next/image';
 import { CartContext } from 'contexts/CartContext';
 
+// Import your ChildModal
+import ChildModal from 'components/Modals/ChildModal';
+
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const DrivePage = ({ drive }) => {
   const router = useRouter();
   const { cart, addToCart, removeFromCart } = useContext(CartContext);
   const [driveQuantities, setDriveQuantities] = useState({});
+
+  // State for showing/hiding Child Modal
+  const [selectedChildId, setSelectedChildId] = useState(null);
+  const [isModalOpen, setModalOpen] = useState(false);
+
+  // Open modal and store which child was clicked
+  const openChildModal = (childId) => {
+    setSelectedChildId(childId);
+    setModalOpen(true);
+  };
+
+  // Close modal
+  const closeChildModal = () => {
+    setSelectedChildId(null);
+    setModalOpen(false);
+  };
 
   // Early return if drive is null to avoid runtime errors
   if (!drive) {
@@ -121,33 +140,34 @@ const DrivePage = ({ drive }) => {
             {/* Left Column */}
             <div className="md:w-2/3 space-y-6">
               <div className="flex">
-              {/* Drive Progress / Top Donors */}
-              <div className="border-2 border-ggreen  shadow rounded-lg p-6 w-1/2 mr-4">
-                <h2 className="text-xl font-semibold text-ggreen mb-4">Drive Progress</h2>
-                <div className="bg-gray-200 w-full h-4 rounded-full mb-2">
-                <div
-                  className="border-2 border-ggreen bg-ggreen h-4 rounded-full"
-                  style={{ width: `${progressPercentage}%` }}
-                ></div>
-              </div>
-                <p className="text-sm text-gray-700 mb-2">
-                  Items Donated: <strong>{totalDonated}</strong>
-                </p>
-                <p className="text-sm text-gray-700 mb-4">
-                  Items Still Needed: <strong>{totalRemaining}</strong>
-                </p>
-              </div>
+                {/* Drive Progress */}
+                <div className="border-2 border-ggreen shadow rounded-lg p-6 w-1/2 mr-4">
+                  <h2 className="text-xl font-semibold text-ggreen mb-4">Drive Progress</h2>
+                  <div className="bg-gray-200 w-full h-4 rounded-full mb-2">
+                    <div
+                      className="border-2 border-ggreen bg-ggreen h-4 rounded-full"
+                      style={{ width: `${progressPercentage}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-sm text-gray-700 mb-2">
+                    Items Donated: <strong>{totalDonated}</strong>
+                  </p>
+                  <p className="text-sm text-gray-700 mb-4">
+                    Items Still Needed: <strong>{totalRemaining}</strong>
+                  </p>
+                </div>
 
-              <div className="border-2 border-ggreen shadow rounded-lg p-6 w-1/2">
-              <h3 className="text-lg font-semibold text-ggreen mb-2">Top Donors</h3>
-                <ul className="text-sm text-gray-700 list-disc list-inside space-y-1 list-none">
-                  {topDonors.map((donor, idx) => (
-                    <li key={idx}>
-                      {idx + 1}. {donor.name} ({donor.items} items)
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                {/* Top Donors */}
+                <div className="border-2 border-ggreen shadow rounded-lg p-6 w-1/2">
+                  <h3 className="text-lg font-semibold text-ggreen mb-2">Top Donors</h3>
+                  <ul className="text-sm text-gray-700 list-disc list-inside space-y-1 list-none">
+                    {topDonors.map((donor, idx) => (
+                      <li key={idx}>
+                        {idx + 1}. {donor.name} ({donor.items} items)
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
 
               {/* Items Section */}
@@ -162,7 +182,7 @@ const DrivePage = ({ drive }) => {
                       return (
                         <div
                           key={item.drive_item_id}
-                          className="border-2 border-ggreen  p-4 rounded-lg shadow-sm flex flex-col justify-between"
+                          className="border-2 border-ggreen p-4 rounded-lg shadow-sm flex flex-col justify-between"
                         >
                           {/* Item image */}
                           {item.item_photo && (
@@ -223,31 +243,29 @@ const DrivePage = ({ drive }) => {
                                       added
                                         ? removeFromCart(cartItemId)
                                         : handleAddToCartDrive(
-                                            item,
-                                            driveQuantities[item.item_id] || 1
-                                          )
+                                          item,
+                                          driveQuantities[item.item_id] || 1
+                                        )
                                     }
-                                    className={`w-full py-2 rounded-lg text-white transition-colors ${
-                                      added
+                                    className={`w-full py-2 rounded-lg text-white transition-colors ${added
                                         ? 'bg-red-500 hover:bg-red-600'
                                         : isOutOfStock
-                                        ? 'bg-gray-400 cursor-not-allowed'
-                                        : 'bg-ggreen hover:bg-ggreen-dark'
-                                    }`}
+                                          ? 'bg-gray-400 cursor-not-allowed'
+                                          : 'bg-ggreen hover:bg-ggreen-dark'
+                                      }`}
                                     disabled={isOutOfStock}
                                   >
                                     {added
                                       ? 'Remove'
                                       : isOutOfStock
-                                      ? 'Out of Stock'
-                                      : 'Add to Cart'}
+                                        ? 'Out of Stock'
+                                        : 'Add to Cart'}
                                   </button>
                                   <button
-                                    className={`w-full py-2 rounded-lg border transition-colors ${
-                                      isOutOfStock
+                                    className={`w-full py-2 rounded-lg border transition-colors ${isOutOfStock
                                         ? 'border-gray-400 text-gray-400 cursor-not-allowed'
                                         : 'border-ggreen text-ggreen hover:bg-gray-100'
-                                    }`}
+                                      }`}
                                     disabled={isOutOfStock}
                                   >
                                     Purchase in Person
@@ -258,25 +276,25 @@ const DrivePage = ({ drive }) => {
                               <div className="flex gap-2">
                                 <button
                                   onClick={() =>
-                                    added ? removeFromCart(cartItemId) : handleAddToCartDrive(item, 1)
-                                  }
-                                  className={`w-full py-2 rounded-lg text-white transition-colors ${
                                     added
+                                      ? removeFromCart(cartItemId)
+                                      : handleAddToCartDrive(item, 1)
+                                  }
+                                  className={`w-full py-2 rounded-lg text-white transition-colors ${added
                                       ? 'bg-red-500 hover:bg-red-600'
                                       : isOutOfStock
-                                      ? 'bg-gray-400 cursor-not-allowed'
-                                      : 'bg-ggreen hover:bg-ggreen-dark'
-                                  }`}
+                                        ? 'bg-gray-400 cursor-not-allowed'
+                                        : 'bg-ggreen hover:bg-ggreen-dark'
+                                    }`}
                                   disabled={isOutOfStock}
                                 >
                                   {added ? 'Remove' : isOutOfStock ? 'Out of Stock' : 'Add'}
                                 </button>
                                 <button
-                                  className={`w-full py-2 rounded-lg border transition-colors ${
-                                    isOutOfStock
+                                  className={`w-full py-2 rounded-lg border transition-colors ${isOutOfStock
                                       ? 'border-gray-400 text-gray-400 cursor-not-allowed'
                                       : 'border-ggreen text-ggreen hover:bg-gray-100'
-                                  }`}
+                                    }`}
                                   disabled={isOutOfStock}
                                 >
                                   Purchase in Person
@@ -299,11 +317,10 @@ const DrivePage = ({ drive }) => {
                   </h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {drive.children.map((child) => (
-                      <Link
+                      <div
                         key={child.child_id}
-                        href={`/visible/child/${child.child_id}`}
-                        passHref
-                        className="block border-2 border-ggreen shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+                        onClick={() => openChildModal(child.child_id)}
+                        className="cursor-pointer block border-2 border-ggreen shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                       >
                         {child.child_photo && (
                           <div className="flex justify-center mt-4">
@@ -331,7 +348,7 @@ const DrivePage = ({ drive }) => {
                             </p>
                           )}
                         </div>
-                      </Link>
+                      </div>
                     ))}
                   </div>
                 </section>
@@ -345,7 +362,7 @@ const DrivePage = ({ drive }) => {
 
             {/* Right Column: Organization / Share Info */}
             <div className="md:w-1/3 space-y-6">
-              <div className="border-2 border-ggreen  shadow rounded-lg p-6">
+              <div className="border-2 border-ggreen shadow rounded-lg p-6">
                 <h2 className="text-xl font-semibold text-ggreen mb-4">Organization</h2>
                 <p className="text-gray-700 mb-2">
                   <strong>Org Name:</strong> {drive.organization_name || 'Williston Federated Church'}
@@ -364,6 +381,14 @@ const DrivePage = ({ drive }) => {
           </div>
         </div>
       </main>
+
+      {/* Child Modal at the bottom */}
+      <ChildModal
+        isOpen={isModalOpen}
+        onClose={closeChildModal}
+        childId={selectedChildId}
+      />
+
       <Footer />
     </>
   );
@@ -412,15 +437,17 @@ export async function getServerSideProps(context) {
     const driveResponse = await axios.get(`${apiUrl}/api/drives/${id}`);
     const drive = driveResponse.data;
 
+    // Items
     const itemsResponse = await axios.get(`${apiUrl}/api/drives/${id}/items`);
     drive.items = itemsResponse.data;
 
-    // Fetch aggregated totals from your backend (make sure to implement this endpoint)
+    // Aggregates
     const aggregateResponse = await axios.get(`${apiUrl}/api/drives/${id}/aggregate`);
     const aggregate = aggregateResponse.data;
     drive.totalNeeded = aggregate.totalNeeded;
     drive.totalPurchased = aggregate.totalPurchased;
 
+    // So "drive.id" equals "drive.drive_id"
     drive.id = drive.drive_id;
 
     return {

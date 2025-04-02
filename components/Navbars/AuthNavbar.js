@@ -15,8 +15,8 @@ const Navbar = () => {
   const router = useRouter();
   const { cart } = useContext(CartContext);
   const itemCount = cart?.items
-  ? cart.items.reduce((total, item) => total + item.quantity, 0)
-  : 0;
+    ? cart.items.reduce((total, item) => total + item.quantity, 0)
+    : 0;
 
   // Handle scroll event to toggle navbar background
   useEffect(() => {
@@ -53,27 +53,26 @@ const Navbar = () => {
 
   return (
     <nav
-      className={`fixed top-0 z-50 w-full transition-colors duration-300 ${
-        scrolled || navbarOpen ? 'bg-secondary_green shadow-lg' : 'bg-transparent'
-      }`}
+      className={`fixed top-0 z-50 w-full transition-colors duration-300 ${scrolled || navbarOpen ? 'bg-secondary_green shadow-lg' : 'bg-transparent'
+        }`}
     >
-  <div className="container mx-auto px-4 py-3 flex flex-wrap items-center">
-    {/* Brand + Toggler in one row */}
-    <div className="flex w-full lg:w-auto items-center">
-      {/* Brand (Gyftly) centered */}
-      <Link href="/">
-        <div className="mx-auto leading-relaxed py-2 whitespace-nowrap cursor-pointer inter-semi-bold text-ggreen text-2xl flex items-center gap-2">
-          <Image
-            src="/MainGift.png"
-            alt="Gyftly Logo"
-            width={128}
-            height={128}
-            className="h-8 w-auto"
-            priority
-          />
-          Gyftly
-        </div>
-      </Link>
+      <div className="container mx-auto px-4 py-3 flex flex-wrap items-center">
+        {/* Brand + Toggler in one row */}
+        <div className="flex w-full lg:w-auto items-center">
+          {/* Brand (GiftDrive) centered */}
+          <Link href="/">
+            <div className="mx-auto leading-relaxed py-2 whitespace-nowrap cursor-pointer inter-semi-bold text-ggreen text-2xl flex items-center gap-2">
+              <Image
+                src="/MainGift.png"
+                alt="GiftDrive Logo"
+                width={128}
+                height={128}
+                className="h-8 w-auto"
+                priority
+              />
+              GiftDrive
+            </div>
+          </Link>
           <button
             className="text-ggreen cursor-pointer text-xl leading-none px-3 py-1 border border-solid border-transparent rounded bg-transparent block lg:hidden outline-none focus:outline-none"
             type="button"
@@ -111,18 +110,16 @@ const Navbar = () => {
 
         {/* Navbar Links */}
         <div
-          className={`lg:flex flex-grow items-center transition-all duration-300 ease-in-out ${
-            navbarOpen ? 'block bg-secondary-green lg:bg-transparent' : 'hidden'
-          }`}
+          className={`lg:flex flex-grow items-center transition-all duration-300 ease-in-out ${navbarOpen ? 'block bg-secondary-green lg:bg-transparent' : 'hidden'
+            }`}
           id="navbar-menu"
         >
           <ul className="flex flex-col lg:flex-row list-none lg:ml-auto">
             <li className="flex items-center">
               <Link href="/visible/orglist">
                 <span
-                  className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
-                    isActive('/visible/orglist') ? 'text-blueGray-300' : ''
-                  }`}
+                  className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${isActive('/visible/orglist') ? 'text-blueGray-300' : ''
+                    }`}
                 >
                   Browse all Organizations
                 </span>
@@ -131,9 +128,8 @@ const Navbar = () => {
             <li className="flex items-center">
               <Link href="/visible/drivelist">
                 <span
-                  className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
-                    isActive('/visible/drivelist') ? 'text-blueGray-300' : ''
-                  }`}
+                  className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${isActive('/visible/drivelist') ? 'text-blueGray-300' : ''
+                    }`}
                 >
                   Browse all Drives
                 </span>
@@ -145,9 +141,8 @@ const Navbar = () => {
                 <li className="flex items-center">
                   <Link href="/visible/profile">
                     <span
-                      className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
-                        isActive('/visible/profile') ? 'text-blueGray-300' : ''
-                      }`}
+                      className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${isActive('/visible/profile') ? 'text-blueGray-300' : ''
+                        }`}
                     >
                       Account
                     </span>
@@ -158,9 +153,8 @@ const Navbar = () => {
                   <li className="flex items-center">
                     <Link href="/admin/dashboard">
                       <span
-                        className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
-                          isActive('/admin/dashboard') ? 'text-blueGray-300' : ''
-                        }`}
+                        className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${isActive('/admin/dashboard') ? 'text-blueGray-300' : ''
+                          }`}
                       >
                         My Organization Dashboard
                       </span>
@@ -172,9 +166,8 @@ const Navbar = () => {
                   <li className="flex items-center">
                     <Link href="/admin/superAdmin">
                       <span
-                        className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
-                          isActive('/admin/superAdmin') ? 'text-blueGray-300' : ''
-                        }`}
+                        className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${isActive('/admin/superAdmin') ? 'text-blueGray-300' : ''
+                          }`}
                       >
                         Super Admin
                       </span>
@@ -198,9 +191,8 @@ const Navbar = () => {
                 <li className="flex items-center">
                   <Link href="/auth/login">
                     <span
-                      className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
-                        isActive('/auth/login') ? 'text-blueGray-300' : ''
-                      }`}
+                      className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${isActive('/auth/login') ? 'text-blueGray-300' : ''
+                        }`}
                     >
                       Login
                     </span>
@@ -209,9 +201,8 @@ const Navbar = () => {
                 <li className="flex items-center">
                   <Link href="/auth/register">
                     <span
-                      className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${
-                        isActive('/auth/register') ? 'text-blueGray-300' : ''
-                      }`}
+                      className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${isActive('/auth/register') ? 'text-blueGray-300' : ''
+                        }`}
                     >
                       Register
                     </span>
