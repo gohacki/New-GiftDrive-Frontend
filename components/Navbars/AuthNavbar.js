@@ -67,7 +67,7 @@ const Navbar = () => {
                 alt="GiftDrive Logo"
                 width={128}
                 height={128}
-                className="h-8 w-auto"
+                className="h-8 w-auto -mt-1"
                 priority
               />
               GiftDrive
@@ -211,20 +211,19 @@ const Navbar = () => {
               </>
             )}
 
-            {!user?.is_org_admin && (
-              <li className="flex items-center">
-                <Link href="/visible/registerorg">
-                  <span className="text-sm inter-regular uppercase px-3 py-2 flex items-center">
-                    <button
-                      className="bg-white text-blueGray-700 active:bg-blueGray-50 text-xs inter-regular uppercase px-4 py-2 rounded-full shadow hover:shadow-md outline-none focus:outline-none ease-linear transition-all duration-150"
-                      type="button"
-                    >
-                      Create A Drive
-                    </button>
-                  </span>
-                </Link>
-              </li>
-            )}
+            <li className="flex items-center">
+              <Link href="/visible/registerorg">
+                <span className="text-sm inter-regular uppercase px-3 py-2 flex items-center">
+                  <button
+                    className="bg-white text-blueGray-700 active:bg-blueGray-50 text-xs inter-regular uppercase px-4 py-2 rounded-full shadow hover:shadow-md outline-none focus:outline-none ease-linear transition-all duration-150"
+                    type="button"
+                  >
+                    Create A Drive
+                  </button>
+                </span>
+              </Link>
+            </li>
+
             {/* Cart Icon for Small Screens */}
             <li className="flex items-center lg:hidden">
               <Link href="/visible/cart">

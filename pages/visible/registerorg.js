@@ -74,7 +74,7 @@ const RegisterOrganization = () => {
         formData,
         { withCredentials: true, headers: { 'Content-Type': 'multipart/form-data' } }
       );
-      router.push('/registerdrive');
+      router.push('/visible/registerdrive');
     } catch (err) {
       console.error('Error registering organization:', err);
       alert('Failed to register organization. Please check your input and try again.');
