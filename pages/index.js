@@ -24,11 +24,11 @@ export default function Landing() {
             </h1>
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-32 mb-20">
-              <Link href="/visible/orglist">
+              {/* <Link href="/visible/orglist">
                 <div className="px-6 py-3 text-ggreen inter-semi-bold cursor-pointer">
                   Find a Donation Drive Page
                 </div>
-              </Link>
+              </Link> */}
               <Link href="/visible/registerorg">
                 <div className="px-6 py-3 bg-ggreen text-white inter-semi-bold rounded-full cursor-pointer">
                   Get Started, It&apos;s Free

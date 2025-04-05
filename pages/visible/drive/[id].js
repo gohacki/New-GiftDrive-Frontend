@@ -132,6 +132,22 @@ const DrivePage = ({ drive }) => {
             Back
           </button>
 
+
+          {/* Drive Photo */}
+          {drive.photo && ( // Conditionally render only if drive.photo exists
+            <div className="mb-8 flex justify-left "> {/* Center the image container */}
+              <div className="relative w-full max-w-2xl h-64 md:h-80 rounded-lg overflow-hidden shadow-lg border-4 border-ggreen"> {/* Container for Image */}
+                <Image
+                  src={drive.photo}
+                  alt={`${drive.name} cover photo`}
+                  layout="fill" // Fill the container
+                  objectFit="cover" // Crop image to cover the container
+                  priority // Prioritize loading if it's high on the page
+                />
+              </div>
+            </div>
+          )}
+
           {/* Drive Title & Basic Info */}
           <div className="mb-6">
             <h1 className="text-3xl font-semibold text-ggreen mb-2">{drive.name}</h1>
@@ -140,6 +156,7 @@ const DrivePage = ({ drive }) => {
               {drive.location && <p className="font-medium">{drive.location}</p>}
             </div>
           </div>
+
 
           {/* Two-column layout: Left = progress/items, Right = org info */}
           <div className="flex flex-col md:flex-row gap-8">
@@ -206,7 +223,9 @@ const DrivePage = ({ drive }) => {
                           <h3 className="text-lg text-ggreen font-medium mb-1">
                             {item.item_name}
                           </h3>
-                          <p className="text-gray-600 text-sm mb-2">{item.description}</p>
+                          <p className="text-gray-600 text-sm mb-2 line-clamp-2"> {/* <-- Added line-clamp-2 */}
+                            {item.description}
+                          </p>
                           <p className="text-gray-800 font-bold mb-2">
                             ${Number(item.price).toFixed(2)}
                           </p>
@@ -372,9 +391,6 @@ const DrivePage = ({ drive }) => {
                 <h2 className="text-xl font-semibold text-ggreen mb-4">Organization</h2>
                 <p className="text-gray-700 mb-2">
                   <strong>Org Name:</strong> {drive.organization_name || 'Williston Federated Church'}
-                </p>
-                <p className="text-gray-700 mb-2">
-                  <strong>Drive Organizer:</strong> {drive.organizer_name || 'Logan Vaughan'}
                 </p>
                 <p className="text-gray-700 mb-4">
                   <strong>Donors:</strong> {drive.donorsCount || 8}
