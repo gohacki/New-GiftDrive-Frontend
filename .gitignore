@@ -39,4 +39,4 @@ jspm_packages
 
 repomix-output.txt
 **/.DS_Store
-.env
+.env*
