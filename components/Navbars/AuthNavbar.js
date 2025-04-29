@@ -115,7 +115,7 @@ const Navbar = () => {
           id="navbar-menu"
         >
           <ul className="flex flex-col lg:flex-row list-none lg:ml-auto">
-            {/* <li className="flex items-center">
+            <li className="flex items-center">
               <Link href="/visible/orglist">
                 <span
                   className={`text-sm inter-regular uppercase px-3 py-2 flex items-center text-ggreen hover:text-gyellow ${isActive('/visible/orglist') ? 'text-blueGray-300' : ''
@@ -134,7 +134,7 @@ const Navbar = () => {
                   Browse all Drives
                 </span>
               </Link>
-            </li> */}
+            </li>
 
             {user && (
               <>
