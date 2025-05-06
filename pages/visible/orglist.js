@@ -292,9 +292,8 @@ export default function OrgList() {
                 <button
                   onClick={loadMore}
                   disabled={loading}
-                  className={`bg-white text-ggreen border-2 border-solid border-ggreen active:bg-ggreen-dark text-sm inter-bold uppercase px-6 py-3 rounded-full shadow hover:shadow-lg outline-none focus:outline-none ${
-                    loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                  } transition-all duration-150`}
+                  className={`bg-white text-ggreen border-2 border-solid border-ggreen active:bg-ggreen-dark text-sm inter-bold uppercase px-6 py-3 rounded-full shadow hover:shadow-lg outline-none focus:outline-none ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                    } transition-all duration-150`}
                 >
                   {loading ? 'Loading...' : 'Load More'}
                 </button>

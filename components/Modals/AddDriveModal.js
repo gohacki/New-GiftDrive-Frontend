@@ -11,7 +11,6 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
     photo: null,
     start_date: '',
     end_date: '',
-    is_item_only: false, // NEW FIELD
   });
 
   const [errors, setErrors] = useState({});
@@ -89,7 +88,6 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
     }
     formData.append('start_date', driveData.start_date);
     formData.append('end_date', driveData.end_date);
-    formData.append('is_item_only', driveData.is_item_only); // NEW LINE
 
     try {
       const response = await axios.post(`${apiUrl}/api/drives`, formData, {
@@ -138,9 +136,8 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
               name="name"
               value={driveData.name}
               onChange={handleInputChange}
-              className={`w-full border ${
-                errors.name ? 'border-red-500' : 'border-gray-300'
-              } rounded p-2`}
+              className={`w-full border ${errors.name ? 'border-red-500' : 'border-gray-300'
+                } rounded p-2`}
               required
               minLength={3}
               aria-invalid={errors.name ? 'true' : 'false'}
@@ -163,9 +160,8 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
               name="description"
               value={driveData.description}
               onChange={handleInputChange}
-              className={`w-full border ${
-                errors.description ? 'border-red-500' : 'border-gray-300'
-              } rounded p-2`}
+              className={`w-full border ${errors.description ? 'border-red-500' : 'border-gray-300'
+                } rounded p-2`}
               maxLength={500}
               aria-invalid={errors.description ? 'true' : 'false'}
               aria-describedby={
@@ -213,9 +209,8 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
               name="start_date"
               value={driveData.start_date}
               onChange={handleInputChange}
-              className={`w-full border ${
-                errors.start_date ? 'border-red-500' : 'border-gray-300'
-              } rounded p-2`}
+              className={`w-full border ${errors.start_date ? 'border-red-500' : 'border-gray-300'
+                } rounded p-2`}
               required
               aria-invalid={errors.start_date ? 'true' : 'false'}
               aria-describedby={
@@ -239,9 +234,8 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
               name="end_date"
               value={driveData.end_date}
               onChange={handleInputChange}
-              className={`w-full border ${
-                errors.end_date ? 'border-red-500' : 'border-gray-300'
-              } rounded p-2`}
+              className={`w-full border ${errors.end_date ? 'border-red-500' : 'border-gray-300'
+                } rounded p-2`}
               required
               aria-invalid={errors.end_date ? 'true' : 'false'}
               aria-describedby={errors.end_date ? 'end-date-error' : undefined}
@@ -251,24 +245,6 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
                 {errors.end_date}
               </p>
             )}
-          </div>
-
-          {/* NEW: Checkbox for "Item Only" */}
-          <div className="mb-4">
-            <label htmlFor="is_item_only" className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="is_item_only"
-                name="is_item_only"
-                checked={driveData.is_item_only}
-                onChange={handleInputChange}
-                className="mr-2"
-              />
-              <span className="block font-medium">Is Item-Only Drive?</span>
-            </label>
-            <p className="text-sm text-gray-500">
-              If checked, you’ll manage items directly for this drive instead of children.
-            </p>
           </div>
 
           {/* Buttons */}

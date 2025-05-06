@@ -12,7 +12,6 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
     photo: null, // New photo file if uploaded
     start_date: drive.start_date || '',
     end_date: drive.end_date || '',
-    is_item_only: drive.is_item_only || false, // NEW
   });
 
   const [errors, setErrors] = useState({});
@@ -86,7 +85,6 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
     }
     formData.append('start_date', driveData.start_date);
     formData.append('end_date', driveData.end_date);
-    formData.append('is_item_only', driveData.is_item_only); // NEW
 
     try {
       const response = await axios.put(
@@ -139,9 +137,8 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
               name="name"
               value={driveData.name}
               onChange={handleInputChange}
-              className={`w-full border ${
-                errors.name ? 'border-red-500' : 'border-gray-300'
-              } rounded p-2`}
+              className={`w-full border ${errors.name ? 'border-red-500' : 'border-gray-300'
+                } rounded p-2`}
               required
               minLength={3}
               aria-invalid={errors.name ? 'true' : 'false'}
@@ -164,9 +161,8 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
               name="description"
               value={driveData.description}
               onChange={handleInputChange}
-              className={`w-full border ${
-                errors.description ? 'border-red-500' : 'border-gray-300'
-              } rounded p-2`}
+              className={`w-full border ${errors.description ? 'border-red-500' : 'border-gray-300'
+                } rounded p-2`}
               maxLength={500}
               aria-invalid={errors.description ? 'true' : 'false'}
               aria-describedby={
@@ -226,9 +222,8 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
               name="start_date"
               value={driveData.start_date}
               onChange={handleInputChange}
-              className={`w-full border ${
-                errors.start_date ? 'border-red-500' : 'border-gray-300'
-              } rounded p-2`}
+              className={`w-full border ${errors.start_date ? 'border-red-500' : 'border-gray-300'
+                } rounded p-2`}
               required
               aria-invalid={errors.start_date ? 'true' : 'false'}
               aria-describedby={
@@ -252,9 +247,8 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
               name="end_date"
               value={driveData.end_date}
               onChange={handleInputChange}
-              className={`w-full border ${
-                errors.end_date ? 'border-red-500' : 'border-gray-300'
-              } rounded p-2`}
+              className={`w-full border ${errors.end_date ? 'border-red-500' : 'border-gray-300'
+                } rounded p-2`}
               required
               aria-invalid={errors.end_date ? 'true' : 'false'}
               aria-describedby={errors.end_date ? 'end-date-error' : undefined}
@@ -264,24 +258,6 @@ const EditDriveModal = ({ drive, onClose, onUpdateDrive }) => {
                 {errors.end_date}
               </p>
             )}
-          </div>
-
-          {/* NEW: is_item_only field */}
-          <div className="mb-4">
-            <label htmlFor="is_item_only" className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="is_item_only"
-                name="is_item_only"
-                checked={driveData.is_item_only}
-                onChange={handleInputChange}
-                className="mr-2"
-              />
-              <span className="block font-medium">Is Item-Only Drive?</span>
-            </label>
-            <p className="text-sm text-gray-500">
-              If checked, you manage items directly instead of children.
-            </p>
           </div>
 
           {/* Buttons */}
@@ -314,7 +290,6 @@ EditDriveModal.propTypes = {
     start_date: PropTypes.string,
     end_date: PropTypes.string,
     photo: PropTypes.string,
-    is_item_only: PropTypes.bool, // new
   }).isRequired,
   onClose: PropTypes.func.isRequired,
   onUpdateDrive: PropTypes.func.isRequired,

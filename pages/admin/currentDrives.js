@@ -1,4 +1,4 @@
-// pages/CurrentDrives.js
+// pages/admin/currentDrives.js
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import DriveCard from '../../components/Cards/DriveCard';
@@ -13,41 +13,58 @@ const CurrentDrives = () => {
   const { openModal } = useModal();
   const { user } = useContext(AuthContext);
 
-  useEffect(() => {
-    if (user && user.org_id) {
-      fetchDrives();
-    }
-  }, [user]);
-
+  // Define fetchDrives (keep existing logic)
   const fetchDrives = async () => {
+    if (!user || !user.org_id) return; // Ensure user context is loaded
+    console.log("Fetching drives..."); // Add log
     try {
       const response = await axios.get(`${apiUrl}/api/drives/organization/${user.org_id}/current`, {
         withCredentials: true,
       });
       setDrives(response.data);
+      console.log("Drives state updated:", response.data);
     } catch (error) {
       console.error('Error fetching current drives:', error);
+      // Handle error display if needed
     }
   };
-  
-  const handleAddDrive = (newDrive) => {
-    setDrives([...drives, newDrive]);
+
+  useEffect(() => {
+    // Fetch drives when the component mounts or user changes
+    fetchDrives();
+  }, [user]); // Dependency on user ensures it runs after login/context update
+
+  // *** MODIFIED FUNCTION ***
+  // This function will be called AFTER the AddDriveModal successfully adds a drive.
+  const handleDriveAddedSuccessfully = () => {
+    console.log("Drive added callback triggered, re-fetching drives list...");
+    fetchDrives(); // Re-fetch the list from the server
   };
 
   const handleDeleteDrive = async (driveId) => {
+    // Keep existing logic...
     if (confirm('Are you sure you want to delete this drive?')) {
       try {
         await axios.delete(`${apiUrl}/api/drives/${driveId}`, { withCredentials: true });
-        setDrives(drives.filter((drive) => drive.drive_id !== driveId));
+        // Instead of filtering local state, re-fetch for consistency
+        fetchDrives(); // Re-fetch after delete
       } catch (error) {
         console.error('Error deleting drive:', error);
       }
     }
   };
 
+  // This function handles UPDATES from the EditDriveModal
+  const handleDriveUpdated = () => {
+    console.log("Drive update callback triggered, re-fetching drives list...");
+    fetchDrives(); // Re-fetch after update
+  };
+
+
   const triggerAddDriveModal = () => {
     openModal(MODAL_TYPES.ADD_DRIVE, {
-      onAddDrive: handleAddDrive,
+      // *** PASS THE CORRECT CALLBACK ***
+      onAddDrive: handleDriveAddedSuccessfully, // Pass the function that re-fetches
     });
   };
 
@@ -70,7 +87,8 @@ const CurrentDrives = () => {
               key={drive.drive_id}
               drive={drive}
               onDelete={handleDeleteDrive}
-              onUpdateDrive={fetchDrives}
+              // *** Pass handleDriveUpdated for the Edit modal callback ***
+              onUpdateDrive={handleDriveUpdated}
             />
           ))}
         </div>
