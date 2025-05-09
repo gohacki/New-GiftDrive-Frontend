@@ -1,17 +1,18 @@
 // File: pages/visible/cart.js
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
+import { toast } from 'react-toastify';
+// import axios from 'axios'; // Not strictly needed if using fetch
+
 import { CartContext } from '../../contexts/CartContext';
 import { AuthContext } from '../../contexts/AuthContext';
-import Link from 'next/link';
 import Navbar from 'components/Navbars/AuthNavbar';
 import Footer from 'components/Footers/Footer';
-import axios from 'axios'; // Kept for potential direct calls, though fetch is used below
-import { toast } from 'react-toastify';
 
 // --- Import Checkout Components ---
 import CartDisplay from '../../components/Cards/CartDisplay';
 import ShippingOptions from '../../components/checkout/ShippingOptions';
-import RyePayForm from '../../components/checkout/RyePayForm'; // Updated Import
+import RyePayForm from '../../components/checkout/RyePayForm';
 import CheckoutResult from '../../components/checkout/CheckoutResult';
 import StatusDisplay from '../../components/Cards/StatusDisplay';
 
@@ -46,128 +47,116 @@ const CartPage = () => {
   const { cart, setCart, removeFromCart, updateCartItemQuantity, loading: cartLoading, fetchCart } = useContext(CartContext);
   const { user, loading: authLoading } = useContext(AuthContext);
 
-  const [checkoutStep, setCheckoutStep] = useState('idle'); // 'idle', 'payment', 'complete'
+  const [checkoutStep, setCheckoutStep] = useState('idle');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
   const [checkoutResultData, setCheckoutResultData] = useState(null);
-  const [hideAmazonPrice, setHideAmazonPrice] = useState(true); // Keep for RyePay submit if applicable
+  const [hideAmazonPrice, setHideAmazonPrice] = useState(true);
 
   useEffect(() => {
     setError(null);
   }, [cart, checkoutStep]);
 
   const handleStartCheckout = async () => {
-    if (!cart || !user) return;
+    if (!cart || !user) {
+      setError("Cannot proceed: Cart or user not available.");
+      return;
+    }
 
     setError(null);
     setIsProcessing(true);
     setCheckoutResultData(null);
 
     try {
+      console.log(`[Start Checkout] Current cart before buyer-identity update:`, JSON.stringify(cart?.cost, null, 2));
       console.log(`[Start Checkout] Triggering buyer identity update for cart: ${cart.id}`);
+
       const identityToSend = cart.buyerIdentity || {
         firstName: user.username?.split(' ')[0] || 'Donor',
         lastName: user.username?.split(' ').slice(1).join(' ') || 'User',
         email: user.email,
-        phone: user.phone || null,
-        address1: cart.buyerIdentity?.address1 || 'N/A', // Will be overridden by backend
-        city: cart.buyerIdentity?.city || 'N/A',
-        provinceCode: cart.buyerIdentity?.provinceCode || 'N/A',
-        postalCode: cart.buyerIdentity?.postalCode || 'N/A',
-        countryCode: cart.buyerIdentity?.countryCode || 'US',
+        phone: user.phone || null, // Backend will use org phone
+        address1: 'N/A', // Backend overrides with org address
+        city: 'N/A',
+        provinceCode: 'N/A',
+        postalCode: 'N/A',
+        countryCode: 'US',
       };
 
       const response = await fetch(`${apiUrl}/api/cart/buyer-identity`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cartId: cart.id,
-          buyerIdentity: identityToSend
-        }),
+        body: JSON.stringify({ cartId: cart.id, buyerIdentity: identityToSend }),
         credentials: 'include',
       });
 
-      const updatedCartData = await response.json();
+      const updatedCartDataFromAPI = await response.json();
 
       if (!response.ok) {
-        const errorMsg = updatedCartData.error || `Failed to update shipping address (${response.status})`;
-        console.error("[Start Checkout] Buyer Identity update failed:", errorMsg, updatedCartData.details);
+        const errorMsg = updatedCartDataFromAPI.error || `Failed to update shipping address (${response.status})`;
+        console.error("[Start Checkout] Buyer Identity update failed:", errorMsg, updatedCartDataFromAPI.details);
         throw new Error(errorMsg);
       }
 
-      console.log("[Start Checkout] Buyer Identity update successful. Updated cart:", updatedCartData);
-      setCart(updatedCartData);
+      console.log("[Start Checkout] Buyer Identity update successful. API returned cart with cost:", JSON.stringify(updatedCartDataFromAPI?.cost, null, 2));
 
-      const isCostReady = updatedCartData.cost?.total?.value != null ||
-        updatedCartData.cost?.shipping != null ||
-        updatedCartData.cost?.isEstimated === true;
+      // Update the cart in context immediately with the full data from the API
+      setCart(updatedCartDataFromAPI);
 
-      if (!isCostReady) {
-        console.error("!!! [Start Checkout] Costs still not available after explicit buyer identity update. Cart Cost:", updatedCartData.cost);
-        throw new Error("Could not calculate final shipping/tax for your order. Please try again later or contact support.");
+      // Now check if the *updated* cart (now in context and in updatedCartDataFromAPI) has necessary cost info
+      const costObject = updatedCartDataFromAPI.cost;
+      const isCostReady = costObject?.total?.value != null || costObject?.isEstimated === true;
+
+      if (isCostReady) {
+        console.log("[Start Checkout] Costs are ready in the updated cart. Proceeding to payment step.");
+        setCheckoutStep('payment');
+      } else {
+        console.warn("[Start Checkout] Costs are NOT ready even after buyer identity update. Cart Cost:", costObject);
+        // If costs are not ready, it's a problem. Don't proceed to payment.
+        // Display an error or keep user informed.
+        // For now, we'll set an error and stay in a state where this error can be seen.
+        // The button logic for 'idle' step in JSX will handle showing the appropriate message based on current `cart.cost`.
+        setError("Could not calculate final shipping/tax. Please review your cart or try again.");
+        // Keep checkoutStep 'idle' or move to a specific error/review step if you have one.
+        // Let's revert to 'idle' so the initial button shows its 'calculating' state based on the new cart.
+        setCheckoutStep('idle');
       }
-
-      console.log("[Start Checkout] Costs are ready in updated cart. Proceeding to payment.");
-      setCheckoutStep('payment');
 
     } catch (err) {
       console.error("Error during handleStartCheckout:", err);
       setError(err.message || "Failed to proceed to checkout.");
-      setCheckoutStep('idle');
+      setCheckoutStep('idle'); // Revert to idle on error
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleOrderSuccess = (resultData) => {
-    setCheckoutResultData({
-      message: resultData.message,
-      dbOrderId: resultData.orderId, // Changed from result.dbOrderId
-      ryeOrderId: resultData.ryeOrderId
-    });
-    setCart(null);
-    setCheckoutStep('complete');
-    setError(null);
-    setIsProcessing(false);
-    toast.success(resultData.message || "Order placed successfully!");
-  };
-
-  const handleOrderError = (errorMessage) => {
+  const handleOrderError = useCallback((errorMessage) => {
     setError(`Checkout Error: ${errorMessage}`);
     setCheckoutResultData({ error: `Checkout Error: ${errorMessage}` });
     setIsProcessing(false);
     toast.error(errorMessage || "There was an issue placing your order.");
-    // Optionally, move back to 'payment' or 'idle'
-    // setCheckoutStep('payment'); 
-  };
+  }, [setError, setCheckoutResultData, setIsProcessing]);
 
-  const handleRyePaySuccess = async (ryeSubmitCartResult) => {
+  const handleRyePaySuccess = useCallback(async (ryeSubmitCartResult) => {
     console.log("RyePay submitCart result received in handleRyePaySuccess:", JSON.stringify(ryeSubmitCartResult, null, 2));
     setIsProcessing(true);
     setError(null);
 
     try {
-      if (!cartData?.id || !cartData?.cost?.total) {
+      if (!cart || !cart.id || !cart.cost?.total?.value) {
         throw new Error("Essential cart data (ID or total cost) missing for finalization.");
-      }
-
-      // Check top-level errors from Rye submitCart
-      if (ryeSubmitCartResult.errors && ryeSubmitCartResult.errors.length > 0) {
-        const ryeError = ryeSubmitCartResult.errors[0];
-        throw new Error(`Rye order submission failed: ${ryeError.message} (${ryeError.code || 'RYE_SUBMIT_ERROR'})`);
       }
       if (!ryeSubmitCartResult.cart || !ryeSubmitCartResult.cart.stores) {
         throw new Error("Invalid response structure from Rye after cart submission.");
       }
-
       const successfulRyeOrders = ryeSubmitCartResult.cart.stores
         .filter(s => s.status === 'COMPLETED' || s.status === 'SUBMITTED')
         .map(s => ({
-          storeName: s.store?.store || 'UnknownStore', // Handle if s.store is undefined
-          ryeOrderId: s.orderId || s.requestId // Fallback to requestId if orderId isn't present
+          storeName: s.store?.store || 'UnknownStore',
+          ryeOrderId: s.orderId || s.requestId
         }))
-        .filter(s => s.ryeOrderId); // Ensure we only include those with an ID
-
+        .filter(s => s.ryeOrderId);
       if (successfulRyeOrders.length === 0) {
         let failureMessage = "Order submission did not result in any successful store orders.";
         const failedStore = ryeSubmitCartResult.cart.stores.find(s => (s.errors && s.errors.length > 0) || s.status === 'FAILED');
@@ -178,35 +167,38 @@ const CartPage = () => {
         }
         throw new Error(failureMessage);
       }
-
       console.log(`Finalizing order with backend. Successful Rye orders:`, successfulRyeOrders);
       const response = await fetch(`${apiUrl}/api/orders/finalize-rye-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ryeCartId: cartData.id,
+          ryeCartId: cart.id,
           successfulRyeOrders: successfulRyeOrders,
-          amountInCents: cartData.cost.total.value,
-          currency: cartData.cost.total.currency,
+          amountInCents: cart.cost.total.value,
+          currency: cart.cost.total.currency,
         }),
         credentials: 'include',
       });
-
       const resultData = await response.json();
       if (!response.ok) {
         throw new Error(resultData.error || `Order finalization failed (${response.status})`);
       }
-
-      handleOrderSuccess(resultData);
-
+      setCheckoutResultData({
+        message: resultData.message,
+        dbOrderId: resultData.orderId,
+        ryeOrderId: resultData.ryeOrderId
+      });
+      setCart(null);
+      setCheckoutStep('complete');
+      setError(null);
+      toast.success(resultData.message || "Order placed successfully!");
     } catch (err) {
       console.error("Error in handleRyePaySuccess:", err);
       handleOrderError(`Payment may have succeeded, but order finalization failed: ${err.message}. Please contact support.`);
     } finally {
       setIsProcessing(false);
     }
-  };
-
+  }, [cart, setCart, setCheckoutStep, setCheckoutResultData, handleOrderError, apiUrl, setIsProcessing, setError]);
 
   const handleCancelCheckout = () => {
     setError(null);
@@ -215,22 +207,50 @@ const CartPage = () => {
     fetchCart();
   };
 
-  const canProceedInitially = cart &&
+  const isLoadingGlobal = cartLoading || authLoading || isProcessing;
+
+  // Condition to enable the initial "Enter Address & View Options" button
+  const canInitiateCheckout = cart &&
     cart.stores?.some(s => s.cartLines?.length > 0) &&
-    cart.cost?.subtotal?.value != null;
+    cart.cost?.subtotal?.value != null; // We need at least a subtotal to start
 
   const hasBlockingCartErrors = cart?.stores?.some(store => {
     const storeErrors = store.errors || [];
     const offerErrors = store.offer?.errors || [];
     const allStoreErrors = [...storeErrors, ...offerErrors];
-    if (checkoutStep === 'idle' || checkoutStep === 'payment') { // Before payment, identity errors are blocking
-      return allStoreErrors.some(err => err.code === 'INVALID_BUYER_IDENTITY_INFORMATION');
+    if (checkoutStep === 'idle') { // Looser check for 'idle' step
+      // Only block if items are explicitly unavailable, or other truly critical errors.
+      // Buyer identity errors are expected at this stage and shouldn't block proceeding to address entry.
+      return allStoreErrors.some(err => err.code !== 'INVALID_BUYER_IDENTITY_INFORMATION' && err.code !== 'SHIPPING_ADDRESS_INVALID' && store.offer?.notAvailableIds?.length > 0);
     }
-    // For payment step, any error is blocking.
-    return allStoreErrors.length > 0;
+    // For payment step, any significant error (excluding perhaps informational ones) could be blocking.
+    // This might need adjustment based on Rye's error codes.
+    if (checkoutStep === 'payment') {
+      return allStoreErrors.some(err => err.code !== 'INVALID_BUYER_IDENTITY_INFORMATION' && err.code !== 'SHIPPING_ADDRESS_INVALID');
+    }
+    return false;
   });
 
-  const isLoading = cartLoading || authLoading || isProcessing;
+
+  // Determine the text for the main action button in 'idle' state
+  let idleButtonText = 'Enter Address & View Options';
+  let idleButtonTitle = '';
+  if (isLoadingGlobal) {
+    idleButtonText = 'Loading...';
+  } else if (cart && cart.cost && cart.cost.total?.value == null && cart.cost.isEstimated === true) {
+    // If total is null BUT isEstimated is true, Rye is calculating.
+    idleButtonText = 'Proceed (Calculating Total...)';
+    idleButtonTitle = 'Final costs are being calculated...';
+  } else if (cart && cart.cost && cart.cost.total?.value == null && cart.cost.subtotal?.value != null && !cart.cost.isEstimated) {
+    // Subtotal exists, total doesn't, not estimated yet.
+    idleButtonText = 'Proceed (Calculating Shipping/Tax...)';
+    idleButtonTitle = 'Enter address to calculate shipping and tax.';
+  } else if (!canInitiateCheckout && cart) {
+    idleButtonTitle = !cart.stores?.some(s => s.cartLines?.length > 0) ? 'Cart is empty'
+      : !cart.cost?.subtotal?.value ? 'Waiting for initial cart calculation...'
+        : '';
+  }
+
 
   return (
     <>
@@ -238,7 +258,7 @@ const CartPage = () => {
       <main className="pt-24 min-h-screen bg-secondary_green text-gray-800">
         <div className="container mx-auto px-4 py-8">
 
-          {(authLoading || (cartLoading && checkoutStep !== 'complete')) && (
+          {(authLoading || (cartLoading && checkoutStep !== 'complete' && !cart)) && ( // Show loading if cart is null and cartLoading
             <div className="text-center py-10">Loading Cart...</div>
           )}
 
@@ -254,7 +274,7 @@ const CartPage = () => {
 
           {!authLoading && user && (
             <>
-              <StatusDisplay isLoading={isProcessing} error={error} />
+              <StatusDisplay isLoading={isProcessing && checkoutStep !== 'payment'} error={error} />
 
               {checkoutStep !== 'complete' && cart && (
                 <CartDisplay
@@ -288,70 +308,62 @@ const CartPage = () => {
                 <div className="flex justify-end mt-6">
                   <button
                     onClick={handleStartCheckout}
-                    disabled={isLoading || !canProceedInitially || hasBlockingCartErrors}
-                    className={`bg-ggreen text-white inter-semi-bold px-6 py-3 rounded-full hover:shadow-lg transition-all duration-150 disabled:opacity-50 ${!canProceedInitially || hasBlockingCartErrors ? 'cursor-not-allowed' : ''}`}
-                    title={
-                      !cart ? 'Loading cart...'
-                        : !cart.stores?.some((s) => s.cartLines?.length > 0) ? 'Cart is empty'
-                          : !cart.cost?.subtotal?.value ? 'Calculating subtotal...'
-                            : hasBlockingCartErrors ? 'Please resolve cart issues first'
-                              : ''
-                    }
+                    disabled={isLoadingGlobal || !canInitiateCheckout || hasBlockingCartErrors}
+                    className={`bg-ggreen text-white inter-semi-bold px-6 py-3 rounded-full hover:shadow-lg transition-all duration-150 disabled:opacity-50 ${!canInitiateCheckout || hasBlockingCartErrors ? 'cursor-not-allowed' : ''}`}
+                    title={idleButtonTitle || (hasBlockingCartErrors ? 'Please resolve cart issues first' : '')}
                   >
-                    {isLoading ? 'Loading...' : (cart?.cost?.total?.value == null ? 'Proceed (Calculating Total...)' : 'Proceed to Payment')}
+                    {idleButtonText}
                   </button>
                 </div>
               )}
 
-              {checkoutStep === 'payment' && cart && cart.cost?.total?.value != null && (
+              {checkoutStep === 'payment' && cart && (
                 <div className="mt-6">
-                  <div className="mb-4 p-3 border rounded bg-gray-50 text-sm">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={hideAmazonPrice}
-                        onChange={(e) => setHideAmazonPrice(e.target.checked)}
-                        className="rounded border-gray-300 text-ggreen shadow-sm focus:border-ggreen focus:ring focus:ring-offset-0 focus:ring-ggreen focus:ring-opacity-50"
+                  {cart.cost?.total?.value != null ? (
+                    <>
+                      <div className="mb-4 p-3 border rounded bg-gray-50 text-sm">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={hideAmazonPrice}
+                            onChange={(e) => setHideAmazonPrice(e.target.checked)}
+                            className="rounded border-gray-300 text-ggreen shadow-sm focus:border-ggreen focus:ring focus:ring-offset-0 focus:ring-ggreen focus:ring-opacity-50"
+                          />
+                          <span>Hide price on packing slip (Amazon items only)?</span>
+                        </label>
+                      </div>
+                      <RyePayForm
+                        cartData={cart}
+                        onProcessing={setIsProcessing}
+                        onSuccess={handleRyePaySuccess}
+                        onError={handleOrderError}
                       />
-                      <span>Hide price on packing slip (Amazon items only)?</span>
-                    </label>
-                  </div>
-                  <RyePayForm
-                    cartData={cart} // Pass the full cart object
-                    onProcessing={setIsProcessing}
-                    onSuccess={handleRyePaySuccess} // New handler for RyePay success
-                    onError={handleOrderError}      // General error handler
-                  // hideAmazonPrice={hideAmazonPrice} // Pass this if RyePayForm accepts it for submitCart
-                  />
+                    </>
+                  ) : (
+                    <div className='mt-6 p-4 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded text-center'>
+                      Final total is still calculating. The payment form will appear once ready.
+                      If this persists, please try refreshing or contacting support.
+                    </div>
+                  )}
                   <div className="mt-4 text-center">
                     <button
                       onClick={handleCancelCheckout}
                       disabled={isProcessing}
                       className="px-4 py-2 text-sm bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-md shadow-sm disabled:opacity-50"
                     >
-                      Back to Cart
+                      Back to Cart Summary
                     </button>
                   </div>
                 </div>
               )}
-              {checkoutStep === 'payment' && cart && cart.cost?.total?.value == null && (
-                <div className='mt-6 p-4 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded text-center'>
-                  Cannot proceed to payment. Please review your cart or try again later.
-                  <button
-                    onClick={handleCancelCheckout}
-                    className="ml-4 px-3 py-1 text-sm bg-yellow-200 hover:bg-yellow-300 text-yellow-900 rounded-md border border-yellow-400 shadow-sm"
-                  >
-                    Back to Cart
-                  </button>
-                </div>
-              )}
+
 
               {checkoutStep === 'complete' && (
                 <div className="mt-6">
                   <CheckoutResult result={checkoutResultData} />
                   <div className="text-center mt-6 space-x-4">
                     <button
-                      onClick={() => { setCheckoutStep('idle'); fetchCart(); }}
+                      onClick={() => { setCheckoutStep('idle'); setCheckoutResultData(null); fetchCart(); }}
                       className="px-5 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md shadow"
                     >
                       Shop Again
