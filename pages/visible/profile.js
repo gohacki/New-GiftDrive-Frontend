@@ -153,7 +153,13 @@ const AccountPage = () => {
                           <tr key={order.order_id} className="hover:bg-gray-50">
                             <td className="py-2 px-4 text-sm text-gray-800 font-mono">#{order.order_id}</td>
                             <td className="py-2 px-4 text-sm text-gray-800">{new Date(order.order_date).toLocaleDateString()}</td>
-                            <td className="py-2 px-4 text-sm text-gray-800 font-medium">{formatCurrency(order.total_amount, order.currency)}</td>
+                            <td className="py-2 px-4 text-sm text-gray-800 font-medium">
+                              {/* CORRECTED: Convert string to number, then to cents */}
+                              {formatCurrency(
+                                order.total_amount ? parseFloat(order.total_amount) * 100 : null,
+                                order.currency
+                              )}
+                            </td>
                             <td className="py-2 px-4 text-sm text-gray-800 capitalize">{order.status || 'N/A'}</td>
                             <td className="py-2 px-4 text-xs text-gray-500 font-mono">{order.primary_rye_order_id || 'N/A'}</td>
                             <td className="py-2 px-4 text-sm">

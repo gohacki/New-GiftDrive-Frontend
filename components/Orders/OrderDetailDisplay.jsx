@@ -73,7 +73,8 @@ export default function OrderDetailDisplay({ orderDetails, onClose, isLoading, o
     const {
         id, status, createdAt, marketplace, marketplaceOrderIds = [],
         total, subtotal, tax, shipping,
-        lineItems = [], shipments = [], events = [], returns = []
+        cart,
+        shipments = [], events = [], returns = []
     } = orderDetails;
 
     // Determine which items are potentially eligible for return
@@ -117,59 +118,90 @@ export default function OrderDetailDisplay({ orderDetails, onClose, isLoading, o
                         )}
                     </div>
                     <div className="col-span-1 sm:col-span-2 border-t pt-2 mt-2 flex flex-wrap justify-end items-center gap-x-4 gap-y-1">
-                        <span>Subtotal: {formatCurrency(subtotal?.value, subtotal?.currency)}</span>
-                        <span>Shipping: {formatCurrency(shipping?.value, shipping?.currency)}</span>
-                        <span>Tax: {formatCurrency(tax?.value, tax?.currency)}</span>
-                        <strong className="text-base">Total: {formatCurrency(total?.value, total?.currency)}</strong>
+                        <span>Subtotal: {subtotal?.displayValue || 'N/A'}</span>
+                        <span>Shipping: {shipping?.displayValue || 'N/A'}</span>
+                        <span>Tax: {tax?.displayValue || 'N/A'}</span>
+                        <strong className="text-base">Total: {total?.displayValue || 'N/A'}</strong>
                     </div>
                 </div>
 
                 {/* Items Section */}
                 <div className="mb-2">
                     <h4 className="font-semibold text-base mb-2 text-gray-700">Items Ordered</h4>
-                    {lineItems.length > 0 ? (
-                        <div className="space-y-2">
-                            {lineItems.map((item, index) => {
-                                const isShopifyItem = !!item.variantId;
-                                const itemId = isShopifyItem ? item.variantId : item.productId;
-                                const itemTitle = isShopifyItem ? item.variant?.title : (item.product?.title || `Item ID: ${itemId}`);
-                                const itemImageUrl = isShopifyItem ? item.variant?.image?.url : item.product?.images?.[0]?.url;
-                                const isEligible = isItemPotentiallyEligible(itemId);
+                    {/* NEW LOGIC: Check and map over cart.stores */}
+                    {cart && cart.stores && cart.stores.length > 0 ? (
+                        cart.stores.map((store, storeIndex) => (
+                            <div key={store.store || storeIndex} className="mb-3">
+                                <h5 className="text-sm font-medium text-gray-600 mb-1">
+                                    From: {store.store === 'amazon' ? 'Amazon' : store.store}
+                                </h5>
+                                {store.cartLines && store.cartLines.length > 0 ? (
+                                    <div className="space-y-2">
+                                        {store.cartLines.map((cartLine, lineIndex) => {
+                                            let itemId, itemTitle, itemImageUrl, itemPriceDisplay;
+                                            const quantity = cartLine.quantity;
 
-                                return (
-                                    <div key={`${itemId}-${index}`} className="flex items-center gap-3 text-sm border rounded p-2 bg-white shadow-sm hover:shadow-md transition-shadow">
-                                        {/* Checkbox (only if eligible) */}
-                                        <div className='flex-shrink-0 w-5 flex justify-center items-center'>
-                                            {isEligible ? (
-                                                <input
-                                                    type="checkbox"
-                                                    id={`return-item-${itemId}`}
-                                                    checked={selectedItemsForReturn.has(itemId)}
-                                                    onChange={() => handleCheckboxChange(itemId)}
-                                                    className="h-4 w-4 text-indigo-600 transition duration-150 ease-in-out rounded border-gray-300 focus:ring-indigo-500"
-                                                />
-                                            ) : (
-                                                <span title="Item not eligible for return (e.g., already returned)" className="text-gray-400 text-lg">✓</span> // Indicate already returned/ineligible
-                                            )}
-                                        </div>
-                                        {/* Image */}
-                                        <div className='w-12 h-12 relative flex-shrink-0 border rounded bg-white'>
-                                            {itemImageUrl ? (
-                                                <Image src={itemImageUrl} alt={itemTitle.substring(0, 20)} fill style={{ objectFit: 'contain' }} sizes="48px" onError={(e) => e.currentTarget.src = '/placeholder-image.png'} />
-                                            ) : <div className="w-full h-full bg-gray-100 rounded flex items-center justify-center text-gray-400 text-xs">No Img</div>}
-                                        </div>
-                                        {/* Details */}
-                                        <div className='flex-grow'>
-                                            <p className="font-medium text-gray-800 leading-tight">{itemTitle}</p>
-                                            <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
-                                        </div>
-                                        {/* Price */}
-                                        <p className="font-medium text-gray-700 flex-shrink-0">{item.price?.displayValue}</p>
+                                            if (store.__typename === 'AmazonStore' && cartLine.product) {
+                                                itemId = cartLine.product.id; // ASIN
+                                                itemTitle = cartLine.product.title;
+                                                itemImageUrl = cartLine.product.images?.[0]?.url;
+                                                // Price for Amazon items might be on product.price or you might need to rely on overall totals
+                                                itemPriceDisplay = cartLine.product.price?.displayValue; // If available
+                                            } else if (store.__typename === 'ShopifyStore' && cartLine.variant) {
+                                                itemId = cartLine.variant.id; // Shopify Variant ID
+                                                itemTitle = cartLine.variant.title || cartLine.product?.title; // Variant title or fallback to parent product
+                                                itemImageUrl = cartLine.variant.image?.url || cartLine.product?.images?.[0]?.url;
+                                                // Price for Shopify items might be on variant.priceV2 or you rely on totals
+                                                itemPriceDisplay = cartLine.variant.priceV2?.displayValue; // If available
+                                            } else {
+                                                // Fallback if structure is unexpected
+                                                itemId = `unknown-${storeIndex}-${lineIndex}`;
+                                                itemTitle = 'Unknown Item';
+                                                itemImageUrl = null;
+                                                itemPriceDisplay = 'N/A';
+                                            }
+
+                                            const isEligibleForReturn = isItemPotentiallyEligible(itemId); // Use your existing eligibility logic
+
+                                            return (
+                                                <div key={`${itemId}-${lineIndex}`} className="flex items-center gap-3 text-sm border rounded p-2 bg-white shadow-sm hover:shadow-md transition-shadow">
+                                                    <div className='flex-shrink-0 w-5 flex justify-center items-center'>
+                                                        {isEligibleForReturn ? (
+                                                            <input
+                                                                type="checkbox"
+                                                                id={`return-item-${itemId}`}
+                                                                checked={selectedItemsForReturn.has(itemId)}
+                                                                onChange={() => handleCheckboxChange(itemId)}
+                                                                className="h-4 w-4 text-indigo-600 transition duration-150 ease-in-out rounded border-gray-300 focus:ring-indigo-500"
+                                                            />
+                                                        ) : (
+                                                            <span title="Item not eligible for return" className="text-gray-400 text-lg">✓</span>
+                                                        )}
+                                                    </div>
+                                                    <div className='w-12 h-12 relative flex-shrink-0 border rounded bg-white'>
+                                                        {itemImageUrl ? (
+                                                            <Image src={itemImageUrl} alt={itemTitle.substring(0, 20)} fill style={{ objectFit: 'contain' }} sizes="48px" onError={(e) => e.currentTarget.src = '/placeholder-image.png'} />
+                                                        ) : <div className="w-full h-full bg-gray-100 rounded flex items-center justify-center text-gray-400 text-xs">No Img</div>}
+                                                    </div>
+                                                    <div className='flex-grow'>
+                                                        <p className="font-medium text-gray-800 leading-tight">{itemTitle || 'Item details missing'}</p>
+                                                        <p className="text-xs text-gray-500">Qty: {quantity}</p>
+                                                    </div>
+                                                    {itemPriceDisplay && (
+                                                        <p className="font-medium text-gray-700 flex-shrink-0">{itemPriceDisplay}</p>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
-                                );
-                            })}
-                        </div>
-                    ) : <p className="text-xs text-gray-500 italic">No item details available.</p>}
+                                ) : (
+                                    <p className="text-xs text-gray-500 italic ml-2">No items from this store in the order.</p>
+                                )}
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-xs text-gray-500 italic">No item details available in the cart data.</p>
+                    )}
                 </div>
 
                 {/* Shipments Section */}

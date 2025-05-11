@@ -191,7 +191,6 @@ const DrivePage = ({ drive: initialDriveData }) => {
   const totalRemaining = totalNeeded > 0 ? Math.max(0, totalNeeded - totalPurchased) : 0;
   const progressPercentage = totalNeeded > 0 ? Math.min(100, (totalPurchased / totalNeeded) * 100) : 0;
 
-
   return (
     <>
       <Navbar /> {/* Ensure Navbar is appropriate for this page */}
@@ -252,14 +251,14 @@ const DrivePage = ({ drive: initialDriveData }) => {
                     {drive.items.map((itemNeed) => {
                       const currentQuantity = itemQuantities[itemNeed.drive_item_id] || 1;
                       const isOutOfStock = itemNeed.remaining <= 0;
-                      const maxQtyForInput = isOutOfStock ? 1 : (itemNeed.remaining || 1);
+                      const maxQtyForInput = isOutOfStock ? 0 : (itemNeed.remaining || 0);
 
                       return (
                         <div
                           key={itemNeed.drive_item_id}
                           className={`border-2 p-4 rounded-lg shadow-sm flex flex-col justify-between ${(itemNeed.allow_donor_variant_choice || itemNeed.preset_details?.is_rye_linked)
-                              ? 'border-ggreen bg-white hover:shadow-md'
-                              : 'bg-gray-100 opacity-70 border-gray-300'
+                            ? 'border-ggreen bg-white hover:shadow-md'
+                            : 'bg-gray-100 opacity-70 border-gray-300'
                             } transition-shadow`}
                         >
                           <div className="flex-grow">
@@ -328,13 +327,18 @@ const DrivePage = ({ drive: initialDriveData }) => {
                                   />
                                 </div>
                               )}
+                              <input
+                                type="number"
+                                min="1" // Or 0 if you allow removing by setting to 0
+                                max={maxQtyForInput}
+                                value={currentQuantity} // your state for this item's quantity
+                                onChange={(e) => handleQuantityChange(itemNeed.drive_item_id /* or child_item_id */, e.target.value, itemNeed.remaining)}
+                                disabled={isOutOfStock}
+                              />
                               <button
                                 onClick={() => handleAddToCart(itemNeed)}
-                                className={`w-full py-2 rounded-lg text-white transition-colors font-medium ${isOutOfStock ? 'bg-gray-400 cursor-not-allowed' :
-                                    itemNeed.allow_donor_variant_choice && !selectedRyeVariants[itemNeed.drive_item_id] ? 'bg-gray-400 cursor-not-allowed' :
-                                      'bg-ggreen hover:bg-ggreen-dark'
-                                  }`}
-                                disabled={isOutOfStock || (itemNeed.allow_donor_variant_choice && !selectedRyeVariants[itemNeed.drive_item_id])}
+                                disabled={isOutOfStock || (itemNeed.allow_donor_variant_choice && !selectedRyeVariants[itemNeed.drive_item_id]) || currentQuantity > maxQtyForInput}
+                                className={`... ${isOutOfStock || currentQuantity > maxQtyForInput ? 'bg-gray-400 cursor-not-allowed' : 'bg-ggreen hover:bg-ggreen-dark'} ...`}
                               >
                                 {isOutOfStock ? 'Fulfilled' : 'Add to Cart'}
                               </button>

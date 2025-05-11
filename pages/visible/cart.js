@@ -68,6 +68,35 @@ const CartPage = () => {
     setCheckoutResultData(null);
 
     try {
+      // --- 1. Pre-Checkout Validation ---
+      console.log("[Start Checkout] Validating cart contents before payment...");
+      const validationResponse = await fetch(`${apiUrl}/api/cart/validate-checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Important for auth context to be sent
+      });
+
+      if (!validationResponse.ok) {
+        const validationError = await validationResponse.json().catch(() => ({ error: 'Failed to validate cart.' }));
+        console.error("[Start Checkout] Cart validation failed (HTTP):", validationError);
+        const errorMessage = validationError?.error || 'Cart validation failed. Please review your cart.';
+        setError(errorMessage);
+        setIsProcessing(false);
+        return; // Stop execution if validation fails
+      }
+
+      const validationResult = await validationResponse.json();
+
+      if (!validationResult.isValid) {
+        console.error("[Start Checkout] Cart validation failed:", validationResult.issues);
+        const errorMessages = validationResult.issues.map(issue => issue.itemName ? `${issue.itemName}: ${issue.error}` : issue.error);
+        const combinedErrorMessage = `Cart issues: ${errorMessages.join('; ')}`;
+        setError(combinedErrorMessage);
+        setIsProcessing(false);
+        return; // Stop execution if validation fails
+      }
+      console.log("[Start Checkout] Cart validated successfully. Proceeding to payment.");
+      // --- 2. Buyer Identity Update (if needed - keep existing code) ---
       console.log(`[Start Checkout] Current cart before buyer-identity update:`, JSON.stringify(cart?.cost, null, 2));
       console.log(`[Start Checkout] Triggering buyer identity update for cart: ${cart.id}`);
 
@@ -112,16 +141,9 @@ const CartPage = () => {
         setCheckoutStep('payment');
       } else {
         console.warn("[Start Checkout] Costs are NOT ready even after buyer identity update. Cart Cost:", costObject);
-        // If costs are not ready, it's a problem. Don't proceed to payment.
-        // Display an error or keep user informed.
-        // For now, we'll set an error and stay in a state where this error can be seen.
-        // The button logic for 'idle' step in JSX will handle showing the appropriate message based on current `cart.cost`.
         setError("Could not calculate final shipping/tax. Please review your cart or try again.");
-        // Keep checkoutStep 'idle' or move to a specific error/review step if you have one.
-        // Let's revert to 'idle' so the initial button shows its 'calculating' state based on the new cart.
         setCheckoutStep('idle');
       }
-
     } catch (err) {
       console.error("Error during handleStartCheckout:", err);
       setError(err.message || "Failed to proceed to checkout.");
@@ -130,6 +152,7 @@ const CartPage = () => {
       setIsProcessing(false);
     }
   };
+
 
   const handleOrderError = useCallback((errorMessage) => {
     setError(`Checkout Error: ${errorMessage}`);

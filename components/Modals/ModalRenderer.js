@@ -25,8 +25,6 @@ const ModalRenderer = () => {
       return <AddDriveModal onClose={closeModal} {...modalProps} />;
     case MODAL_TYPES.EDIT_DRIVE:
       return <EditDriveModal onClose={closeModal} {...modalProps} />;
-    case MODAL_TYPES.ITEM_SELECTION:  // New case added
-      return <ItemSelectionModal onClose={closeModal} {...modalProps} />;
     case MODAL_TYPES.ADD_OR_EDIT_DRIVE_ITEM:
       return <AddOrEditDriveItemModal onClose={closeModal} {...modalProps} />;
     default:

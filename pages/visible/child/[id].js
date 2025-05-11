@@ -29,6 +29,8 @@ const ChildDetailPage = ({ child: initialChildData }) => {
   const [availableRyeVariantsInfo, setAvailableRyeVariantsInfo] = useState({});
   const [isLoadingVariants, setIsLoadingVariants] = useState({});
   const [itemQuantities, setItemQuantities] = useState({});
+  const isOutOfStock = itemNeed.remaining <= 0;
+  const maxQtyForInput = isOutOfStock ? 0 : (itemNeed.remaining || 0);
 
   useEffect(() => {
     if (child?.items) {
@@ -214,8 +216,8 @@ const ChildDetailPage = ({ child: initialChildData }) => {
                     <div
                       key={itemNeed.child_item_id}
                       className={`border-2 p-4 rounded-lg shadow-sm flex flex-col justify-between ${(itemNeed.allow_donor_variant_choice || itemNeed.preset_details?.is_rye_linked)
-                          ? 'border-ggreen bg-white hover:shadow-md'
-                          : 'bg-gray-100 opacity-70 border-gray-300'
+                        ? 'border-ggreen bg-white hover:shadow-md'
+                        : 'bg-gray-100 opacity-70 border-gray-300'
                         } transition-shadow`}
                     >
                       <div className="flex-grow">
@@ -284,13 +286,18 @@ const ChildDetailPage = ({ child: initialChildData }) => {
                               />
                             </div>
                           )}
+                          <input
+                            type="number"
+                            min="1" // Or 0 if you allow removing by setting to 0
+                            max={maxQtyForInput}
+                            value={currentQuantity} // your state for this item's quantity
+                            onChange={(e) => handleQuantityChange(itemNeed.child_item_id, e.target.value, itemNeed.remaining)}
+                            disabled={isOutOfStock}
+                          />
                           <button
                             onClick={() => handleAddToCart(itemNeed)}
-                            className={`w-full py-2 rounded-lg text-white transition-colors font-medium ${isOutOfStock ? 'bg-gray-400 cursor-not-allowed' :
-                                itemNeed.allow_donor_variant_choice && !selectedRyeVariants[itemNeed.child_item_id] ? 'bg-gray-400 cursor-not-allowed' :
-                                  'bg-ggreen hover:bg-ggreen-dark'
-                              }`}
-                            disabled={isOutOfStock || (itemNeed.allow_donor_variant_choice && !selectedRyeVariants[itemNeed.child_item_id])}
+                            disabled={isOutOfStock || (itemNeed.allow_donor_variant_choice && !selectedRyeVariants[itemNeed.drive_item_id]) || currentQuantity > maxQtyForInput}
+                            className={`... ${isOutOfStock || currentQuantity > maxQtyForInput ? 'bg-gray-400 cursor-not-allowed' : 'bg-ggreen hover:bg-ggreen-dark'} ...`}
                           >
                             {isOutOfStock ? 'Fulfilled' : 'Add to Cart'}
                           </button>
