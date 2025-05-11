@@ -7,7 +7,7 @@ export const MODAL_TYPES = {
   EDIT_CHILD: 'EDIT_CHILD',
   ADD_DRIVE: 'ADD_DRIVE',
   EDIT_DRIVE: 'EDIT_DRIVE',
-  ITEM_SELECTION: 'ITEM_SELECTION',
+  ADD_OR_EDIT_DRIVE_ITEM: 'ADD_OR_EDIT_DRIVE_ITEM',
   // Add more modal types as needed
 };
 

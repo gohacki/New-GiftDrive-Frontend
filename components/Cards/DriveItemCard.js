@@ -2,8 +2,10 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
+import { useModal, MODAL_TYPES } from '../../contexts/ModalContext';
 
-const DriveItemCard = ({ item, onDeleteItem, onUpdateQuantity }) => {
+const DriveItemCard = ({ item, onDeleteItem, onUpdateQuantity, onDriveItemUpdated, driveId }) => {
+  const { openModal } = useModal();
   const handleRemove = (e) => {
     e.stopPropagation();
     onDeleteItem(item.drive_item_id);
@@ -19,6 +21,17 @@ const DriveItemCard = ({ item, onDeleteItem, onUpdateQuantity }) => {
     if (onUpdateQuantity && item.quantity > 1) {
       onUpdateQuantity(item.drive_item_id, item.quantity - 1);
     }
+  };
+
+  const handleEdit = (e) => {
+    e.stopPropagation();
+    openModal(MODAL_TYPES.ADD_OR_EDIT_DRIVE_ITEM, {
+      driveId: driveId, // Pass driveId
+      existingDriveItem: item, // Pass the full item object from props
+      onSave: () => {
+        if (onDriveItemUpdated) onDriveItemUpdated(); // Call parent's refresh
+      },
+    });
   };
 
   return (
@@ -58,12 +71,20 @@ const DriveItemCard = ({ item, onDeleteItem, onUpdateQuantity }) => {
         </div>
       </div>
 
-      <button
-        onClick={handleRemove}
-        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-      >
-        Remove
-      </button>
+      <div className="flex space-x-2"> {/* Group buttons */}
+        <button
+          onClick={handleEdit}
+          className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
+        >
+          Edit
+        </button>
+        <button
+          onClick={handleRemove}
+          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+        >
+          Remove
+        </button>
+      </div>
     </div>
   );
 };
@@ -76,7 +97,9 @@ DriveItemCard.propTypes = {
     item_photo: PropTypes.string,
     description: PropTypes.string,
     price: PropTypes.number,
-    quantity: PropTypes.number, // if storing quantity in drive_items
+    quantity: PropTypes.number,
+    driveId: PropTypes.number.isRequired, // Add driveId for context
+    onDriveItemUpdated: PropTypes.func, // if storing quantity in drive_items
   }).isRequired,
   onDeleteItem: PropTypes.func.isRequired,
   onUpdateQuantity: PropTypes.func, // optional
