@@ -1,111 +1,112 @@
 // components/Cards/DriveItemCard.js
-
 import React from 'react';
 import PropTypes from 'prop-types';
-import { useModal, MODAL_TYPES } from '../../contexts/ModalContext';
+import Image from 'next/image'; // Import Next.js Image
+import { formatCurrency } from '@/lib/utils'; // Assuming you have this utility
 
-const DriveItemCard = ({ item, onDeleteItem, onUpdateQuantity, onDriveItemUpdated, driveId }) => {
-  const { openModal } = useModal();
+const DriveItemCard = ({ item, onDeleteItem, onUpdateQuantity, onEditItem }) => {
 
-  // Extract display properties from item.display, providing fallbacks.
-  // This makes the JSX cleaner and handles cases where display might be unexpectedly missing.
-  const itemName = item.display?.name || 'Unnamed Item';
-  const itemPhoto = item.display?.photo; // Can be null/undefined, handled by conditional rendering
-  const itemDescription = item.display?.description || '';
-  // Price: display.price is numeric for preset items, null for donor choice items.
-  const itemPrice = typeof item.display?.price === 'number' ? item.display.price : null;
+  // Base product details (fallbacks if not present)
+  const baseName = item.base_item_name || 'Unnamed Product';
+  const basePhoto = item.base_item_photo || '/img/default-item.png'; // Default placeholder
+  const basePrice = typeof item.base_item_price === 'number' ? item.base_item_price : null;
+  const baseDescription = item.base_item_description || '';
 
-  // 'needed' is the quantity of this item needed for the drive.
-  // The +/- buttons should update this 'needed' quantity.
-  const neededQuantity = item.needed;
+  // Variant-specific details (if they exist and are different from base)
+  const variantName = item.variant_display_name;
+  const variantPhoto = item.variant_display_photo;
+  const variantPrice = typeof item.variant_display_price === 'number' ? item.variant_display_price : null;
+
+  // Determine final display values, prioritizing variant-specific ones
+  const displayItemName = baseName; // Always show base name as main title
+  const displayItemPhoto = variantPhoto || basePhoto;
+  const displayItemPrice = variantPrice !== null ? variantPrice : basePrice;
+
+  // Show variant name as a sub-line if it's distinct and not just repeating the base name
+  const showVariantSubline = variantName && variantName !== baseName;
+
+  const triggerEdit = (e) => {
+    if (e) e.stopPropagation();
+    onEditItem(item, e);
+  };
 
   const handleRemove = (e) => {
     e.stopPropagation();
     onDeleteItem(item.drive_item_id);
   };
 
-  // Functions to update the 'needed' quantity
-  const incrementNeeded = () => {
-    if (onUpdateQuantity) {
-      // The onUpdateQuantity function should expect the new 'needed' value
-      onUpdateQuantity(item.drive_item_id, neededQuantity + 1);
-    }
-  };
-
-  const decrementNeeded = () => {
-    // Assuming 'needed' quantity cannot go below 1. Adjust if 0 is allowed.
-    if (onUpdateQuantity && neededQuantity > 1) {
-      onUpdateQuantity(item.drive_item_id, neededQuantity - 1);
-    }
-  };
-
-  const handleEdit = (e) => {
+  const incrementNeeded = (e) => {
     e.stopPropagation();
-    openModal(MODAL_TYPES.ADD_OR_EDIT_DRIVE_ITEM, {
-      driveId: driveId,
-      existingDriveItem: item, // Pass the original item structure from API
-      onSave: () => {
-        // onDriveItemUpdated is optional; the list refresh is usually handled by DriveItemList's modal onSave
-        if (onDriveItemUpdated) onDriveItemUpdated();
-      },
-    });
+    if (onUpdateQuantity) {
+      onUpdateQuantity(item.drive_item_id, (item.needed || 0) + 1);
+    }
+  };
+
+  const decrementNeeded = (e) => {
+    e.stopPropagation();
+    if (onUpdateQuantity && (item.needed || 0) > 1) {
+      onUpdateQuantity(item.drive_item_id, (item.needed || 0) - 1);
+    }
   };
 
   return (
-    <div className="flex justify-between items-center bg-gray-50 p-4 rounded shadow hover:shadow-md transition-shadow">
-      <div className="flex items-center space-x-4">
-        {/* Use extracted itemPhoto */}
-        {itemPhoto && (
-          <img
-            src={itemPhoto}
-            alt={itemName} // Use extracted itemName for alt text
-            className="w-16 h-16 object-cover rounded"
-          />
+    <div
+      className="flex justify-between items-center bg-gray-50 p-4 rounded shadow hover:shadow-md transition-shadow cursor-pointer"
+      onClick={triggerEdit}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          triggerEdit(e);
+        }
+      }}
+    >
+      <div className="flex items-center space-x-4 flex-grow min-w-0"> {/* Added flex-grow and min-w-0 for truncation */}
+        {displayItemPhoto && (
+          <div className="w-16 h-16 relative flex-shrink-0 rounded overflow-hidden border bg-white">
+            <Image
+              src={displayItemPhoto}
+              alt={displayItemName}
+              fill
+              style={{ objectFit: 'contain' }}
+              sizes="64px"
+              onError={(e) => { e.currentTarget.src = '/img/default-item.png'; }}
+            />
+          </div>
         )}
-        <div>
-          {/* Use extracted itemName */}
-          <h5 className="text-lg font-semibold">{itemName}</h5>
-          {/* Use extracted itemDescription */}
-          <p className="text-gray-600 text-sm">{itemDescription}</p>
-          {/* Check and display extracted itemPrice */}
-          {itemPrice !== null && (
-            <p className="text-gray-800 font-bold">${itemPrice.toFixed(2)}</p>
+        <div className="flex-grow min-w-0"> {/* Added min-w-0 for truncation context */}
+          <h5 className="text-lg font-semibold truncate" title={displayItemName}>{displayItemName}</h5>
+          {showVariantSubline && (
+            <p className="text-sm text-gray-600 truncate" title={variantName}>{variantName}</p>
           )}
-          {/* Display and manage 'needed' quantity */}
-          {/* Show +/- controls only if onUpdateQuantity is provided (meaning it's editable) */}
-          {typeof neededQuantity === 'number' && onUpdateQuantity && (
+          <p className="text-xs text-gray-500 truncate">{baseDescription}</p> {/* Base description */}
+
+          {displayItemPrice !== null && (
+            <p className="text-gray-700 font-medium">{formatCurrency(displayItemPrice * 100, 'USD')}</p> // Assuming price is in main unit
+          )}
+
+          {typeof item.needed === 'number' && onUpdateQuantity && (
             <div className="mt-2 flex items-center space-x-2">
-              <button
-                onClick={decrementNeeded}
-                className="px-2 py-1 bg-gray-300 rounded hover:bg-gray-400"
-                aria-label={`Decrease needed quantity of ${itemName}`}
-              >
-                -
-              </button>
-              {/* Display the 'needed' quantity */}
-              <span>{neededQuantity}</span>
-              <button
-                onClick={incrementNeeded}
-                className="px-2 py-1 bg-gray-300 rounded hover:bg-gray-400"
-                aria-label={`Increase needed quantity of ${itemName}`}
-              >
-                +
-              </button>
+              <button onClick={decrementNeeded} className="px-2 py-1 bg-gray-300 rounded hover:bg-gray-400 text-sm" aria-label={`Decrease needed quantity of ${displayItemName}`}>-</button>
+              <span className="text-sm">{item.needed} needed</span>
+              <button onClick={incrementNeeded} className="px-2 py-1 bg-gray-300 rounded hover:bg-gray-400 text-sm" aria-label={`Increase needed quantity of ${displayItemName}`}>+</button>
             </div>
           )}
+          <p className="text-xs text-gray-400 mt-1">Purchased: {item.purchased || 0}</p>
         </div>
       </div>
 
-      <div className="flex space-x-2"> {/* Group buttons */}
+      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 flex-shrink-0 ml-4">
         <button
-          onClick={handleEdit}
-          className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
+          onClick={triggerEdit}
+          className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 text-xs"
         >
           Edit
         </button>
         <button
           onClick={handleRemove}
-          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-xs"
         >
           Remove
         </button>
@@ -114,26 +115,25 @@ const DriveItemCard = ({ item, onDeleteItem, onUpdateQuantity, onDriveItemUpdate
   );
 };
 
-// Update PropTypes to reflect the actual structure from the API
 DriveItemCard.propTypes = {
   item: PropTypes.shape({
     drive_item_id: PropTypes.number.isRequired,
-    needed: PropTypes.number, // This is the "quantity" needed for the drive
-    // Other top-level properties like 'purchased', 'remaining', 'allow_donor_variant_choice' are also expected
-    display: PropTypes.shape({
-      name: PropTypes.string,
-      photo: PropTypes.string,
-      description: PropTypes.string,
-      price: PropTypes.number, // Numeric price for preset, null for donor choice
-      priceDisplay: PropTypes.string, // e.g., "Select Option" or formatted price string
-    }),
-    // preset_details could also be part of the item structure if it's a preset item
-    preset_details: PropTypes.object,
+    item_id: PropTypes.number, // FK to base item in your items table
+    base_item_name: PropTypes.string,
+    base_item_photo: PropTypes.string,
+    base_item_price: PropTypes.number,
+    base_item_description: PropTypes.string,
+    variant_display_name: PropTypes.string,
+    variant_display_photo: PropTypes.string,
+    variant_display_price: PropTypes.number,
+    needed: PropTypes.number,
+    purchased: PropTypes.number,
+    // ... other fields like selected_rye_variant_id if needed by onEditItem
   }).isRequired,
   onDeleteItem: PropTypes.func.isRequired,
-  onUpdateQuantity: PropTypes.func, // Optional: for updating the 'needed' quantity
-  onDriveItemUpdated: PropTypes.func, // Optional: callback after modal save (usually handled by parent list)
-  driveId: PropTypes.number.isRequired, // Passed from DriveItemList for modal context
+  onUpdateQuantity: PropTypes.func,
+  onEditItem: PropTypes.func.isRequired,
+  // driveId: PropTypes.number.isRequired, // Not directly used by card, but often passed to list
 };
 
 export default DriveItemCard;

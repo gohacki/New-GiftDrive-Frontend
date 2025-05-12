@@ -3,19 +3,15 @@ import { formatCurrency } from '@/lib/utils';
 import Image from 'next/image';
 import React from 'react';
 
-// Add onUpdateItemQuantity prop
 export default function CartDisplay({ cart, checkoutStep, onRemoveItem, onUpdateItemQuantity, isLoading }) {
 
-    const renderCartErrors = (stores, currentCheckoutStep) => {
+    const renderCartErrors = (stores, currentCheckoutStep) => { /* ... existing error rendering ... */
         let allErrors = [];
-        let unavailableItemsMessages = []; // Store messages about unavailable items
+        let unavailableItemsMessages = [];
 
         stores?.forEach(store => {
-            // Combine store-level and offer-level errors
             if (store.errors?.length) allErrors = allErrors.concat(store.errors.map(e => ({ ...e, storeName: store.store })));
             if (store.offer?.errors?.length) allErrors = allErrors.concat(store.offer.errors.map(e => ({ ...e, storeName: store.store })));
-
-            // Check for notAvailableIds (keep this logic)
             if (store.offer?.notAvailableIds?.length > 0) {
                 const marketplace = store.__typename === 'ShopifyStore' ? 'SHOPIFY' : 'AMAZON';
                 const idType = marketplace === 'SHOPIFY' ? 'Variant ID' : 'Product ID';
@@ -37,29 +33,19 @@ export default function CartDisplay({ cart, checkoutStep, onRemoveItem, onUpdate
                 }
             }
         });
-
-        // --- MODIFIED FILTERING LOGIC ---
-        // Filter out buyer identity errors ONLY if the checkout step is 'idle' OR 'identity'
         const filteredErrors = allErrors.filter(err => {
-            // HIDE identity errors during BOTH idle and identity steps
             if ((currentCheckoutStep === 'idle' || currentCheckoutStep === 'identity') && err.code === 'INVALID_BUYER_IDENTITY_INFORMATION') {
                 return false;
             }
-            // Keep all other errors, or identity errors ONLY in the payment step
             return true;
         });
-        // --- END MODIFIED FILTERING LOGIC ---
-
-        // Combine specific unavailable messages with general filtered errors
         const finalErrorMessages = [
             ...unavailableItemsMessages.map((msg, idx) => <li key={`unavail-${idx}`} className="font-semibold">{msg}</li>),
             ...filteredErrors.map((e, index) => (
                 <li key={index}><span className="font-medium">{e.storeName} - {e.code}:</span> {e.message}</li>
             ))
         ];
-
         if (finalErrorMessages.length === 0) return null;
-
         return (
             <div className="border border-red-300 bg-red-50 p-3 rounded mt-3">
                 <h4 className="font-semibold text-red-700 mb-1">Cart Issues:</h4>
@@ -69,69 +55,54 @@ export default function CartDisplay({ cart, checkoutStep, onRemoveItem, onUpdate
             </div>
         );
     };
-
-    const renderCartSummary = (cost) => {
+    const renderCartSummary = (cost) => { /* ... existing summary rendering ... */
         if (!cost) {
-            // Display placeholders or a message if cost data isn't available yet
             return (
                 <div className="mt-4 pt-3 border-t text-right text-sm text-gray-500 italic">
                     Enter address for shipping & tax calculation.
                 </div>
             );
         }
-
         const { subtotal, shipping, tax, total, isEstimated } = cost;
-
         return (
             <div className="mt-4 pt-3 border-t text-right space-y-1 text-sm">
-                {/* Subtotal is usually always present */}
-                <div>
-                    <span>Subtotal:</span>
-                    <span className="font-medium ml-2">{formatCurrency(subtotal?.value, subtotal?.currency)}</span>
-                </div>
-
-                {/* Shipping - show if value exists or if explicitly zero */}
+                {subtotal?.value != null && (
+                    <div>
+                        <span>Subtotal:</span>
+                        <span className="font-medium ml-2">{formatCurrency(subtotal?.value, subtotal?.currency)}</span>
+                    </div>
+                )}
                 {(shipping?.value != null) && (
                     <div>
                         <span>Shipping:</span>
                         <span className="font-medium ml-2">{formatCurrency(shipping.value, shipping.currency)}</span>
                     </div>
                 )}
-
-                {/* Tax - show if value exists or if explicitly zero */}
                 {(tax?.value != null) && (
                     <div>
                         <span>Tax:</span>
                         <span className="font-medium ml-2">{formatCurrency(tax.value, tax.currency)}</span>
                     </div>
                 )}
-
-                {/* Separator */}
                 {(shipping?.value != null || tax?.value != null) && total?.value != null && (
                     <div className="w-full h-px bg-gray-200 my-1"></div>
                 )}
-
-                {/* Total */}
                 {total?.value != null ? (
                     <div className="text-base font-bold text-gray-800">
-                        <span>Total{isEstimated ? ' (Estimated)' : ''}:</span>
+                        <span>Total{isEstimated ? ' (Est.)' : ''}:</span>
                         <span className="ml-2">{formatCurrency(total.value, total.currency)}</span>
                     </div>
                 ) : (
-                    // Show calculating message if total isn't ready yet
                     <div className="text-base font-medium text-gray-600 italic">
                         Calculating Total...
                     </div>
                 )}
-
-                {/* Informational message if estimated */}
                 {isEstimated && total?.value == null && (
                     <p className="text-xs text-gray-500 mt-1">Final shipping & tax calculated after address entry.</p>
                 )}
             </div>
         );
     };
-    // --- End Cart Summary Function ---
 
     const hasItems = cart?.stores?.some(store => store.cartLines?.length > 0);
 
@@ -150,31 +121,67 @@ export default function CartDisplay({ cart, checkoutStep, onRemoveItem, onUpdate
                                     <h4 className="font-semibold text-sm text-gray-600 mb-2 border-b pb-1">
                                         {store.store === 'amazon' ? 'Amazon' : `Store: ${store.store}`}
                                     </h4>
-                                    {store.cartLines?.map((item, itemIndex) => {
-                                        /* ... item rendering logic unchanged ... */
+                                    {store.cartLines?.map((line, itemIndex) => {
                                         const isShopify = marketplace === 'SHOPIFY';
-                                        const itemData = isShopify ? item.variant : item.product;
-                                        const itemTitle = itemData?.title || 'Unknown Item';
-                                        const itemId = itemData?.id || 'N/A';
+                                        // For Shopify, line.variant contains the specific variant details.
+                                        // For Amazon, line.product contains the product details.
+                                        const itemData = isShopify ? line.variant : line.product;
+
+                                        const ryeItemId = itemData?.id || 'N/A'; // This is the Rye Variant ID (Shopify) or Product ID (Amazon)
+
+                                        // Attempt to get base product name from augmented data if available
+                                        // This requires your /api/cart GET route to augment cart lines
+                                        // with giftdrive_base_product_name and giftdrive_variant_details_text
+                                        const baseProductName = line.giftdrive_base_product_name || (isShopify ? line.product?.title : itemData?.title) || 'Unknown Base Product';
+                                        const variantDetailsText = line.giftdrive_variant_details_text || (isShopify ? itemData?.title : null); // This might be "Base Name - Variant" or just "Variant"
+
+                                        // Final display logic for name
+                                        let displayTitle = baseProductName;
+                                        let displaySubline = null;
+
+                                        if (variantDetailsText && variantDetailsText !== baseProductName) {
+                                            // If variantDetailsText is the full "Base Name - Variant Detail", extract just variant part
+                                            let specificVariantPart = variantDetailsText.replace(baseProductName, '').trim();
+                                            if (specificVariantPart.startsWith('- ')) {
+                                                specificVariantPart = specificVariantPart.substring(2).trim();
+                                            }
+                                            displaySubline = specificVariantPart || variantDetailsText; // Fallback to full if replacement empty
+                                        } else if (isShopify && itemData?.title && itemData.title !== baseProductName) {
+                                            // Fallback if augmented data isn't there, but variant title differs from base
+                                            displaySubline = itemData.title;
+                                        }
+
+
                                         const imageUrl = isShopify ? itemData?.image?.url : itemData?.images?.[0]?.url;
                                         const placeholderImg = '/placeholder-image.png';
+
                                         const handleQuantityChange = (newQuantity) => {
                                             const quantityToUpdate = Math.max(0, newQuantity);
-                                            if (quantityToUpdate === item.quantity) return;
-                                            if (quantityToUpdate === 0) { onRemoveItem(itemId, marketplace); }
-                                            else { onUpdateItemQuantity(itemId, marketplace, quantityToUpdate); }
+                                            if (quantityToUpdate === line.quantity) return;
+                                            if (quantityToUpdate === 0) { onRemoveItem(ryeItemId, marketplace); }
+                                            else { onUpdateItemQuantity(ryeItemId, marketplace, quantityToUpdate); }
                                         };
+
                                         return (
-                                            <div key={`${itemId}-${itemIndex}`} className="bg-gray-50 p-3 rounded border border-gray-200 mb-2 flex items-center gap-3">
-                                                {/* Image */}
-                                                <div className="w-16 h-16 relative flex-shrink-0 border bg-white rounded overflow-hidden"> <Image src={imageUrl || placeholderImg} alt={itemTitle.substring(0, 30)} fill style={{ objectFit: 'contain' }} sizes="64px" onError={(e) => e.currentTarget.src = placeholderImg} /> </div>
-                                                {/* Details & Quantity Controls */}
-                                                <div className="flex-grow flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                                                    <div> <p className="font-medium text-sm leading-tight">{itemTitle}</p> <p className="text-xs text-gray-500">ID: {itemId}</p> </div>
-                                                    <div className="flex items-center gap-2 flex-shrink-0"> <button onClick={() => handleQuantityChange(item.quantity - 1)} disabled={isLoading} className="px-2 py-0.5 text-sm bg-gray-300 hover:bg-gray-400 text-gray-800 rounded disabled:opacity-50" aria-label={`Decrease quantity of ${itemTitle}`}> - </button> <span className="text-sm font-semibold w-6 text-center">{item.quantity}</span> <button onClick={() => handleQuantityChange(item.quantity + 1)} disabled={isLoading} className="px-2 py-0.5 text-sm bg-gray-300 hover:bg-gray-400 text-gray-800 rounded disabled:opacity-50" aria-label={`Increase quantity of ${itemTitle}`}> + </button> </div>
+                                            <div key={`${ryeItemId}-${itemIndex}`} className="bg-gray-50 p-3 rounded border border-gray-200 mb-2 flex items-center gap-3">
+                                                <div className="w-16 h-16 relative flex-shrink-0 border bg-white rounded overflow-hidden">
+                                                    <Image src={imageUrl || placeholderImg} alt={displayTitle} fill style={{ objectFit: 'contain' }} sizes="64px" onError={(e) => e.currentTarget.src = placeholderImg} />
                                                 </div>
-                                                {/* Remove Button */}
-                                                <button onClick={() => onRemoveItem(itemId, marketplace)} disabled={isLoading} className="ml-2 px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded shadow-sm disabled:opacity-50 flex-shrink-0" aria-label={`Remove ${itemTitle} from cart`} > Remove </button>
+                                                <div className="flex-grow flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                                    <div className="min-w-0"> {/* For truncation */}
+                                                        <p className="font-medium text-sm leading-tight truncate" title={displayTitle}>{displayTitle}</p>
+                                                        {displaySubline && (
+                                                            <p className="text-xs text-gray-500 truncate" title={displaySubline}>{displaySubline}</p>
+                                                        )}
+                                                        <p className="text-xs text-gray-400">ID: {ryeItemId}</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                                        <button onClick={() => handleQuantityChange(line.quantity - 1)} disabled={isLoading} className="px-2 py-0.5 text-sm bg-gray-300 hover:bg-gray-400 text-gray-800 rounded disabled:opacity-50" aria-label={`Decrease quantity of ${displayTitle}`}>-</button>
+                                                        <span className="text-sm font-semibold w-6 text-center">{line.quantity}</span>
+                                                        <button onClick={() => handleQuantityChange(line.quantity + 1)} disabled={isLoading} className="px-2 py-0.5 text-sm bg-gray-300 hover:bg-gray-400 text-gray-800 rounded disabled:opacity-50" aria-label={`Increase quantity of ${displayTitle}`}>+</button>
+                                                    </div>
+                                                </div>
+                                                <button onClick={() => onRemoveItem(ryeItemId, marketplace)} disabled={isLoading} className="ml-2 px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded shadow-sm disabled:opacity-50 flex-shrink-0" aria-label={`Remove ${displayTitle} from cart`}>Remove</button>
                                             </div>
                                         );
                                     })}
