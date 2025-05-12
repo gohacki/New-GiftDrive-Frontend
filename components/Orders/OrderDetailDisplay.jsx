@@ -1,8 +1,8 @@
-// src/components/OrderDetailDisplay.jsx
-import React, { useState } from 'react'; // Import useState
+// src/components/Orders/OrderDetailDisplay.jsx
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { formatCurrency } from '@/lib/utils';
-import PropTypes from 'prop-types'; // Import PropTypes
+import PropTypes from 'prop-types';
 
 // Helper function to format date/time nicely
 const formatDateTime = (isoString) => {
@@ -34,26 +34,9 @@ const getStatusColor = (status) => {
     return 'text-gray-600 bg-gray-100'; // Default
 };
 
-// Export the component
 export default function OrderDetailDisplay({ orderDetails, onClose, isLoading, onReturnRequest }) {
-    // State to track selected items for return
     const [selectedItemsForReturn, setSelectedItemsForReturn] = useState(new Set());
 
-    // Handler for checkbox changes
-    const handleCheckboxChange = (itemId) => {
-        setSelectedItemsForReturn(prevSet => {
-            const newSet = new Set(prevSet);
-            if (newSet.has(itemId)) {
-                newSet.delete(itemId);
-            } else {
-                newSet.add(itemId);
-            }
-            console.log("Selected items for return:", newSet); // Log selection
-            return newSet;
-        });
-    };
-
-    // Loading state display
     if (isLoading) {
         return (
             <div className="mt-6 p-4 border rounded-md shadow bg-white text-center text-gray-500">
@@ -62,14 +45,12 @@ export default function OrderDetailDisplay({ orderDetails, onClose, isLoading, o
         );
     }
 
-    // No details display
     if (!orderDetails) return (
         <div className="mt-6 p-4 border rounded-md shadow bg-white text-center text-gray-500">
             Order details not available.
         </div>
     );
 
-    // Destructure safely after confirming orderDetails exists
     const {
         id, status, createdAt, marketplace, marketplaceOrderIds = [],
         total, subtotal, tax, shipping,
@@ -77,31 +58,69 @@ export default function OrderDetailDisplay({ orderDetails, onClose, isLoading, o
         shipments = [], events = [], returns = []
     } = orderDetails;
 
-    // Determine which items are potentially eligible for return
+    // --- FIX: Derive lineItems from the cart structure ---
+    const lineItems = [];
+    if (cart && cart.stores) {
+        cart.stores.forEach(store => {
+            if (store.cartLines) {
+                store.cartLines.forEach(cartLine => {
+                    const isShopify = store.__typename === 'ShopifyStore';
+                    // For Amazon, cartLine.product is the item. For Shopify, cartLine.variant is the specific item, and cartLine.product is its parent.
+                    const baseProductDetails = isShopify ? cartLine.product : cartLine.product;
+                    const variantDetails = isShopify ? cartLine.variant : null;
+
+                    let itemForList = {
+                        quantity: cartLine.quantity,
+                        // Use variant ID for Shopify, product ID for Amazon as primary key for selection
+                        productId: isShopify ? baseProductDetails?.id : baseProductDetails?.id, // Amazon: ASIN, Shopify: Product ID
+                        variantId: isShopify ? variantDetails?.id : null, // Shopify: Variant ID
+                        // Include other potentially useful info, mirroring display logic structure
+                        title: isShopify ? (variantDetails?.title || baseProductDetails?.title) : baseProductDetails?.title,
+                        imageUrl: isShopify ? (variantDetails?.image?.url || baseProductDetails?.images?.[0]?.url) : baseProductDetails?.images?.[0]?.url,
+                        price: isShopify ? variantDetails?.priceV2 : baseProductDetails?.price, // Original price object
+                        // Store type might be useful for onReturnRequest logic if it needs marketplace context per item
+                        marketplace: store.store, // 'amazon' or Shopify store domain
+                        storeType: store.__typename, // 'AmazonStore' or 'ShopifyStore'
+                    };
+                    lineItems.push(itemForList);
+                });
+            }
+        });
+    }
+    // --- END FIX ---
+
     const isItemPotentiallyEligible = (itemId) => {
-        // Basic check: Not already part of an existing return request (regardless of status)
         const isInExistingReturn = returns.some(ret =>
             ret.lineItems?.some(li => (li.productId || li.variantId) === itemId)
         );
-        // Add other conditions here if needed (e.g., return window check based on createdAt/shippedAt)
         return !isInExistingReturn;
     };
 
-    // Check if *any* item is potentially eligible for return
     const anyItemEligibleForReturn = lineItems.some(item => isItemPotentiallyEligible(item.productId || item.variantId));
 
+    const handleCheckboxChange = (itemId) => {
+        setSelectedItemsForReturn(prevSet => {
+            const newSet = new Set(prevSet);
+            if (newSet.has(itemId)) {
+                newSet.delete(itemId);
+            } else {
+                newSet.add(itemId);
+            }
+            console.log("Selected items for return:", newSet);
+            return newSet;
+        });
+    };
 
     return (
-        <div className="mt-4 p-4 border rounded-md shadow-lg bg-white transition-all duration-300 ease-in-out max-h-[80vh] flex flex-col"> {/* Added max-height and flex */}
-            <div className="flex justify-between items-center mb-3 pb-2 border-b flex-shrink-0"> {/* Header */}
+        <div className="mt-4 p-4 border rounded-md shadow-lg bg-white transition-all duration-300 ease-in-out max-h-[80vh] flex flex-col">
+            <div className="flex justify-between items-center mb-3 pb-2 border-b flex-shrink-0">
                 <h3 className="text-lg font-semibold text-gray-800">Order Details</h3>
                 <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-xl font-bold" aria-label="Close">×</button>
             </div>
 
-            <div className="overflow-y-auto flex-grow pr-2 space-y-4"> {/* Scrollable Content Area */}
+            <div className="overflow-y-auto flex-grow pr-2 space-y-4">
                 <p className="text-xs text-gray-500 mb-1">Rye Order ID: <span className="font-mono">{id}</span></p>
 
-                {/* Summary Section */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm mb-2 bg-gray-50 p-3 rounded border">
                     <div>
                         <p><strong>Status:</strong>
@@ -125,10 +144,8 @@ export default function OrderDetailDisplay({ orderDetails, onClose, isLoading, o
                     </div>
                 </div>
 
-                {/* Items Section */}
                 <div className="mb-2">
                     <h4 className="font-semibold text-base mb-2 text-gray-700">Items Ordered</h4>
-                    {/* NEW LOGIC: Check and map over cart.stores */}
                     {cart && cart.stores && cart.stores.length > 0 ? (
                         cart.stores.map((store, storeIndex) => (
                             <div key={store.store || storeIndex} className="mb-3">
@@ -142,26 +159,23 @@ export default function OrderDetailDisplay({ orderDetails, onClose, isLoading, o
                                             const quantity = cartLine.quantity;
 
                                             if (store.__typename === 'AmazonStore' && cartLine.product) {
-                                                itemId = cartLine.product.id; // ASIN
+                                                itemId = cartLine.product.id;
                                                 itemTitle = cartLine.product.title;
                                                 itemImageUrl = cartLine.product.images?.[0]?.url;
-                                                // Price for Amazon items might be on product.price or you might need to rely on overall totals
-                                                itemPriceDisplay = cartLine.product.price?.displayValue; // If available
+                                                itemPriceDisplay = cartLine.product.price?.displayValue;
                                             } else if (store.__typename === 'ShopifyStore' && cartLine.variant) {
-                                                itemId = cartLine.variant.id; // Shopify Variant ID
-                                                itemTitle = cartLine.variant.title || cartLine.product?.title; // Variant title or fallback to parent product
+                                                itemId = cartLine.variant.id;
+                                                itemTitle = cartLine.variant.title || cartLine.product?.title;
                                                 itemImageUrl = cartLine.variant.image?.url || cartLine.product?.images?.[0]?.url;
-                                                // Price for Shopify items might be on variant.priceV2 or you rely on totals
-                                                itemPriceDisplay = cartLine.variant.priceV2?.displayValue; // If available
+                                                itemPriceDisplay = cartLine.variant.priceV2?.displayValue;
                                             } else {
-                                                // Fallback if structure is unexpected
                                                 itemId = `unknown-${storeIndex}-${lineIndex}`;
                                                 itemTitle = 'Unknown Item';
                                                 itemImageUrl = null;
                                                 itemPriceDisplay = 'N/A';
                                             }
 
-                                            const isEligibleForReturn = isItemPotentiallyEligible(itemId); // Use your existing eligibility logic
+                                            const isEligibleForReturn = isItemPotentiallyEligible(itemId);
 
                                             return (
                                                 <div key={`${itemId}-${lineIndex}`} className="flex items-center gap-3 text-sm border rounded p-2 bg-white shadow-sm hover:shadow-md transition-shadow">
@@ -204,7 +218,6 @@ export default function OrderDetailDisplay({ orderDetails, onClose, isLoading, o
                     )}
                 </div>
 
-                {/* Shipments Section */}
                 {shipments.length > 0 && (
                     <div className="mb-2">
                         <h4 className="font-semibold text-base mb-1 text-gray-700 border-t pt-3">Shipments</h4>
@@ -220,7 +233,6 @@ export default function OrderDetailDisplay({ orderDetails, onClose, isLoading, o
                     </div>
                 )}
 
-                {/* Returns Section */}
                 {returns.length > 0 && (
                     <div className="mb-2">
                         <h4 className="font-semibold text-base mb-1 text-gray-700 border-t pt-3">Returns</h4>
@@ -246,7 +258,6 @@ export default function OrderDetailDisplay({ orderDetails, onClose, isLoading, o
                     </div>
                 )}
 
-                {/* Event History (Collapsible) */}
                 {events.length > 0 && (
                     <details className="group text-xs mt-2 border-t pt-2">
                         <summary className="font-medium text-gray-600 cursor-pointer group-open:mb-1 list-none">
@@ -265,25 +276,21 @@ export default function OrderDetailDisplay({ orderDetails, onClose, isLoading, o
                         </ul>
                     </details>
                 )}
-            </div> {/* End Scrollable Area */}
+            </div>
 
-
-            {/* --- Return Request Button --- */}
             {anyItemEligibleForReturn && (
-                <div className="mt-4 pt-3 border-t flex-shrink-0"> {/* Footer Area */}
+                <div className="mt-4 pt-3 border-t flex-shrink-0">
                     <button
                         onClick={() => {
-                            // Find the full item details for selected IDs
                             const itemsToSubmit = lineItems
                                 .filter(item => selectedItemsForReturn.has(item.productId || item.variantId))
                                 .map(item => ({
-                                    id: item.productId || item.variantId, // Use the correct ID based on type
-                                    quantity: item.quantity // Assuming full quantity return for now
-                                    // Future: Could add a quantity input per item for partial returns
+                                    id: item.productId || item.variantId,
+                                    quantity: item.quantity
                                 }));
 
                             if (itemsToSubmit.length > 0 && onReturnRequest) {
-                                onReturnRequest(id, marketplace, itemsToSubmit); // Pass orderId, marketplace, and selected items
+                                onReturnRequest(id, marketplace, itemsToSubmit);
                             } else if (!onReturnRequest) {
                                 console.error("onReturnRequest prop is missing from OrderDetailDisplay");
                             }
@@ -295,34 +302,31 @@ export default function OrderDetailDisplay({ orderDetails, onClose, isLoading, o
                     </button>
                 </div>
             )}
-            {/* --- End Return Request Button --- */}
-
         </div>
     );
 }
 
-// --- Add PropTypes ---
 const moneyType = PropTypes.shape({
     value: PropTypes.number,
     currency: PropTypes.string,
-    displayValue: PropTypes.string, // Add if used directly
+    displayValue: PropTypes.string,
 });
 
-const lineItemType = PropTypes.shape({
-    productId: PropTypes.string, // For Amazon
-    variantId: PropTypes.string, // For Shopify
-    quantity: PropTypes.number,
-    price: moneyType,
-    // Include nested product/variant details if accessed directly
-    product: PropTypes.shape({
-        title: PropTypes.string,
-        images: PropTypes.arrayOf(PropTypes.shape({ url: PropTypes.string })),
-    }),
-    variant: PropTypes.shape({
-        title: PropTypes.string,
-        image: PropTypes.shape({ url: PropTypes.string }),
-    }),
+const baseItemDetailsType = PropTypes.shape({ // For cartLine.product or cartLine.variant
+    id: PropTypes.string,
+    title: PropTypes.string,
+    images: PropTypes.arrayOf(PropTypes.shape({ url: PropTypes.string })),
+    price: moneyType, // For Amazon product
+    priceV2: moneyType, // For Shopify variant
+    image: PropTypes.shape({ url: PropTypes.string }), // For Shopify variant
 });
+
+const cartLineItemType = PropTypes.shape({ // Structure of items within cart.stores[...].cartLines
+    quantity: PropTypes.number.isRequired,
+    product: baseItemDetailsType, // Could be Amazon product or Shopify parent product
+    variant: baseItemDetailsType, // Shopify variant details
+});
+
 
 OrderDetailDisplay.propTypes = {
     orderDetails: PropTypes.shape({
@@ -335,7 +339,13 @@ OrderDetailDisplay.propTypes = {
         subtotal: moneyType,
         tax: moneyType,
         shipping: moneyType,
-        lineItems: PropTypes.arrayOf(lineItemType),
+        cart: PropTypes.shape({
+            stores: PropTypes.arrayOf(PropTypes.shape({
+                store: PropTypes.string,
+                __typename: PropTypes.string, // 'AmazonStore' or 'ShopifyStore'
+                cartLines: PropTypes.arrayOf(cartLineItemType),
+            })),
+        }),
         shipments: PropTypes.arrayOf(PropTypes.shape({
             carrierName: PropTypes.string,
             carrierTrackingNumber: PropTypes.string,
@@ -347,13 +357,12 @@ OrderDetailDisplay.propTypes = {
             id: PropTypes.string,
             __typename: PropTypes.string,
             createdAt: PropTypes.string,
-            // Define other event properties if needed
         })),
         returns: PropTypes.arrayOf(PropTypes.shape({
             id: PropTypes.string,
             status: PropTypes.string,
             shippingLabelUrl: PropTypes.string,
-            lineItems: PropTypes.arrayOf(PropTypes.shape({ // Nested line items for returns
+            lineItems: PropTypes.arrayOf(PropTypes.shape({
                 productId: PropTypes.string,
                 variantId: PropTypes.string,
                 quantity: PropTypes.number,
@@ -363,7 +372,7 @@ OrderDetailDisplay.propTypes = {
     }),
     onClose: PropTypes.func.isRequired,
     isLoading: PropTypes.bool,
-    onReturnRequest: PropTypes.func, // Optional depending on if return feature is always enabled
+    onReturnRequest: PropTypes.func,
 };
 
 OrderDetailDisplay.defaultProps = {

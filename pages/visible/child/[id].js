@@ -1,4 +1,4 @@
-// src/pages/visible/child/[id].js
+// File: pages/visible/child/[id].js
 import { useRouter } from 'next/router';
 import React, { useContext, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
@@ -19,18 +19,15 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const ChildDetailPage = ({ child: initialChildData }) => {
   const router = useRouter();
-  const { setCart } = useContext(CartContext);
+  const { setCart, loading: cartLoading } = useContext(CartContext);
   const { user } = useContext(AuthContext);
 
   const [child, setChild] = useState(initialChildData);
-
-  // State for variant selection (keyed by child_item_id)
   const [selectedRyeVariants, setSelectedRyeVariants] = useState({});
   const [availableRyeVariantsInfo, setAvailableRyeVariantsInfo] = useState({});
   const [isLoadingVariants, setIsLoadingVariants] = useState({});
   const [itemQuantities, setItemQuantities] = useState({});
-  const isOutOfStock = itemNeed.remaining <= 0;
-  const maxQtyForInput = isOutOfStock ? 0 : (itemNeed.remaining || 0);
+  const [isAddingToCart, setIsAddingToCart] = useState({}); // Item-specific loading state
 
   useEffect(() => {
     if (child?.items) {
@@ -79,12 +76,14 @@ const ChildDetailPage = ({ child: initialChildData }) => {
     setItemQuantities(prev => ({ ...prev, [childItemId]: newQuantity }));
   };
 
-  const handleAddToCart = async (itemNeed) => { // itemNeed is an object from child.items
+  const handleAddToCart = async (itemNeed) => {
     if (!user) {
       toast.error("Please log in to add items.");
       router.push('/auth/login');
       return;
     }
+
+    setIsAddingToCart(prev => ({ ...prev, [itemNeed.child_item_id]: true }));
 
     let ryeIdForCartApi;
     let marketplaceForCartApi;
@@ -94,6 +93,7 @@ const ChildDetailPage = ({ child: initialChildData }) => {
       ryeIdForCartApi = selectedRyeVariants[itemNeed.child_item_id];
       if (!ryeIdForCartApi) {
         toast.error(`Please select an option for "${itemNeed.display?.name || 'the item'}".`);
+        setIsAddingToCart(prev => ({ ...prev, [itemNeed.child_item_id]: false }));
         return;
       }
       marketplaceForCartApi = itemNeed.base_marketplace_for_donor_choice;
@@ -105,15 +105,18 @@ const ChildDetailPage = ({ child: initialChildData }) => {
       itemNameForToast = itemNeed.preset_details.name;
       if (!itemNeed.preset_details.is_rye_linked) {
         toast.warn('This specific item variation cannot be purchased online yet.');
+        setIsAddingToCart(prev => ({ ...prev, [itemNeed.child_item_id]: false }));
         return;
       }
     } else {
       toast.error("Item configuration error. Cannot add to cart.");
+      setIsAddingToCart(prev => ({ ...prev, [itemNeed.child_item_id]: false }));
       return;
     }
 
     if (!ryeIdForCartApi || !marketplaceForCartApi) {
       toast.error(`Cannot add ${itemNameForToast} to cart: Product identifier or marketplace missing.`);
+      setIsAddingToCart(prev => ({ ...prev, [itemNeed.child_item_id]: false }));
       return;
     }
     const quantity = itemQuantities[itemNeed.child_item_id] || 1;
@@ -122,7 +125,7 @@ const ChildDetailPage = ({ child: initialChildData }) => {
       ryeIdToAdd: ryeIdForCartApi,
       marketplaceForItem: marketplaceForCartApi,
       quantity: quantity,
-      originalNeedRefId: itemNeed.child_item_id, // This is child_items.child_item_id
+      originalNeedRefId: itemNeed.child_item_id,
       originalNeedRefType: 'child_item'
     };
 
@@ -130,14 +133,22 @@ const ChildDetailPage = ({ child: initialChildData }) => {
       const response = await axios.post(`${apiUrl}/api/cart/add`, payload, { withCredentials: true });
       setCart(response.data);
       toast.success(`${itemNameForToast} (Qty: ${quantity}) added to cart!`);
-      // Optionally refetch child data to update purchased counts
-      // fetchChildDetails(child.child_id);
+
+      // Refetch child data to update remaining counts
+      const childResponse = await axios.get(`${apiUrl}/api/children/${child.child_id}`);
+      const itemsResponse = await axios.get(`${apiUrl}/api/children/${child.child_id}/items`);
+      setChild({
+        ...childResponse.data,
+        items: itemsResponse.data || [],
+      });
+
     } catch (err) {
       console.error('Error adding to cart:', err.response?.data || err.message);
       toast.error(err.response?.data?.error || `Failed to add ${itemNameForToast} to cart.`);
+    } finally {
+      setIsAddingToCart(prev => ({ ...prev, [itemNeed.child_item_id]: false }));
     }
   };
-
 
   if (!child) {
     return (
@@ -166,7 +177,7 @@ const ChildDetailPage = ({ child: initialChildData }) => {
           />
           <button
             onClick={() => router.back()}
-            className="flex items-center mb-6 px-4 py-2 bg-ggreen text-white rounded-md hover:bg-ggreen-dark transition-colors"
+            className="flex items-center mb-6 px-4 py-2 bg-ggreen text-white rounded-md hover:bg-teal-700 transition-colors"
           >
             <FaArrowLeft className="mr-2" />
             Back
@@ -196,7 +207,6 @@ const ChildDetailPage = ({ child: initialChildData }) => {
                     {child.drive_name}
                   </Link>
                 </p>
-                {/* Add age/gender if available from child.default_child_details */}
               </div>
             </div>
           </div>
@@ -209,16 +219,30 @@ const ChildDetailPage = ({ child: initialChildData }) => {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {child.items.map((itemNeed) => {
                   const currentQuantity = itemQuantities[itemNeed.child_item_id] || 1;
-                  const isOutOfStock = itemNeed.remaining <= 0;
-                  const maxQtyForInput = isOutOfStock ? 1 : (itemNeed.remaining || 1);
+                  const isCompletelyFulfilled = itemNeed.remaining <= 0;
+                  const isItemActionLoading = isLoadingVariants[itemNeed.child_item_id] || isAddingToCart[itemNeed.child_item_id] || cartLoading;
+                  const cardIsDisabled = isCompletelyFulfilled || !(itemNeed.allow_donor_variant_choice || itemNeed.preset_details?.is_rye_linked);
+
+                  const addToCartDisabled =
+                    cardIsDisabled ||
+                    isItemActionLoading ||
+                    (itemNeed.allow_donor_variant_choice && !selectedRyeVariants[itemNeed.child_item_id]) ||
+                    currentQuantity > (itemNeed.remaining || 0);
+
+                  const buttonText = isAddingToCart[itemNeed.child_item_id]
+                    ? "Adding..."
+                    : isCompletelyFulfilled
+                      ? "Fulfilled"
+                      : "Add to Cart";
 
                   return (
                     <div
                       key={itemNeed.child_item_id}
-                      className={`border-2 p-4 rounded-lg shadow-sm flex flex-col justify-between ${(itemNeed.allow_donor_variant_choice || itemNeed.preset_details?.is_rye_linked)
-                        ? 'border-ggreen bg-white hover:shadow-md'
-                        : 'bg-gray-100 opacity-70 border-gray-300'
-                        } transition-shadow`}
+                      className={`border-2 p-4 rounded-lg shadow-sm flex flex-col justify-between transition-shadow
+                                  ${cardIsDisabled
+                          ? 'bg-gray-100 opacity-70 border-gray-300 pointer-events-none'
+                          : 'border-ggreen bg-white hover:shadow-md'
+                        }`}
                     >
                       <div className="flex-grow">
                         {itemNeed.display?.photo && (
@@ -230,8 +254,8 @@ const ChildDetailPage = ({ child: initialChildData }) => {
                         {itemNeed.allow_donor_variant_choice && (
                           <button
                             onClick={() => fetchVariantsForNeed(itemNeed)}
-                            className="text-sm text-blue-600 hover:underline mb-2 disabled:text-gray-400"
-                            disabled={isLoadingVariants[itemNeed.child_item_id] || !!availableRyeVariantsInfo[itemNeed.child_item_id]}
+                            className="text-sm text-blue-600 hover:underline mb-2 disabled:text-gray-400 disabled:cursor-not-allowed"
+                            disabled={isLoadingVariants[itemNeed.child_item_id] || cardIsDisabled}
                           >
                             {isLoadingVariants[itemNeed.child_item_id]
                               ? 'Loading Options...'
@@ -244,7 +268,8 @@ const ChildDetailPage = ({ child: initialChildData }) => {
                           <select
                             value={selectedRyeVariants[itemNeed.child_item_id] || ''}
                             onChange={(e) => handleVariantSelectionChange(itemNeed.child_item_id, e.target.value)}
-                            className="block w-full mt-1 border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-1 focus:ring-ggreen sm:text-sm mb-2"
+                            className="block w-full mt-1 border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-1 focus:ring-ggreen sm:text-sm mb-2 disabled:bg-gray-200"
+                            disabled={cardIsDisabled || isLoadingVariants[itemNeed.child_item_id]}
                           >
                             <option value="" disabled>Choose an option...</option>
                             {availableRyeVariantsInfo[itemNeed.child_item_id].variants
@@ -264,7 +289,7 @@ const ChildDetailPage = ({ child: initialChildData }) => {
                         )}
                         <p className="text-gray-600 text-sm mb-2 line-clamp-3">{itemNeed.display?.description}</p>
                         <p className="text-sm text-gray-500 mb-2">Needed: {itemNeed.needed} | Remaining: {itemNeed.remaining}</p>
-                        {!(itemNeed.allow_donor_variant_choice || itemNeed.preset_details?.is_rye_linked) && (
+                        {!(itemNeed.allow_donor_variant_choice || itemNeed.preset_details?.is_rye_linked) && !cardIsDisabled && (
                           <p className="text-xs text-orange-600 font-semibold mt-1">Item not available for online purchase.</p>
                         )}
                       </div>
@@ -278,28 +303,27 @@ const ChildDetailPage = ({ child: initialChildData }) => {
                                 type="number"
                                 id={`quantity-child-${itemNeed.child_item_id}`}
                                 min="1"
-                                max={maxQtyForInput}
+                                max={isCompletelyFulfilled ? 1 : (itemNeed.remaining || 1)}
                                 value={currentQuantity}
                                 onChange={(e) => handleQuantityChange(itemNeed.child_item_id, e.target.value, itemNeed.remaining)}
-                                className="w-16 px-2 py-1 border border-gray-300 rounded text-center focus:outline-none focus:ring-1 focus:ring-ggreen disabled:bg-gray-100"
-                                disabled={isOutOfStock}
+                                className="w-16 px-2 py-1 border border-gray-300 rounded text-center focus:outline-none focus:ring-1 focus:ring-ggreen disabled:bg-gray-200 disabled:text-gray-500"
+                                disabled={cardIsDisabled || isItemActionLoading}
                               />
                             </div>
                           )}
-                          <input
-                            type="number"
-                            min="1" // Or 0 if you allow removing by setting to 0
-                            max={maxQtyForInput}
-                            value={currentQuantity} // your state for this item's quantity
-                            onChange={(e) => handleQuantityChange(itemNeed.child_item_id, e.target.value, itemNeed.remaining)}
-                            disabled={isOutOfStock}
-                          />
                           <button
                             onClick={() => handleAddToCart(itemNeed)}
-                            disabled={isOutOfStock || (itemNeed.allow_donor_variant_choice && !selectedRyeVariants[itemNeed.drive_item_id]) || currentQuantity > maxQtyForInput}
-                            className={`... ${isOutOfStock || currentQuantity > maxQtyForInput ? 'bg-gray-400 cursor-not-allowed' : 'bg-ggreen hover:bg-ggreen-dark'} ...`}
+                            disabled={addToCartDisabled}
+                            className={`w-full px-4 py-2.5 text-white rounded-md shadow-sm transition-colors inter-medium text-sm font-semibold
+                                        focus:outline-none focus:ring-2 focus:ring-offset-2
+                                        ${addToCartDisabled
+                                ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
+                                : 'bg-ggreen hover:bg-teal-700 focus:ring-teal-600'
+                              }
+                                        ${isAddingToCart[itemNeed.child_item_id] ? 'animate-pulse cursor-wait' : ''}
+                                      `}
                           >
-                            {isOutOfStock ? 'Fulfilled' : 'Add to Cart'}
+                            {buttonText}
                           </button>
                         </div>
                       )}
@@ -318,30 +342,24 @@ const ChildDetailPage = ({ child: initialChildData }) => {
   );
 };
 
-// Updated getServerSideProps for ChildDetailPage
 export async function getServerSideProps(context) {
-  const { id: uniqueChildId } = context.params; // This is unique_children.child_id
+  const { id: uniqueChildId } = context.params;
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   try {
-    // 1. Fetch child base details (includes default child info, drive info, org info)
-    // This endpoint should return the structure expected by the page, similar to how drive page gets its main object.
-    const childResponse = await axios.get(`${apiUrl}/api/children/${uniqueChildId}`); // Uses unique_children.child_id
+    const childResponse = await axios.get(`${apiUrl}/api/children/${uniqueChildId}`);
     const childData = childResponse.data;
 
     if (!childData || !childData.child_id) {
       return { notFound: true };
     }
 
-    // 2. Fetch item needs for this specific child
-    // This endpoint needs to return the refined structure with allow_donor_variant_choice etc.
     const itemsResponse = await axios.get(`${apiUrl}/api/children/${uniqueChildId}/items`);
     const childSpecificItems = itemsResponse.data || [];
 
-    // 3. Combine data
     const finalChildData = {
-      ...childData, // Includes child_id, child_name, photo (from default_children), drive_id, drive_name, org_id, organization_name
-      items: childSpecificItems, // Use the detailed items for this child
+      ...childData,
+      items: childSpecificItems,
     };
 
     return { props: { child: finalChildData } };
@@ -352,10 +370,9 @@ export async function getServerSideProps(context) {
   }
 }
 
-// Updated PropTypes for ChildDetailPage
 ChildDetailPage.propTypes = {
   child: PropTypes.shape({
-    child_id: PropTypes.number.isRequired, // unique_children.child_id
+    child_id: PropTypes.number.isRequired,
     child_name: PropTypes.string.isRequired,
     photo: PropTypes.string,
     drive_id: PropTypes.number.isRequired,
@@ -364,7 +381,7 @@ ChildDetailPage.propTypes = {
     organization_name: PropTypes.string,
     items: PropTypes.arrayOf(
       PropTypes.shape({
-        child_item_id: PropTypes.number.isRequired, // ID of the link entry in child_items
+        child_item_id: PropTypes.number.isRequired,
         needed: PropTypes.number,
         purchased: PropTypes.number,
         remaining: PropTypes.number,
@@ -375,8 +392,8 @@ ChildDetailPage.propTypes = {
           name: PropTypes.string,
           photo: PropTypes.string,
           description: PropTypes.string,
-          price: PropTypes.number, // For preset variant
-          priceDisplay: PropTypes.string, // For donor choice or preset
+          price: PropTypes.number,
+          priceDisplay: PropTypes.string,
         }),
         preset_details: PropTypes.shape({
           internal_item_id: PropTypes.number,
@@ -388,11 +405,10 @@ ChildDetailPage.propTypes = {
           marketplace: PropTypes.string,
           base_rye_product_id: PropTypes.string,
         }),
-        internal_item_id: PropTypes.number, // Your DB item_id for the preset variant
+        internal_item_id: PropTypes.number,
       })
     ),
   }),
 };
-
 
 export default ChildDetailPage;

@@ -1,4 +1,4 @@
-// pages/visible/drive/[id].js
+// File: pages/visible/drive/[id].js
 import axios from 'axios';
 import React, { useContext, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
@@ -11,7 +11,7 @@ import { FaArrowLeft } from 'react-icons/fa';
 import Navbar from 'components/Navbars/AuthNavbar.js';
 import Footer from 'components/Footers/Footer.js';
 import Breadcrumbs from 'components/UI/Breadcrumbs.js';
-import ChildModal from 'components/Modals/ChildModal'; // Keep if you still use it for children listed on drive page
+import ChildModal from 'components/Modals/ChildModal';
 import { CartContext } from 'contexts/CartContext';
 import { AuthContext } from 'contexts/AuthContext';
 import { formatCurrency } from '@/lib/utils';
@@ -20,44 +20,30 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const DrivePage = ({ drive: initialDriveData }) => {
   const router = useRouter();
-  const { setCart, loading: cartLoading } = useContext(CartContext); // Get setCart for updating after add
+  const { setCart, loading: cartLoading } = useContext(CartContext);
   const { user } = useContext(AuthContext);
 
-  const [drive, setDrive] = useState(initialDriveData); // Use state for drive data to update dynamically if needed
+  const [drive, setDrive] = useState(initialDriveData);
 
-  // State for variant selection
-  // Key: drive_item_id (the ID of the "need" record)
-  // Value: chosen RYE Variant ID
   const [selectedRyeVariants, setSelectedRyeVariants] = useState({});
-
-  // State for available variants fetched from Rye
-  // Key: drive_item_id
-  // Value: { baseProductName: '...', baseProductImage: '...', variants: [...] }
   const [availableRyeVariantsInfo, setAvailableRyeVariantsInfo] = useState({});
-
-  // State for loading variants for a specific item need
-  // Key: drive_item_id, Value: boolean
   const [isLoadingVariants, setIsLoadingVariants] = useState({});
-
-  // State for selected quantities for each item need (drive_item_id)
   const [itemQuantities, setItemQuantities] = useState({});
+  const [isAddingToCart, setIsAddingToCart] = useState({}); // Item-specific loading state for add to cart
 
-  // Initialize quantities when drive data (and its items) load
   useEffect(() => {
     if (drive?.items) {
       const initialQuantities = {};
       drive.items.forEach(itemNeed => {
-        initialQuantities[itemNeed.drive_item_id] = 1; // Default quantity to 1 for each "need"
+        initialQuantities[itemNeed.drive_item_id] = 1;
       });
       setItemQuantities(initialQuantities);
     }
   }, [drive?.items]);
 
-
-  // Fetch variants if an item allows donor choice and variants haven't been fetched
   const fetchVariantsForNeed = async (itemNeed) => {
     if (!itemNeed.allow_donor_variant_choice || !itemNeed.base_rye_product_id_for_donor_choice || availableRyeVariantsInfo[itemNeed.drive_item_id]) {
-      return; // Already fetched or not applicable
+      return;
     }
 
     setIsLoadingVariants(prev => ({ ...prev, [itemNeed.drive_item_id]: true }));
@@ -67,7 +53,6 @@ const DrivePage = ({ drive: initialDriveData }) => {
         marketplace: itemNeed.base_marketplace_for_donor_choice,
       });
       setAvailableRyeVariantsInfo(prev => ({ ...prev, [itemNeed.drive_item_id]: response.data }));
-      // Auto-select first available variant if any
       if (response.data?.variants?.length > 0) {
         const firstAvailable = response.data.variants.find(v => v.isAvailable);
         if (firstAvailable) {
@@ -77,12 +62,11 @@ const DrivePage = ({ drive: initialDriveData }) => {
     } catch (error) {
       console.error(`Failed to fetch variants for base product ${itemNeed.base_rye_product_id_for_donor_choice}:`, error);
       toast.error(`Could not load options for item.`);
-      setAvailableRyeVariantsInfo(prev => ({ ...prev, [itemNeed.drive_item_id]: { variants: [] } })); // Mark as fetched with no variants
+      setAvailableRyeVariantsInfo(prev => ({ ...prev, [itemNeed.drive_item_id]: { variants: [] } }));
     } finally {
       setIsLoadingVariants(prev => ({ ...prev, [itemNeed.drive_item_id]: false }));
     }
   };
-
 
   const handleVariantSelectionChange = (driveItemId, ryeVariantId) => {
     setSelectedRyeVariants(prev => ({ ...prev, [driveItemId]: ryeVariantId }));
@@ -95,43 +79,47 @@ const DrivePage = ({ drive: initialDriveData }) => {
     setItemQuantities(prev => ({ ...prev, [driveItemId]: newQuantity }));
   };
 
-  const handleAddToCart = async (itemNeed) => { // itemNeed is an object from drive.items
+  const handleAddToCart = async (itemNeed) => {
     if (!user) {
       toast.error("Please log in to add items.");
-      router.push('/auth/login'); // Redirect to login
+      router.push('/auth/login');
       return;
     }
 
+    setIsAddingToCart(prev => ({ ...prev, [itemNeed.drive_item_id]: true }));
+
     let ryeIdForCartApi;
     let marketplaceForCartApi;
-    let itemNameForToast = itemNeed.display?.name || "Item"; // Default name
+    let itemNameForToast = itemNeed.display?.name || "Item";
 
     if (itemNeed.allow_donor_variant_choice) {
       ryeIdForCartApi = selectedRyeVariants[itemNeed.drive_item_id];
       if (!ryeIdForCartApi) {
         toast.error(`Please select an option for "${itemNeed.display?.name || 'the item'}".`);
+        setIsAddingToCart(prev => ({ ...prev, [itemNeed.drive_item_id]: false }));
         return;
       }
       marketplaceForCartApi = itemNeed.base_marketplace_for_donor_choice;
-      // Find selected variant to get its name for toast
       const variantInfo = availableRyeVariantsInfo[itemNeed.drive_item_id]?.variants?.find(v => v.id === ryeIdForCartApi);
       if (variantInfo) itemNameForToast = variantInfo.title;
-
     } else if (itemNeed.preset_details) {
       ryeIdForCartApi = itemNeed.preset_details.rye_id_to_add_directly;
       marketplaceForCartApi = itemNeed.preset_details.marketplace;
       itemNameForToast = itemNeed.preset_details.name;
       if (!itemNeed.preset_details.is_rye_linked) {
         toast.warn('This specific item variation cannot be purchased online yet.');
+        setIsAddingToCart(prev => ({ ...prev, [itemNeed.drive_item_id]: false }));
         return;
       }
     } else {
       toast.error("Item configuration error. Cannot add to cart.");
+      setIsAddingToCart(prev => ({ ...prev, [itemNeed.drive_item_id]: false }));
       return;
     }
 
     if (!ryeIdForCartApi || !marketplaceForCartApi) {
       toast.error(`Cannot add ${itemNameForToast} to cart: Product identifier or marketplace missing.`);
+      setIsAddingToCart(prev => ({ ...prev, [itemNeed.drive_item_id]: false }));
       return;
     }
 
@@ -141,24 +129,33 @@ const DrivePage = ({ drive: initialDriveData }) => {
       ryeIdToAdd: ryeIdForCartApi,
       marketplaceForItem: marketplaceForCartApi,
       quantity: quantity,
-      originalNeedRefId: itemNeed.drive_item_id, // This is drive_items.drive_item_id
+      originalNeedRefId: itemNeed.drive_item_id,
       originalNeedRefType: 'drive_item'
     };
 
     try {
       const response = await axios.post(`${apiUrl}/api/cart/add`, payload, { withCredentials: true });
-      setCart(response.data); // Update cart context with the new Rye cart state
+      setCart(response.data);
       toast.success(`${itemNameForToast} (Qty: ${quantity}) added to cart!`);
-      // Optionally, refetch drive data to update "purchased" counts if backend doesn't push updates
-      // fetchDriveDetails(drive.drive_id); 
+      // Refetch drive data to update remaining counts
+      const updatedDriveResponse = await axios.get(`${apiUrl}/api/drives/${drive.drive_id}`);
+      const updatedItemsResponse = await axios.get(`${apiUrl}/api/drives/${drive.drive_id}/items`);
+      const aggregateResponse = await axios.get(`${apiUrl}/api/drives/${drive.drive_id}/aggregate`);
+      setDrive({
+        ...updatedDriveResponse.data,
+        items: updatedItemsResponse.data,
+        totalNeeded: Number(aggregateResponse.data.totalNeeded) || 0,
+        totalPurchased: Number(aggregateResponse.data.totalPurchased) || 0,
+      });
+
     } catch (err) {
       console.error('Error adding to cart:', err.response?.data || err.message);
       toast.error(err.response?.data?.error || `Failed to add ${itemNameForToast} to cart.`);
+    } finally {
+      setIsAddingToCart(prev => ({ ...prev, [itemNeed.drive_item_id]: false }));
     }
   };
 
-
-  // State for Child Modal (if you list children on the drive page)
   const [selectedChildIdForModal, setSelectedChildIdForModal] = useState(null);
   const [isChildModalOpen, setIsChildModalOpen] = useState(false);
 
@@ -171,9 +168,7 @@ const DrivePage = ({ drive: initialDriveData }) => {
     setIsChildModalOpen(false);
   };
 
-
   if (!drive) {
-    // This will be handled by getServerSideProps notFound, but as a fallback
     return (
       <>
         <Navbar />
@@ -185,7 +180,6 @@ const DrivePage = ({ drive: initialDriveData }) => {
     );
   }
 
-  // Calculate progress (ensure drive has these properties from getServerSideProps)
   const totalNeeded = Number(drive.totalNeeded) || 0;
   const totalPurchased = Number(drive.totalPurchased) || 0;
   const totalRemaining = totalNeeded > 0 ? Math.max(0, totalNeeded - totalPurchased) : 0;
@@ -193,7 +187,7 @@ const DrivePage = ({ drive: initialDriveData }) => {
 
   return (
     <>
-      <Navbar /> {/* Ensure Navbar is appropriate for this page */}
+      <Navbar />
       <main className="min-h-screen bg-secondary_green text-gray-800 relative pt-24 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Breadcrumbs
@@ -206,7 +200,7 @@ const DrivePage = ({ drive: initialDriveData }) => {
           />
           <button
             onClick={() => router.back()}
-            className="flex items-center mb-6 px-4 py-2 bg-ggreen text-white rounded-md hover:bg-ggreen-dark transition-colors focus:outline-none focus:ring-2 focus:ring-ggreen"
+            className="flex items-center mb-6 px-4 py-2 bg-ggreen text-white rounded-md hover:bg-teal-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ggreen"
             aria-label="Go back to previous page"
           >
             <FaArrowLeft className="mr-2" />
@@ -231,7 +225,6 @@ const DrivePage = ({ drive: initialDriveData }) => {
 
           <div className="flex flex-col md:flex-row gap-8">
             <div className="md:w-2/3 space-y-8">
-              {/* Drive Progress */}
               <div className="border-2 border-ggreen shadow rounded-lg p-6">
                 <h2 className="text-xl font-semibold text-ggreen mb-4">Drive Progress</h2>
                 <div className="bg-gray-200 w-full h-4 rounded-full mb-2 overflow-hidden">
@@ -241,7 +234,6 @@ const DrivePage = ({ drive: initialDriveData }) => {
                 <p className="text-sm text-gray-700">Remaining: <strong>{totalRemaining}</strong></p>
               </div>
 
-              {/* Drive-Level Items Section */}
               {drive.items && drive.items.length > 0 && (
                 <section>
                   <h2 className="text-2xl font-semibold text-ggreen mb-4">
@@ -250,16 +242,30 @@ const DrivePage = ({ drive: initialDriveData }) => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {drive.items.map((itemNeed) => {
                       const currentQuantity = itemQuantities[itemNeed.drive_item_id] || 1;
-                      const isOutOfStock = itemNeed.remaining <= 0;
-                      const maxQtyForInput = isOutOfStock ? 0 : (itemNeed.remaining || 0);
+                      const isCompletelyFulfilled = itemNeed.remaining <= 0;
+                      const isItemActionLoading = isLoadingVariants[itemNeed.drive_item_id] || isAddingToCart[itemNeed.drive_item_id] || cartLoading;
+                      const cardIsDisabled = isCompletelyFulfilled || !(itemNeed.allow_donor_variant_choice || itemNeed.preset_details?.is_rye_linked);
+
+                      const addToCartDisabled =
+                        cardIsDisabled ||
+                        isItemActionLoading ||
+                        (itemNeed.allow_donor_variant_choice && !selectedRyeVariants[itemNeed.drive_item_id]) ||
+                        currentQuantity > (itemNeed.remaining || 0);
+
+                      const buttonText = isAddingToCart[itemNeed.drive_item_id]
+                        ? "Adding..."
+                        : isCompletelyFulfilled
+                          ? "Fulfilled"
+                          : "Add to Cart";
 
                       return (
                         <div
                           key={itemNeed.drive_item_id}
-                          className={`border-2 p-4 rounded-lg shadow-sm flex flex-col justify-between ${(itemNeed.allow_donor_variant_choice || itemNeed.preset_details?.is_rye_linked)
-                            ? 'border-ggreen bg-white hover:shadow-md'
-                            : 'bg-gray-100 opacity-70 border-gray-300'
-                            } transition-shadow`}
+                          className={`border-2 p-4 rounded-lg shadow-sm flex flex-col justify-between transition-shadow
+                                      ${cardIsDisabled
+                              ? 'bg-gray-100 opacity-70 border-gray-300 pointer-events-none' // Gray out and disable interactions
+                              : 'border-ggreen bg-white hover:shadow-md'
+                            }`}
                         >
                           <div className="flex-grow">
                             {itemNeed.display?.photo && (
@@ -271,8 +277,8 @@ const DrivePage = ({ drive: initialDriveData }) => {
                             {itemNeed.allow_donor_variant_choice && (
                               <button
                                 onClick={() => fetchVariantsForNeed(itemNeed)}
-                                className="text-sm text-blue-600 hover:underline mb-2 disabled:text-gray-400"
-                                disabled={isLoadingVariants[itemNeed.drive_item_id] || !!availableRyeVariantsInfo[itemNeed.drive_item_id]}
+                                className="text-sm text-blue-600 hover:underline mb-2 disabled:text-gray-400 disabled:cursor-not-allowed"
+                                disabled={isLoadingVariants[itemNeed.drive_item_id] || cardIsDisabled}
                               >
                                 {isLoadingVariants[itemNeed.drive_item_id]
                                   ? 'Loading Options...'
@@ -285,7 +291,8 @@ const DrivePage = ({ drive: initialDriveData }) => {
                               <select
                                 value={selectedRyeVariants[itemNeed.drive_item_id] || ''}
                                 onChange={(e) => handleVariantSelectionChange(itemNeed.drive_item_id, e.target.value)}
-                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-1 focus:ring-ggreen sm:text-sm mb-2"
+                                className="block w-full mt-1 border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-1 focus:ring-ggreen sm:text-sm mb-2 disabled:bg-gray-200"
+                                disabled={cardIsDisabled || isLoadingVariants[itemNeed.drive_item_id]}
                               >
                                 <option value="" disabled>Choose an option...</option>
                                 {availableRyeVariantsInfo[itemNeed.drive_item_id].variants
@@ -305,7 +312,7 @@ const DrivePage = ({ drive: initialDriveData }) => {
                             )}
                             <p className="text-gray-600 text-sm mb-2 line-clamp-3">{itemNeed.display?.description}</p>
                             <p className="text-sm text-gray-500 mb-2">Needed: {itemNeed.needed} | Remaining: {itemNeed.remaining}</p>
-                            {!(itemNeed.allow_donor_variant_choice || itemNeed.preset_details?.is_rye_linked) && (
+                            {!(itemNeed.allow_donor_variant_choice || itemNeed.preset_details?.is_rye_linked) && !cardIsDisabled && (
                               <p className="text-xs text-orange-600 font-semibold mt-1">Item not available for online purchase.</p>
                             )}
                           </div>
@@ -319,28 +326,27 @@ const DrivePage = ({ drive: initialDriveData }) => {
                                     type="number"
                                     id={`quantity-drive-${itemNeed.drive_item_id}`}
                                     min="1"
-                                    max={maxQtyForInput}
+                                    max={isCompletelyFulfilled ? 1 : (itemNeed.remaining || 1)}
                                     value={currentQuantity}
                                     onChange={(e) => handleQuantityChange(itemNeed.drive_item_id, e.target.value, itemNeed.remaining)}
-                                    className="w-16 px-2 py-1 border border-gray-300 rounded text-center focus:outline-none focus:ring-1 focus:ring-ggreen disabled:bg-gray-100"
-                                    disabled={isOutOfStock}
+                                    className="w-16 px-2 py-1 border border-gray-300 rounded text-center focus:outline-none focus:ring-1 focus:ring-ggreen disabled:bg-gray-200 disabled:text-gray-500"
+                                    disabled={cardIsDisabled || isItemActionLoading}
                                   />
                                 </div>
                               )}
-                              <input
-                                type="number"
-                                min="1" // Or 0 if you allow removing by setting to 0
-                                max={maxQtyForInput}
-                                value={currentQuantity} // your state for this item's quantity
-                                onChange={(e) => handleQuantityChange(itemNeed.drive_item_id /* or child_item_id */, e.target.value, itemNeed.remaining)}
-                                disabled={isOutOfStock}
-                              />
                               <button
                                 onClick={() => handleAddToCart(itemNeed)}
-                                disabled={isOutOfStock || (itemNeed.allow_donor_variant_choice && !selectedRyeVariants[itemNeed.drive_item_id]) || currentQuantity > maxQtyForInput}
-                                className={`... ${isOutOfStock || currentQuantity > maxQtyForInput ? 'bg-gray-400 cursor-not-allowed' : 'bg-ggreen hover:bg-ggreen-dark'} ...`}
+                                disabled={addToCartDisabled}
+                                className={`w-full px-4 py-2.5 text-white rounded-md shadow-sm transition-colors inter-medium text-sm font-semibold
+                                            focus:outline-none focus:ring-2 focus:ring-offset-2
+                                            ${addToCartDisabled
+                                    ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
+                                    : 'bg-ggreen hover:bg-teal-700 focus:ring-teal-600'
+                                  }
+                                            ${isAddingToCart[itemNeed.drive_item_id] ? 'animate-pulse cursor-wait' : ''}
+                                          `}
                               >
-                                {isOutOfStock ? 'Fulfilled' : 'Add to Cart'}
+                                {buttonText}
                               </button>
                             </div>
                           )}
@@ -351,7 +357,6 @@ const DrivePage = ({ drive: initialDriveData }) => {
                 </section>
               )}
 
-              {/* Children Section */}
               {drive.children && drive.children.length > 0 && (
                 <section>
                   <h2 className="text-2xl font-semibold text-ggreen mb-4">
@@ -361,7 +366,7 @@ const DrivePage = ({ drive: initialDriveData }) => {
                     {drive.children.map((child) => (
                       <div
                         key={child.child_id}
-                        onClick={() => openChildModal(child.child_id)} // child.child_id is unique_children.child_id
+                        onClick={() => openChildModal(child.child_id)}
                         className="cursor-pointer block border-2 border-ggreen shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                       >
                         {child.child_photo && (
@@ -385,7 +390,6 @@ const DrivePage = ({ drive: initialDriveData }) => {
               )}
             </div>
 
-            {/* Right Column: Organization / Share Info */}
             <aside className="md:w-1/3 space-y-6">
               <div className="border-2 border-ggreen shadow rounded-lg p-6">
                 <h2 className="text-xl font-semibold text-ggreen mb-4">Organization</h2>
@@ -395,7 +399,7 @@ const DrivePage = ({ drive: initialDriveData }) => {
                 <p className="text-gray-700 mb-4 text-sm">
                   {drive.donorsCount != null && `Supported by ${drive.donorsCount} donor(s)`}
                 </p>
-                <button className="w-full px-4 py-2 bg-ggreen text-white rounded-md hover:bg-ggreen-dark">
+                <button className="w-full px-4 py-2 bg-ggreen text-white rounded-md hover:bg-teal-700">
                   Share Drive
                 </button>
               </div>
@@ -407,21 +411,18 @@ const DrivePage = ({ drive: initialDriveData }) => {
       <ChildModal
         isOpen={isChildModalOpen}
         onClose={closeChildModal}
-        childId={selectedChildIdForModal} // Pass unique_children.child_id to modal
+        childId={selectedChildIdForModal}
       />
       <Footer />
     </>
   );
 };
 
-
-// Updated getServerSideProps for DrivePage
 export async function getServerSideProps(context) {
-  const { id } = context.params; // Drive ID
+  const { id } = context.params;
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   try {
-    // 1. Fetch base drive details (includes org info and children list)
     const driveResponse = await axios.get(`${apiUrl}/api/drives/${id}`);
     const driveData = driveResponse.data;
 
@@ -429,24 +430,19 @@ export async function getServerSideProps(context) {
       return { notFound: true };
     }
 
-    // 2. Fetch drive-level items separately (this endpoint needs to be updated)
-    // This endpoint now returns `allow_donor_variant_choice`, `base_rye_product_id_for_donor_choice`, etc.
     const driveItemsResponse = await axios.get(`${apiUrl}/api/drives/${id}/items`);
     const driveSpecificItems = driveItemsResponse.data || [];
 
-    // 3. Fetch aggregate totals (remains the same)
     const aggregateResponse = await axios.get(`${apiUrl}/api/drives/${id}/aggregate`);
     const aggregate = aggregateResponse.data;
 
-    // 4. Combine data
     const finalDriveData = {
       ...driveData,
-      items: driveSpecificItems, // Use the detailed items from /api/drives/:id/items
+      items: driveSpecificItems,
       children: driveData.children || [],
       totalNeeded: Number(aggregate.totalNeeded) || 0,
       totalPurchased: Number(aggregate.totalPurchased) || 0,
-      id: driveData.drive_id.toString(), // For consistency if Link components expect string IDs
-      // org_city and org_state should come from the initial driveResponse if backend joins correctly
+      id: driveData.drive_id.toString(),
     };
 
     return {
@@ -454,12 +450,10 @@ export async function getServerSideProps(context) {
     };
   } catch (error) {
     console.error(`Error fetching data for drive ${id}:`, error.response?.data || error.message);
-    return { props: { drive: null } }; // Or return notFound: true
+    return { props: { drive: null } };
   }
 }
 
-// PropTypes remain largely the same, but the `items` array structure will change
-// based on what your updated `/api/drives/:id/items` endpoint returns.
 DrivePage.propTypes = {
   drive: PropTypes.shape({
     drive_id: PropTypes.number.isRequired,
@@ -476,39 +470,37 @@ DrivePage.propTypes = {
     donorsCount: PropTypes.number,
     children: PropTypes.arrayOf(
       PropTypes.shape({
-        child_id: PropTypes.number.isRequired, // This is unique_children.child_id
+        child_id: PropTypes.number.isRequired,
         child_name: PropTypes.string.isRequired,
         child_photo: PropTypes.string,
       })
     ),
     items: PropTypes.arrayOf(
       PropTypes.shape({
-        drive_item_id: PropTypes.number.isRequired, // ID of the link entry in drive_items
+        drive_item_id: PropTypes.number.isRequired,
         needed: PropTypes.number,
         purchased: PropTypes.number,
         remaining: PropTypes.number,
         allow_donor_variant_choice: PropTypes.bool.isRequired,
-        base_rye_product_id_for_donor_choice: PropTypes.string, // Rye Product ID for base
+        base_rye_product_id_for_donor_choice: PropTypes.string,
         base_marketplace_for_donor_choice: PropTypes.string,
-        display: PropTypes.shape({ // General display info (could be base product or preset variant)
+        display: PropTypes.shape({
           name: PropTypes.string,
           photo: PropTypes.string,
           description: PropTypes.string,
-          price: PropTypes.number, // For preset variant
-          priceDisplay: PropTypes.string, // For donor choice or preset
+          price: PropTypes.number,
+          priceDisplay: PropTypes.string,
         }),
-        // Details for a preset variant
         preset_details: PropTypes.shape({
-          internal_item_id: PropTypes.number, // Your DB's item_id for this specific variant
+          internal_item_id: PropTypes.number,
           name: PropTypes.string,
           photo: PropTypes.string,
           price: PropTypes.number,
           is_rye_linked: PropTypes.bool,
-          rye_id_to_add_directly: PropTypes.string, // Specific Rye ID (variant or product)
+          rye_id_to_add_directly: PropTypes.string,
           marketplace: PropTypes.string,
-          base_rye_product_id: PropTypes.string, // Parent product ID
+          base_rye_product_id: PropTypes.string,
         }),
-        // Your internal item_id if it's a preset variant from `items` table
         internal_item_id: PropTypes.number,
       })
     ),
