@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { AuthContext } from './AuthContext'; // Import AuthContext to check login status
+import { useRouter } from 'next/router'; // <<<< IMPORT useRouter
 
 export const CartContext = createContext();
 
@@ -13,6 +14,7 @@ export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState(null); // Will hold the Rye cart object or null
   const [loading, setLoading] = useState(true);
   const { user, loading: authLoading } = useContext(AuthContext); // Get user status
+  const router = useRouter(); // <<<< GET ROUTER INSTANCE
 
   // Define fetchCart using useCallback to stabilize its identity
   const fetchCart = useCallback(async () => {
@@ -57,22 +59,23 @@ export const CartProvider = ({ children }) => {
    * Adds an item to the cart via YOUR backend.
    * Passes the INTERNAL GiftDrive item ID.
    */
-  const addToCart = async (giftDriveItemId, quantity = 1) => {
+  const addToCart = async (payload) => { // <<<< CHANGED SIGNATURE
+    // payload = { ryeIdToAdd, marketplaceForItem, quantity, originalNeedRefId, originalNeedRefType }
     if (!user) {
       toast.error("Please log in to add items to your cart.");
+      router.push('/auth/login'); // Redirect to login if not authenticated
       return;
     }
-    console.log(`CartContext: Adding GiftDrive Item ID ${giftDriveItemId} (Qty: ${quantity})`);
-    // No need to set loading here, rely on feedback from API call
+    console.log(`CartContext: Adding item via detailed payload:`, payload);
     try {
-      // Calls YOUR backend's POST /api/cart/add endpoint
       const response = await axios.post(
         `${apiUrl}/api/cart/add`,
-        { giftDriveItemId, quantity }, // Send GiftDrive ID
+        payload, // Send the detailed payload
         { withCredentials: true }
       );
-      setCart(response.data); // Update state with the new Rye cart object from backend
+      setCart(response.data);
       toast.success('Item added to cart!');
+      router.push('/visible/cart'); // Redirect to cart page
     } catch (error) {
       console.error('CartContext: Error adding to cart:', error.response?.data || error.message);
       toast.error(error.response?.data?.error || 'Failed to add item to cart.');
