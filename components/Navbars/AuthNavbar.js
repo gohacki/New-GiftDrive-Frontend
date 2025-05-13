@@ -1,14 +1,14 @@
-// src/components/Navbars/AdminNavbar.js
-
+// src/components/Navbars/AuthNavbar.js
 import React, { useContext, useState, useEffect } from 'react';
 import Link from 'next/link';
+import PropTypes from 'prop-types'; // Make sure PropTypes is imported
 import { AuthContext } from '../../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { FaShoppingCart } from 'react-icons/fa';
 import { CartContext } from '../../contexts/CartContext';
 
-const Navbar = () => {
+const Navbar = ({ transparent, isBladeOpen }) => { // Add isBladeOpen prop
   const { user, logout } = useContext(AuthContext);
   const [navbarOpen, setNavbarOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -18,23 +18,24 @@ const Navbar = () => {
     ? cart.items.reduce((total, item) => total + item.quantity, 0)
     : 0;
 
-  // Handle scroll event to toggle navbar background
   useEffect(() => {
     const handleScroll = () => {
       const offset = window.scrollY;
       setScrolled(offset > 50);
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    if (transparent) { // Only add scroll listener if navbar is transparent initially
+      window.addEventListener('scroll', handleScroll);
+      return () => window.removeEventListener('scroll', handleScroll);
+    } else {
+      setScrolled(true); // If not transparent, assume it's always "scrolled" state for background
+    }
+  }, [transparent]);
 
-  // Close navbar when route changes
   useEffect(() => {
     const handleRouteChange = () => {
       setNavbarOpen(false);
     };
-
     router.events.on('routeChangeStart', handleRouteChange);
     return () => {
       router.events.off('routeChangeStart', handleRouteChange);
@@ -48,15 +49,17 @@ const Navbar = () => {
     router.push('/');
   };
 
-  // Determine active link
   const isActive = (href) => router.pathname === href;
 
   return (
     <nav
-      className={`fixed top-0 z-50 w-full transition-colors duration-300 ${scrolled || navbarOpen ? 'bg-secondary_green shadow-lg' : 'bg-transparent'
-        }`}
+      className={`fixed top-0 left-0 z-50 w-full 
+                 transition-all duration-300 ease-in-out
+                 ${(transparent && !scrolled && !navbarOpen) ? 'bg-transparent' : 'bg-secondary_green shadow-lg'}
+                 ${isBladeOpen ? 'pr-[15rem]' : 'pr-0'}`} // Adjusted width: max-w-60 is 15rem
     >
       <div className="container mx-auto px-4 py-3 flex flex-wrap items-center">
+        {/* ... rest of your Navbar content (Brand, Toggler, Links) ... */}
         {/* Brand + Toggler in one row */}
         <div className="flex w-full lg:w-auto items-center">
           {/* Brand (GiftDrive) centered */}
@@ -110,7 +113,7 @@ const Navbar = () => {
 
         {/* Navbar Links */}
         <div
-          className={`lg:flex flex-grow items-center transition-all duration-300 ease-in-out ${navbarOpen ? 'block bg-secondary-green lg:bg-transparent' : 'hidden'
+          className={`lg:flex flex-grow items-center transition-all duration-300 ease-in-out ${navbarOpen ? `block ${transparent ? 'bg-secondary_green lg:bg-transparent' : 'bg-secondary_green'}` : 'hidden'
             }`}
           id="navbar-menu"
         >
@@ -240,7 +243,6 @@ const Navbar = () => {
                 </div>
               </Link>
             </li>
-
           </ul>
         </div>
         {/* Cart Icon for Large Screens */}
@@ -256,10 +258,19 @@ const Navbar = () => {
             </div>
           </Link>
         </div>
-
       </div>
     </nav>
   );
+};
+
+Navbar.propTypes = {
+  transparent: PropTypes.bool,
+  isBladeOpen: PropTypes.bool, // Add this prop type
+};
+
+Navbar.defaultProps = {
+  transparent: false,
+  isBladeOpen: false, // Default value for the new prop
 };
 
 export default Navbar;

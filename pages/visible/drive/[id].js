@@ -233,8 +233,8 @@ const DrivePage = ({ drive: initialDriveData }) => {
 
   return (
     <>
-      <Navbar />
-      <main className={`min-h-screen bg-secondary_green text-gray-800 relative pt-24 pb-16 ${isCartBladeEffectivelyOpen ? 'lg:mr-[20rem] xl:mr-[24rem]' : ''} transition-margin duration-300 ease-in-out`}>
+      <Navbar transparent isBladeOpen={isCartBladeEffectivelyOpen} />
+      <main className={`min-h-screen bg-secondary_green text-gray-800 relative pt-24 pb-16 ${isCartBladeEffectivelyOpen ? 'mr-[15rem]' : 'mr-0'} transition-margin duration-300 ease-in-out`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Breadcrumbs
             links={[
@@ -308,10 +308,10 @@ const DrivePage = ({ drive: initialDriveData }) => {
             </aside>
           </div>
         </div>
-      </main>
+      </main >
       <ChildModal isOpen={isChildModalOpen} onClose={closeChildModal} childId={selectedChildIdForModal} />
       <CartBlade isOpen={isCartBladeEffectivelyOpen} onClose={handleBladeClose} />
-      <Footer />
+      <Footer isBladeOpen={isCartBladeEffectivelyOpen} />
     </>
   );
 };

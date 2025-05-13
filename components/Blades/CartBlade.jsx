@@ -2,17 +2,18 @@
 import React, { useContext } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { XMarkIcon, ShoppingCartIcon } from '@heroicons/react/24/solid';
-import { CartContext } from '@/contexts/CartContext'; // Adjust path if needed
-import { formatCurrency } from '@/lib/utils'; // Adjust path if needed
+// REMOVE: import { XMarkIcon } from '@heroicons/react/24/solid'; // No longer needed
+import { ShoppingCartIcon } from '@heroicons/react/24/outline'; // Using outline for a potentially smaller look
+import { CartContext } from '@/contexts/CartContext';
+import { formatCurrency } from '@/lib/utils';
 
-const CartBlade = ({ isOpen, onClose }) => {
+const CartBlade = ({ isOpen, onClose }) => { // onClose is still used by the "Go to Cart" button
     const { cart, removeFromCart, updateCartItemQuantity, loading: cartLoading } = useContext(CartContext);
 
     if (!isOpen) return null;
 
     const hasItems = cart?.stores?.some(store => store.cartLines?.length > 0);
-    const totalAmount = cart?.cost?.total;
+    const subtotalAmount = cart?.cost?.subtotal; // Use subtotal for the top display
 
     const handleUpdateQuantity = (ryeItemId, marketplace, newQuantity) => {
         if (newQuantity <= 0) {
@@ -22,78 +23,107 @@ const CartBlade = ({ isOpen, onClose }) => {
         }
     };
 
+    // Placeholder for free shipping logic - adjust as needed
+    const qualifiesForFreeShipping = subtotalAmount?.value > 5000; // Example: free shipping over $50
+
     return (
         <>
-            {/* Blade Content */}
+            {/* Blade Content - ADJUSTED WIDTH and REMOVED X BUTTON */}
             <div
-                className={`fixed top-0 right-0 h-full w-full max-w-xs md:max-w-sm bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}
+                className={`fixed top-0 right-0 h-full w-full max-w-60 bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}
                 role="dialog"
                 aria-modal="true"
-                aria-labelledby="cart-blade-title"
+                aria-labelledby="cart-blade-title" // Keep for accessibility, even if title isn't visible
             >
-                {/* Header */}
-                <div className="flex justify-between items-center p-4 border-b border-gray-200 flex-shrink-0">
-                    <h2 id="cart-blade-title" className="text-xl font-semibold text-gray-800 flex items-center">
-                        <ShoppingCartIcon className="h-6 w-6 mr-2 text-ggreen" />
-                        Your Cart
-                    </h2>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
-                        aria-label="Close cart panel"
-                    >
-                        <XMarkIcon className="h-6 w-6" />
-                    </button>
+                {/* Header Section - AMAZON STYLE */}
+                <div className="p-3 border-b border-gray-200 flex-shrink-0">
+                    {subtotalAmount?.value != null ? (
+                        <div className="text-center mb-2">
+                            <span className="text-sm text-gray-600">Subtotal</span>
+                            <p className="text-xl font-bold text-ggreen">
+                                {formatCurrency(subtotalAmount.value, subtotalAmount.currency)}
+                            </p>
+                        </div>
+                    ) : (
+                        <p className="text-sm text-gray-500 text-center py-2">Calculating...</p>
+                    )}
+
+                    {/* Placeholder for Free Shipping Message */}
+                    {qualifiesForFreeShipping && (
+                        <p className="text-xs text-green-600 text-center mb-2">
+                            Your order qualifies for FREE Shipping.
+                            {/* <a href="#" className="underline ml-1">See details</a> */}
+                        </p>
+                    )}
+
+                    <Link href="/visible/cart" passHref legacyBehavior>
+                        <a
+                            onClick={onClose} // Close blade when navigating to full cart page
+                            className="block w-full text-center px-3 py-2 border border-gray-400 rounded-md bg-white text-gray-800 hover:bg-gray-50 text-sm font-semibold shadow-sm"
+                        >
+                            Go to Cart
+                        </a>
+                    </Link>
                 </div>
 
-                {/* Cart Items */}
-                <div className="flex-grow overflow-y-auto p-4 space-y-3">
-                    {cartLoading && !cart && <p className="text-gray-500 text-center py-4">Loading cart...</p>}
+                {/* Cart Items Area */}
+                <div className="flex-grow overflow-y-auto p-3 space-y-3">
+                    {cartLoading && !hasItems && <p className="text-gray-500 text-center py-4 text-xs">Loading cart...</p>}
                     {!cartLoading && !hasItems && (
-                        <p className="text-gray-500 text-center py-4">Your cart is empty.</p>
+                        <p className="text-gray-500 text-center py-4 text-xs">Your cart is empty.</p>
                     )}
+
                     {hasItems && cart.stores.map((store, storeIndex) => {
                         const marketplace = store.__typename === 'ShopifyStore' ? 'SHOPIFY' : 'AMAZON';
                         return (
-                            <div key={store.store || storeIndex} className="pt-1">
-                                {/* Optional: Store Name if you want to differentiate
-                <h4 className="font-medium text-xs text-gray-500 mb-1 border-b pb-0.5 uppercase">
-                  {store.store === 'amazon' ? 'Amazon' : `Store: ${store.store}`}
-                </h4> */}
+                            <div key={store.store || storeIndex}>
                                 {store.cartLines?.map((line, itemIndex) => {
                                     const isShopify = marketplace === 'SHOPIFY';
                                     const itemData = isShopify ? line.variant : line.product;
                                     const ryeItemId = itemData?.id || `item-${storeIndex}-${itemIndex}`;
+
                                     const baseProductName = line.giftdrive_base_product_name || (isShopify ? line.product?.title : itemData?.title) || 'Unknown Product';
                                     const variantDetailsText = line.giftdrive_variant_details_text || (isShopify ? itemData?.title : null);
                                     let displayTitle = baseProductName;
-                                    let displaySubline = null;
                                     if (variantDetailsText && variantDetailsText !== baseProductName) {
                                         let specificVariantPart = variantDetailsText.replace(baseProductName, '').trim();
                                         if (specificVariantPart.startsWith('- ')) specificVariantPart = specificVariantPart.substring(2).trim();
-                                        displaySubline = specificVariantPart || variantDetailsText;
+                                        if (specificVariantPart) displayTitle += ` - ${specificVariantPart}`;
                                     } else if (isShopify && itemData?.title && itemData.title !== baseProductName) {
-                                        displaySubline = itemData.title;
+                                        displayTitle += ` - ${itemData.title.replace(baseProductName, '').trim()}`;
                                     }
+
                                     const imageUrl = isShopify ? itemData?.image?.url : itemData?.images?.[0]?.url;
                                     const placeholderImg = '/placeholder-image.png';
+                                    const itemPrice = itemData?.priceV2?.value != null ? itemData.priceV2 : (itemData?.price || null);
+
 
                                     return (
-                                        <div key={ryeItemId} className="bg-gray-50 p-2.5 rounded border border-gray-200 mb-2 flex items-start gap-3 text-sm">
-                                            <div className="w-16 h-16 relative flex-shrink-0 border bg-white rounded overflow-hidden">
-                                                <Image src={imageUrl || placeholderImg} alt={displayTitle} fill style={{ objectFit: 'contain' }} sizes="64px" onError={(e) => e.currentTarget.src = placeholderImg} />
+                                        <div key={ryeItemId} className="bg-gray-50 p-2 rounded border border-gray-200 text-xs">
+                                            <div className="w-full h-24 relative mb-2 border bg-white rounded overflow-hidden">
+                                                <Image src={imageUrl || placeholderImg} alt={displayTitle} fill style={{ objectFit: 'contain' }} sizes="96px" onError={(e) => e.currentTarget.src = placeholderImg} />
                                             </div>
-                                            <div className="flex-grow min-w-0">
-                                                <p className="font-medium text-gray-800 leading-tight truncate text-xs" title={displayTitle}>{displayTitle}</p>
-                                                {displaySubline && <p className="text-xs text-gray-500 truncate" title={displaySubline}>{displaySubline}</p>}
-                                                {itemData?.priceV2?.value != null && <p className="text-xs font-semibold text-gray-700">{formatCurrency(itemData.priceV2.value, itemData.priceV2.currency)}</p>}
-                                                {itemData?.price?.value != null && !itemData.priceV2 && <p className="text-xs font-semibold text-gray-700">{formatCurrency(itemData.price.value, itemData.price.currency)}</p>}
-                                                <div className="flex items-center gap-1.5 mt-1.5">
-                                                    <button onClick={() => handleUpdateQuantity(ryeItemId, marketplace, line.quantity - 1)} disabled={cartLoading} className="px-1.5 py-0.5 text-xs bg-gray-300 hover:bg-gray-400 text-gray-800 rounded disabled:opacity-50" aria-label={`Decrease quantity of ${displayTitle}`}>-</button>
-                                                    <span className="text-xs font-medium w-5 text-center">{line.quantity}</span>
-                                                    <button onClick={() => handleUpdateQuantity(ryeItemId, marketplace, line.quantity + 1)} disabled={cartLoading} className="px-1.5 py-0.5 text-xs bg-gray-300 hover:bg-gray-400 text-gray-800 rounded disabled:opacity-50" aria-label={`Increase quantity of ${displayTitle}`}>+</button>
-                                                    <button onClick={() => removeFromCart(ryeItemId, marketplace)} disabled={cartLoading} className="ml-auto text-red-500 hover:text-red-700 text-xs disabled:opacity-50" aria-label={`Remove ${displayTitle} from cart`}>Remove</button>
-                                                </div>
+                                            {/* Title can be here or below price */}
+                                            <p className="font-medium text-gray-700 leading-tight truncate mb-1" title={displayTitle}>{displayTitle}</p>
+
+                                            {itemPrice?.value != null && (
+                                                <p className="font-semibold text-gray-800 text-center mb-1.5">
+                                                    {formatCurrency(itemPrice.value, itemPrice.currency)}
+                                                </p>
+                                            )}
+
+                                            <div className="flex items-center justify-center gap-1.5">
+                                                <button
+                                                    onClick={() => handleUpdateQuantity(ryeItemId, marketplace, line.quantity - 1)}
+                                                    disabled={cartLoading}
+                                                    className="px-2 py-1 text-sm bg-yellow-400 hover:bg-yellow-500 text-black rounded-l-md disabled:opacity-50 font-bold"
+                                                    aria-label={`Decrease quantity of ${displayTitle}`}>-</button>
+                                                <span className="text-sm font-medium w-6 text-center bg-white border-t border-b border-gray-300 py-1">{line.quantity}</span>
+                                                <button
+                                                    onClick={() => handleUpdateQuantity(ryeItemId, marketplace, line.quantity + 1)}
+                                                    disabled={cartLoading}
+                                                    className="px-2 py-1 text-sm bg-yellow-400 hover:bg-yellow-500 text-black rounded-r-md disabled:opacity-50 font-bold"
+                                                    aria-label={`Increase quantity of ${displayTitle}`}>+</button>
                                             </div>
                                         </div>
                                     );
@@ -103,26 +133,7 @@ const CartBlade = ({ isOpen, onClose }) => {
                     })}
                 </div>
 
-                {/* Footer Actions */}
-                {hasItems && (
-                    <div className="p-4 border-t border-gray-200 flex-shrink-0 space-y-3">
-                        {totalAmount?.value != null && (
-                            <div className="flex justify-between items-center text-lg font-semibold">
-                                <span>Subtotal:</span>
-                                <span>{formatCurrency(cart.cost.subtotal?.value || totalAmount.value, totalAmount.currency)}</span>
-                                {/* Showing subtotal for blade as shipping/tax might not be calculated yet */}
-                            </div>
-                        )}
-                        <Link href="/visible/cart" passHref legacyBehavior>
-                            <a
-                                onClick={onClose} // Close blade when navigating to full cart page
-                                className="block w-full text-center px-6 py-3 bg-ggreen text-white font-semibold rounded-md hover:bg-teal-700 transition-colors"
-                            >
-                                View Full Cart & Checkout
-                            </a>
-                        </Link>
-                    </div>
-                )}
+                {/* Footer is removed as per Amazon style - "Go to Cart" is in the header */}
             </div>
         </>
     );
