@@ -5,23 +5,24 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { RyePay } from '@rye-api/rye-pay'; // Ensure this path is correct
 import { formatCurrency } from '../../lib/utils'; // Adjust path if needed
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL; // Ensure apiUrl is defined
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 export default function RyePayForm({ cartData, onProcessing, onSuccess, onError }) {
     const [message, setMessage] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isRyePayReady, setIsRyePayReady] = useState(false);
+
+    // Refs
     const ryePayInstanceRef = useRef(null);
     const formRef = useRef(null);
-    const targetCartIdRef = useRef(null); // Tracks the cart ID this component *intends* to be for
-    const instanceCartIdRef = useRef(null); // Tracks the cart ID an instance was *actually* initialized with
+    const targetCartIdRef = useRef(null);
+    const instanceCartIdRef = useRef(null);
 
-    // --- Refs for callback props from parent ---
+    // Refs for callback props
     const onSuccessRef = useRef(onSuccess);
     const onErrorRef = useRef(onError);
     const onProcessingRef = useRef(onProcessing);
 
-    // Update refs if callback props change (this pattern makes them stable for the main useEffect)
     useEffect(() => { onSuccessRef.current = onSuccess; }, [onSuccess]);
     useEffect(() => { onErrorRef.current = onError; }, [onError]);
     useEffect(() => { onProcessingRef.current = onProcessing; }, [onProcessing]);
@@ -95,6 +96,7 @@ export default function RyePayForm({ cartData, onProcessing, onSuccess, onError 
         }
     }, [cartData?.buyerIdentity]);
 
+
     // --- Memoized generateJWT function ---
     const generateJWTCallback = useCallback(async (mountedRef, componentCartId) => {
         if (!mountedRef.current) {
@@ -115,99 +117,61 @@ export default function RyePayForm({ cartData, onProcessing, onSuccess, onError 
                 console.error("RyePayForm: Invalid JWT response structure:", data);
                 throw new Error('Invalid or missing JWT token in response from backend.');
             }
-            console.log(`RyePayForm: JWT successfully generated and fetched for cart: ${componentCartId}. Token: ${data.token.substring(0, 10)}...`);
             return data.token;
         } catch (jwtError) {
             console.error("RyePayForm: Error during JWT fetch:", jwtError);
             throw jwtError;
         }
-    }, []); // apiUrl is module-scoped, so it's stable
+    }, []);
+
+    // --- Robust DOM Clearing Function ---
+    const clearRyePayDOMHosts = useCallback(() => {
+        try {
+            const numberEl = document.getElementById('rye-card-number');
+            const cvvEl = document.getElementById('rye-cvv');
+            if (numberEl) {
+                while (numberEl.firstChild) numberEl.removeChild(numberEl.firstChild);
+            }
+            if (cvvEl) {
+                while (cvvEl.firstChild) cvvEl.removeChild(cvvEl.firstChild);
+            }
+            console.log("RyePayForm: Cleared RyePay DOM host elements.");
+        } catch (e) {
+            console.error("RyePayForm: Error clearing RyePay DOM hosts:", e);
+        }
+    }, []);
 
     // --- Initialization and Cleanup Effect ---
     useEffect(() => {
         const effectCartId = cartData?.id;
-        targetCartIdRef.current = effectCartId; // Update the target cart ID for this effect run
+        targetCartIdRef.current = effectCartId;
         const isMountedRef = { current: true };
+        let effectSpecificRyePayInstance = null;
 
-        console.log(`RyePayForm Effect START for cart: ${effectCartId}. Current Instance Cart: ${instanceCartIdRef.current}, isRyePayReady: ${isRyePayReady}`);
-
-        const cleanupInstance = () => {
-            isMountedRef.current = false; // Mark as unmounted for async operations
-            const currentInstance = ryePayInstanceRef.current;
-            const currentInstanceCartActual = instanceCartIdRef.current; // The cart this instance was for
-
-            console.log(`RyePayForm Cleanup for effect (triggered by cart: ${effectCartId}). Instance exists? ${!!currentInstance}. Instance was for cart: ${currentInstanceCartActual}. Current target cart: ${targetCartIdRef.current}`);
-
-            // Only clean up if the instance exists AND it was initialized for the cart ID this effect run is targeting
-            if (currentInstance && currentInstanceCartActual === effectCartId) {
-                console.log(`RyePayForm Cleanup: Actively cleaning up instance and DOM for cart ${effectCartId}.`);
-                try {
-                    const numberEl = document.getElementById('rye-card-number');
-                    const cvvEl = document.getElementById('rye-cvv');
-                    if (numberEl) numberEl.innerHTML = '';
-                    if (cvvEl) cvvEl.innerHTML = '';
-                    console.log(`RyePayForm Cleanup: Manually cleared iframe host elements for cart ${effectCartId}.`);
-                } catch (domError) {
-                    console.error(`Error during manual DOM cleanup for cart ${effectCartId}:`, domError);
-                }
-                ryePayInstanceRef.current = null;
-                instanceCartIdRef.current = null;
-                setIsRyePayReady(false);
-                console.log(`RyePayForm Cleanup: Instance for ${effectCartId} destroyed. isRyePayReady set to false.`);
-            } else {
-                console.log(`RyePayForm Cleanup: No active DOM/instance cleanup needed for cart ${effectCartId} (Instance not for this cart or no instance).`);
-            }
-            console.log(`RyePayForm Cleanup END for effect cart ${effectCartId}.`);
-        };
+        console.log(`RyePayForm Effect START for cart: ${effectCartId}. Global instance cart: ${instanceCartIdRef.current}, isRyePayReady: ${isRyePayReady}`);
 
         const initRyePay = async () => {
+            clearRyePayDOMHosts(); // Always clear DOM at the start of init
+
             if (!effectCartId) {
-                console.log("RyePayForm Init: No cart ID. Ensuring cleanup of any existing instance.");
-                if (ryePayInstanceRef.current) cleanupInstance(); // Full cleanup if no cart ID
+                console.log("RyePayForm Init: No cart ID. Global instance (if any) and DOM cleared.");
+                if (ryePayInstanceRef.current) {
+                    ryePayInstanceRef.current = null;
+                    instanceCartIdRef.current = null;
+                    setIsRyePayReady(false);
+                }
                 return;
             }
 
-            // If an instance exists for the *same cart ID* and is *already ready*, skip re-init.
-            if (ryePayInstanceRef.current && instanceCartIdRef.current === effectCartId && isRyePayReady) {
-                console.log(`RyePayForm Init: Instance ALREADY READY for cart ${effectCartId}. Skipping init.`);
-                onProcessingRef.current(false);
-                setMessage(null);
-                return;
-            }
-
-            // If an instance exists but is for a DIFFERENT cart, clean it up.
-            // This is important if cartData.id changes.
-            if (ryePayInstanceRef.current && instanceCartIdRef.current !== effectCartId) {
-                console.log(`RyePayForm Init: Cleaning up OLD instance (for cart ${instanceCartIdRef.current}) before initializing for new cart ${effectCartId}.`);
-                // Simulate a targeted cleanup for the old instance's cart ID
-                // This is a bit manual but ensures the old one is properly cleaned.
-                const oldCartIdToClean = instanceCartIdRef.current;
-                try {
-                    const numberEl = document.getElementById('rye-card-number');
-                    const cvvEl = document.getElementById('rye-cvv');
-                    if (numberEl) numberEl.innerHTML = '';
-                    if (cvvEl) cvvEl.innerHTML = '';
-                    console.log(`RyePayForm Init: Manually cleared iframes for OLD cart ${oldCartIdToClean}.`);
-                } catch (domError) { console.error(`Error clearing DOM for OLD cart ${oldCartIdToClean}:`, domError); }
-                ryePayInstanceRef.current = null;
-                instanceCartIdRef.current = null;
-                setIsRyePayReady(false); // Since we are about to init a new one
-                console.log(`RyePayForm Init: Old instance for ${oldCartIdToClean} cleared.`);
-            }
-
-
-            console.log(`RyePayForm Init: Proceeding with initialization for cart ${effectCartId}`);
+            console.log(`RyePayForm Init: Proceeding with NEW initialization for cart ${effectCartId}`);
             const newInstance = new RyePay();
-            ryePayInstanceRef.current = newInstance;
-            // instanceCartIdRef.current will be set in onReady for this new instance
+            effectSpecificRyePayInstance = newInstance;
 
-            setIsRyePayReady(false); // Explicitly set to false before new init
+            setIsRyePayReady(false);
             setMessage("Initializing payment fields...");
             onProcessingRef.current(true);
 
             const ryeEnvironment = process.env.NEXT_PUBLIC_RYE_ENVIRONMENT || 'stage';
-            console.log(`RyePayForm Init: Calling ryePayInstance.init for cart ${effectCartId}, env: ${ryeEnvironment}`);
-
             try {
                 await newInstance.init({
                     generateJWT: () => generateJWTCallback(isMountedRef, effectCartId),
@@ -215,13 +179,16 @@ export default function RyePayForm({ cartData, onProcessing, onSuccess, onError 
                     cvvEl: 'rye-cvv',
                     environment: ryeEnvironment,
                     onReady: () => {
-                        // Critical: Check if this onReady is for the current target cart
                         if (!isMountedRef.current || targetCartIdRef.current !== effectCartId) {
-                            console.warn(`RyePayForm: onReady triggered for outdated/unmounted instance. Expected: ${effectCartId}, Current Target: ${targetCartIdRef.current}. Ignoring.`);
-                            // If it's for an old instance, don't update state for the new one.
+                            console.warn(`RyePayForm: onReady for outdated/unmounted instance. Expected: ${effectCartId}, Current Target: ${targetCartIdRef.current}. Ignoring.`);
                             return;
                         }
-                        console.log(`RyePayForm: onReady callback successfully executed for cart ${effectCartId}.`);
+                        ryePayInstanceRef.current = newInstance; // Set global instance onReady
+                        instanceCartIdRef.current = effectCartId;
+                        setIsRyePayReady(true);
+                        setMessage(null);
+                        onProcessingRef.current(false);
+                        console.log(`RyePayForm: RyePay is fully ready for cart ${effectCartId}.`);
                         try {
                             const baseStyle = 'border: 1px solid #cbd5e1; padding: 0.5rem; border-radius: 0.375rem; height: 40px; box-sizing: border-box; width: 100%;';
                             newInstance.setStyle('number', baseStyle);
@@ -229,12 +196,6 @@ export default function RyePayForm({ cartData, onProcessing, onSuccess, onError 
                         } catch (styleError) {
                             console.error("RyePayForm: Error applying styles:", styleError);
                         }
-
-                        instanceCartIdRef.current = effectCartId; // Mark this instance as initialized for this cart
-                        setIsRyePayReady(true);
-                        setMessage(null);
-                        onProcessingRef.current(false);
-                        console.log(`RyePayForm: RyePay is fully ready for cart ${effectCartId}.`);
                     },
                     onErrors: (errors) => {
                         if (!isMountedRef.current || targetCartIdRef.current !== effectCartId) return;
@@ -253,8 +214,13 @@ export default function RyePayForm({ cartData, onProcessing, onSuccess, onError 
                         onErrorRef.current(errorText);
                         setIsRyePayReady(false);
                         onProcessingRef.current(false);
-                        ryePayInstanceRef.current = null; // Critical error, allow re-init
-                        instanceCartIdRef.current = null;
+                        if (ryePayInstanceRef.current === newInstance) {
+                            ryePayInstanceRef.current = null;
+                            instanceCartIdRef.current = null;
+                        }
+                        if (effectSpecificRyePayInstance === newInstance) {
+                            effectSpecificRyePayInstance = null;
+                        }
                     },
                     onCartSubmitted: (result, submitErrors, paymentType) => {
                         if (!isMountedRef.current || targetCartIdRef.current !== effectCartId) {
@@ -262,8 +228,7 @@ export default function RyePayForm({ cartData, onProcessing, onSuccess, onError 
                         }
                         setIsSubmitting(false);
                         onProcessingRef.current(false);
-                        console.log(`RyePayForm: onCartSubmitted for cart ${effectCartId} - PaymentType: ${paymentType}`);
-
+                        // ... (rest of onCartSubmitted logic from your previous working version)
                         if (submitErrors && submitErrors.length > 0) {
                             const errorMsg = `Order submission failed: ${submitErrors[0].message || JSON.stringify(submitErrors)}`;
                             setMessage(errorMsg);
@@ -297,25 +262,41 @@ export default function RyePayForm({ cartData, onProcessing, onSuccess, onError 
             } catch (initError) {
                 if (!isMountedRef.current || targetCartIdRef.current !== effectCartId) return;
                 console.error(`RyePayForm Init Error for cart ${effectCartId}:`, initError);
-                if (targetCartIdRef.current === effectCartId) { // Only update state if this error is for the current target
-                    const errorText = `Payment system setup failed: ${initError.message}. Please refresh.`;
-                    setMessage(errorText);
-                    onErrorRef.current(errorText);
-                    setIsRyePayReady(false);
-                    onProcessingRef.current(false);
+                const errorText = `Payment system setup failed: ${initError.message}. Please refresh.`;
+                setMessage(errorText);
+                onErrorRef.current(errorText);
+                setIsRyePayReady(false);
+                onProcessingRef.current(false);
+                if (ryePayInstanceRef.current === newInstance) {
                     ryePayInstanceRef.current = null;
                     instanceCartIdRef.current = null;
-                } else {
-                    console.warn(`RyePayForm Init Error caught for an outdated cart init (${effectCartId}). Current target cart: ${targetCartIdRef.current}. Ignoring state updates.`);
+                }
+                if (effectSpecificRyePayInstance === newInstance) {
+                    effectSpecificRyePayInstance = null;
                 }
             }
         };
 
         initRyePay();
 
-        return cleanupInstance; // Return the cleanup function
-    }, [cartData?.id, generateJWTCallback]); // Only re-run if cartId or generateJWT changes
+        return () => {
+            isMountedRef.current = false;
+            console.log(`RyePayForm Cleanup for effect targeting cart: ${effectCartId}.`);
 
+            clearRyePayDOMHosts(); // Ensure DOM is clear on cleanup
+
+            if (effectSpecificRyePayInstance) {
+                if (ryePayInstanceRef.current === effectSpecificRyePayInstance) {
+                    ryePayInstanceRef.current = null;
+                    instanceCartIdRef.current = null;
+                    setIsRyePayReady(false);
+                    console.log(`RyePayForm Cleanup: Global instance (which was this effect's instance) cleared.`);
+                }
+            }
+            effectSpecificRyePayInstance = null;
+            console.log(`RyePayForm Cleanup END for effect targeting cart ${effectCartId}.`);
+        };
+    }, [cartData?.id, generateJWTCallback, clearRyePayDOMHosts]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -325,19 +306,17 @@ export default function RyePayForm({ cartData, onProcessing, onSuccess, onError 
         const currentInstance = ryePayInstanceRef.current;
         const currentInstanceCart = instanceCartIdRef.current;
 
-        // --- Submission Guards ---
         if (!activeCartId) {
             setMessage("Error: No active cart to submit.");
-            onErrorRef.current("Submit failed: No active cart."); // Use ref
+            onErrorRef.current("Submit failed: No active cart.");
             return;
         }
         if (!currentInstance || !isRyePayReady || currentInstanceCart !== activeCartId) {
             console.warn(`Submit prevented: Instance Ready: ${isRyePayReady}, Instance Exists: ${!!currentInstance}, Instance Cart: ${currentInstanceCart}, Active Cart: ${activeCartId}`);
             setMessage("Payment system is not ready or is for a different cart. Please wait.");
-            onErrorRef.current("Payment system not ready or mismatched for submission."); // Use ref
+            onErrorRef.current("Payment system not ready or mismatched for submission.");
             return;
         }
-
         // --- Billing Details Client-Side Validation ---
         const requiredBillingFields = ['first_name', 'last_name', 'month', 'year', 'address1', 'city', 'state', 'zip', 'country', 'phone'];
         for (const field of requiredBillingFields) {
@@ -345,14 +324,14 @@ export default function RyePayForm({ cartData, onProcessing, onSuccess, onError 
             if (value == null || String(value).trim() === '') {
                 const friendlyFieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                 setMessage(`Billing field '${friendlyFieldName}' is required.`);
-                onProcessingRef.current(false); // Use ref
+                onProcessingRef.current(false);
                 return;
             }
         }
         const phoneRegex = /^\+[1-9]\d{1,14}$/;
         if (!phoneRegex.test(billingDetails.phone.trim())) {
             setMessage("Billing Phone must be in international E.164 format (e.g., +14155552671).");
-            onProcessingRef.current(false); // Use ref
+            onProcessingRef.current(false);
             return;
         }
         const currentYearFull = new Date().getFullYear();
@@ -361,61 +340,49 @@ export default function RyePayForm({ cartData, onProcessing, onSuccess, onError 
         const expiryMonth = parseInt(billingDetails.month, 10);
         if (!/^\d{2}$/.test(billingDetails.month) || !/^\d{4}$/.test(billingDetails.year) || expiryMonth < 1 || expiryMonth > 12) {
             setMessage("Invalid expiry month (MM) or year (YYYY).");
-            onProcessingRef.current(false); // Use ref
+            onProcessingRef.current(false);
             return;
         }
         if (expiryYearFull < currentYearFull || (expiryYearFull === currentYearFull && expiryMonth < currentMonth)) {
             setMessage("Card has expired.");
-            onProcessingRef.current(false); // Use ref
+            onProcessingRef.current(false);
             return;
         }
-        // --- End Validations ---
 
         setIsSubmitting(true);
-        onProcessingRef.current(true); // Use ref
+        onProcessingRef.current(true);
 
-        // --- Shipping Options Derivation & Check ---
-        let derivedShippingOptions = []; // Use this variable name
+        let derivedShippingOptions = [];
         let shippingSelectionError = null;
-
         if (!cartData?.stores || cartData.stores.length === 0) {
             shippingSelectionError = "No stores found in cart.";
         } else {
             for (const store of cartData.stores) {
                 let shippingIdToUse = store.offer?.selectedShippingMethod?.id;
-
                 if (!shippingIdToUse && store.offer?.shippingMethods?.length > 0) {
                     shippingIdToUse = store.offer.shippingMethods[0].id;
-                    console.log(`RyePayForm: Auto-selecting first shipping method '${shippingIdToUse}' for store '${store.store}'`);
                 }
-
                 if (shippingIdToUse) {
-                    derivedShippingOptions.push({ // Populate derivedShippingOptions
-                        store: store.store,
-                        shippingId: shippingIdToUse,
-                    });
+                    derivedShippingOptions.push({ store: store.store, shippingId: shippingIdToUse });
                 } else {
                     shippingSelectionError = `No shipping method available or selectable for store: ${store.store}.`;
                     break;
                 }
             }
         }
-
         if (shippingSelectionError || derivedShippingOptions.length !== cartData.stores.length) {
-            const finalErrorMessage = shippingSelectionError || "Shipping selection is incomplete or missing for one or more stores.";
+            const finalErrorMessage = shippingSelectionError || "Shipping selection is incomplete.";
             setMessage(finalErrorMessage + " Please go back or refresh.");
             setIsSubmitting(false);
-            onProcessingRef.current(false); // Use ref
-            onErrorRef.current(finalErrorMessage); // Use ref
+            onProcessingRef.current(false);
+            onErrorRef.current(finalErrorMessage);
             return;
         }
-        // --- End Shipping Options ---
 
-        console.log(`RyePayForm: Calling ryePayInstance.submit for cart: ${activeCartId} with shipping:`, derivedShippingOptions);
         try {
             currentInstance.submit({
                 cartId: activeCartId,
-                selectedShippingOptions: derivedShippingOptions, // ***** CORRECTED VARIABLE NAME HERE *****
+                selectedShippingOptions: derivedShippingOptions,
                 first_name: billingDetails.first_name.trim(),
                 last_name: billingDetails.last_name.trim(),
                 phone_number: billingDetails.phone.trim(),
@@ -428,13 +395,12 @@ export default function RyePayForm({ cartData, onProcessing, onSuccess, onError 
                 zip: billingDetails.zip.trim(),
                 country: billingDetails.country,
             });
-            // Result handled by onCartSubmitted callback
         } catch (submitError) {
             console.error("RyePayForm: Error calling ryePay.submit:", submitError);
             setMessage(`Error submitting payment: ${submitError.message}`);
-            onErrorRef.current(`Error submitting payment: ${submitError.message}`); // Use ref
+            onErrorRef.current(`Error submitting payment: ${submitError.message}`);
             setIsSubmitting(false);
-            onProcessingRef.current(false); // Use ref
+            onProcessingRef.current(false);
         }
     };
 
