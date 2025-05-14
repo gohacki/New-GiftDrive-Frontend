@@ -2,6 +2,7 @@
 import { formatCurrency } from '@/lib/utils';
 import Image from 'next/image';
 import React from 'react';
+import PropTypes from 'prop-types';
 
 export default function CartDisplay({ cart, checkoutStep, onRemoveItem, onUpdateItemQuantity, isLoading }) {
 
@@ -196,3 +197,46 @@ export default function CartDisplay({ cart, checkoutStep, onRemoveItem, onUpdate
         </fieldset>
     );
 }
+const cartLineItemShape = PropTypes.shape({
+    giftdrive_base_product_name: PropTypes.string,
+    giftdrive_variant_details_text: PropTypes.string,
+    quantity: PropTypes.number,
+    variant: PropTypes.shape({ // For Shopify variant
+        id: PropTypes.string,
+        title: PropTypes.string,
+        image: PropTypes.shape({ url: PropTypes.string }),
+        priceV2: PropTypes.shape({ value: PropTypes.number, currency: PropTypes.string }),
+    }),
+    product: PropTypes.shape({ // For Amazon product or Shopify parent product
+        id: PropTypes.string,
+        title: PropTypes.string,
+        images: PropTypes.arrayOf(PropTypes.shape({ url: PropTypes.string })),
+        price: PropTypes.shape({ value: PropTypes.number, currency: PropTypes.string }),
+    }),
+});
+
+CartDisplay.propTypes = {
+    cart: PropTypes.shape({
+        stores: PropTypes.arrayOf(PropTypes.shape({
+            __typename: PropTypes.string,
+            store: PropTypes.string,
+            cartLines: PropTypes.arrayOf(cartLineItemShape),
+            errors: PropTypes.array,
+            offer: PropTypes.shape({
+                errors: PropTypes.array,
+                notAvailableIds: PropTypes.array,
+            }),
+        })),
+        cost: PropTypes.shape({
+            subtotal: PropTypes.object, // Assuming formatCurrency handles its structure
+            shipping: PropTypes.object,
+            tax: PropTypes.object,
+            total: PropTypes.object,
+            isEstimated: PropTypes.bool,
+        }),
+    }),
+    checkoutStep: PropTypes.string,
+    onRemoveItem: PropTypes.func.isRequired,
+    onUpdateItemQuantity: PropTypes.func.isRequired,
+    isLoading: PropTypes.bool,
+};

@@ -3,7 +3,6 @@ import React, { useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import PropTypes from 'prop-types';
 import { useRouter } from 'next/router';
-import Link from 'next/link'; // Keep Link import
 import { toast } from 'react-toastify';
 import { FaArrowLeft } from 'react-icons/fa';
 
@@ -35,7 +34,7 @@ function isThisSpecificNeedInCart(itemNeed, cartFromContext, itemNeedKeyType) {
 
 const DrivePage = ({ drive: initialDriveData }) => {
   const router = useRouter();
-  const { cart, setCart, loading: cartLoading, addToCart, removeFromCart, updateCartItemQuantity, fetchCart } = useContext(CartContext);
+  const { cart, loading: cartLoading, addToCart, removeFromCart } = useContext(CartContext);
   const { user } = useContext(AuthContext);
 
   const [drive, setDrive] = useState(initialDriveData);
@@ -289,7 +288,7 @@ const DrivePage = ({ drive: initialDriveData }) => {
               />
 
               <SupportedChildrenSection
-                children={drive.children || []}
+                childDataList={drive.children || []} // Changed prop name from 'children' to 'childDataList'
                 driveName={drive.name}
                 onOpenChildModal={openChildModal}
               />

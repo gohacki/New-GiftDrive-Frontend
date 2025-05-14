@@ -343,7 +343,7 @@ const AddItemBlade = ({ isOpen, driveId, existingDriveItem, onSave, onClose }) =
                             )}
                             {selectedBaseItem.marketplace?.toUpperCase() === 'AMAZON' && (
                                 <div className="mb-4 p-2 border rounded-md bg-gray-50 text-sm text-gray-700">
-                                    The selected Amazon product "{selectedBaseItem.name}" will be added.
+                                    The selected Amazon product &quot;{selectedBaseItem.name}&quot; will be added.
                                     {isLoadingVariants && <span className="ml-2 italic text-xs">(Confirming details...)</span>}
                                 </div>
                             )}
@@ -388,7 +388,7 @@ const ShopifyVariantSelector = ({ baseProductName, isLoadingVariants, variants, 
     if (variants.length > 0 && availableVariants.length === 0) {
         return (
             <p className="text-sm text-yellow-700 bg-yellow-50 p-3 border border-yellow-300 rounded-md mt-1">
-                All variants for "{baseProductName}" are currently unavailable. Please check back later or select a different product.
+                All variants for &quot;{baseProductName}&quot; are currently unavailable. Please check back later or select a different product.
             </p>
         );
     }
@@ -397,7 +397,7 @@ const ShopifyVariantSelector = ({ baseProductName, isLoadingVariants, variants, 
         return (
             <div className="mb-4">
                 <label htmlFor="ryeVariantSelectBlade" className="block text-sm font-medium text-gray-700 mb-1">
-                    Select Variant for "{baseProductName}"<span className="text-red-500">*</span>
+                    Select Variant for &quot;{baseProductName}&quot;<span className="text-red-500">*</span>
                 </label>
                 <select
                     id="ryeVariantSelectBlade"

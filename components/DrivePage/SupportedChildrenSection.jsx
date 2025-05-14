@@ -5,18 +5,18 @@ import Image from 'next/image';
 // If you create a specific ChildCardForDrivePage, import it here.
 // For now, direct rendering.
 
-const SupportedChildrenSection = ({ children, driveName, onOpenChildModal }) => {
-    if (!children || children.length === 0) {
+const SupportedChildrenSection = ({ childDataList, driveName, onOpenChildModal }) => {
+    if (!childDataList || childDataList.length === 0) { // Use childDataList
         return null; // Or a message
     }
 
     return (
         <section>
             <h2 className="text-2xl font-semibold text-ggreen mb-4">
-                Children Supported by {driveName}
+                Children Supported by {driveName} {/* driveName is used here correctly */}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {children.map((child) => (
+                {childDataList.map((child) => ( // Use childDataList
                     <div
                         key={child.child_id}
                         onClick={() => onOpenChildModal(child.child_id)}
@@ -41,7 +41,7 @@ const SupportedChildrenSection = ({ children, driveName, onOpenChildModal }) => 
 };
 
 SupportedChildrenSection.propTypes = {
-    children: PropTypes.array.isRequired,
+    childDataList: PropTypes.array.isRequired, // Renamed from children to childDataList
     driveName: PropTypes.string.isRequired,
     onOpenChildModal: PropTypes.func.isRequired,
 };

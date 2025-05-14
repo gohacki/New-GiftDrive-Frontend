@@ -1,8 +1,9 @@
 // components/Share/ShareModal.jsx
 import React from 'react';
-import { FaTwitter, FaFacebookF, FaEnvelope, FaLink, FaFilePdf, FaSms, FaCopy, FaWhatsapp } from 'react-icons/fa';
+import { FaTwitter, FaFacebookF, FaEnvelope, FaFilePdf, FaSms, FaCopy, FaWhatsapp } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import jsPDF from 'jspdf';
+import PropTypes from 'prop-types';
 
 const generatePdfFlyer = (pageType, pageData, url) => {
     const doc = new jsPDF();
@@ -66,14 +67,12 @@ const generatePdfFlyer = (pageType, pageData, url) => {
     toast.success("Flyer PDF downloading!");
 };
 
-const ShareModal = ({ isOpen, onClose, title, text, url, pageData, pageType, imageUrlForSocial }) => {
+const ShareModal = ({ isOpen, onClose, title, text, url, pageData, pageType }) => {
     if (!isOpen) return null;
 
     const encodedUrl = encodeURIComponent(url);
     const encodedTitle = encodeURIComponent(title);
     const encodedTextAndUrl = encodeURIComponent(`${text}\n${url}`);
-    const encodedDescription = encodeURIComponent(pageData?.description || text);
-    const encodedImageUrl = encodeURIComponent(imageUrlForSocial || `${process.env.NEXT_PUBLIC_FRONTEND_URL}/MainGift.png`);
 
     const shareOptions = [
         { name: 'X (Twitter)', icon: <FaTwitter />, action: () => window.open(`https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(title + ": " + text)}`, '_blank') },
@@ -108,6 +107,23 @@ const ShareModal = ({ isOpen, onClose, title, text, url, pageData, pageType, ima
             </div>
         </div>
     );
+};
+ShareModal.propTypes = {
+    isOpen: PropTypes.bool.isRequired,
+    onClose: PropTypes.func.isRequired,
+    title: PropTypes.string.isRequired,
+    text: PropTypes.string.isRequired,
+    url: PropTypes.string.isRequired,
+    pageData: PropTypes.shape({
+        name: PropTypes.string,
+        child_name: PropTypes.string,
+        organization_name: PropTypes.string,
+        start_date: PropTypes.string,
+        end_date: PropTypes.string,
+        description: PropTypes.string,
+    }).isRequired,
+    pageType: PropTypes.string.isRequired,
+    imageUrlForSocial: PropTypes.string,
 };
 
 export default ShareModal;

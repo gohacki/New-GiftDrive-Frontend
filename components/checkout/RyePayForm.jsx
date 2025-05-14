@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { RyePay } from '@rye-api/rye-pay'; // Ensure this path is correct
 import { formatCurrency } from '../../lib/utils'; // Adjust path if needed
+import PropTypes from 'prop-types';
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -222,7 +223,7 @@ export default function RyePayForm({ cartData, onProcessing, onSuccess, onError 
                             effectSpecificRyePayInstance = null;
                         }
                     },
-                    onCartSubmitted: (result, submitErrors, paymentType) => {
+                    onCartSubmitted: (result, submitErrors) => {
                         if (!isMountedRef.current || targetCartIdRef.current !== effectCartId) {
                             console.warn(`RyePayForm: onCartSubmitted ignored for cart ${effectCartId}. Mismatched target cart ID (${targetCartIdRef.current}) or unmounted.`); return;
                         }
@@ -509,3 +510,37 @@ export default function RyePayForm({ cartData, onProcessing, onSuccess, onError 
         </fieldset>
     );
 }
+const buyerIdentityShape = PropTypes.shape({
+    firstName: PropTypes.string,
+    lastName: PropTypes.string,
+    phone: PropTypes.string,
+    address1: PropTypes.string,
+    address2: PropTypes.string,
+    city: PropTypes.string,
+    provinceCode: PropTypes.string,
+    postalCode: PropTypes.string,
+    countryCode: PropTypes.string, // .toUpperCase implies string
+});
+
+RyePayForm.propTypes = {
+    cartData: PropTypes.shape({
+        id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+        buyerIdentity: buyerIdentityShape,
+        stores: PropTypes.arrayOf(PropTypes.shape({
+            store: PropTypes.string,
+            offer: PropTypes.shape({
+                selectedShippingMethod: PropTypes.shape({ id: PropTypes.string }),
+                shippingMethods: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.string }))
+            })
+        })), // Used for stores.length and mapping
+        cost: PropTypes.shape({
+            total: PropTypes.shape({
+                value: PropTypes.number,
+                currency: PropTypes.string,
+            }),
+        }),
+    }),
+    onProcessing: PropTypes.func.isRequired,
+    onSuccess: PropTypes.func.isRequired,
+    onError: PropTypes.func.isRequired,
+};

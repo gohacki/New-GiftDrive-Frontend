@@ -1,13 +1,11 @@
 // components/Share/ShareButton.jsx
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import ShareModal from './ShareModal';
 import { FaShareAlt } from 'react-icons/fa';
-import { AuthContext } from '../../contexts/AuthContext'; // To check if user is logged in
+import PropTypes from 'prop-types';
 
 const ShareButton = ({ pageType, pageData, pageUrl }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const { user } = useContext(AuthContext); // Get user to tailor messages if needed
-
     const handleOpenModal = () => setIsModalOpen(true);
     const handleCloseModal = () => setIsModalOpen(false);
 
@@ -64,6 +62,21 @@ const ShareButton = ({ pageType, pageData, pageUrl }) => {
             )}
         </>
     );
+};
+ShareButton.propTypes = {
+    pageType: PropTypes.string.isRequired,
+    pageData: PropTypes.shape({
+        name: PropTypes.string,
+        photo: PropTypes.string,
+        image_url: PropTypes.string,
+        organization_name: PropTypes.string,
+        description: PropTypes.string, // .substring implies string
+        child_name: PropTypes.string,
+        drive_name: PropTypes.string,
+        drive_photo: PropTypes.string,
+        id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    }).isRequired,
+    pageUrl: PropTypes.string.isRequired,
 };
 
 export default ShareButton;

@@ -98,7 +98,7 @@ export default function Dashboard() {
         <div className="bg-white p-8 rounded-lg shadow-lg inline-block">
           <h2 className="text-2xl font-semibold text-blueGray-700 mb-4">Welcome to Your Dashboard!</h2>
           <p className="text-blueGray-600 mb-6">
-            You haven't set up any drives yet. Drives are how you collect items for those in need.
+            You haven&apos;t set up any drives yet. Drives are how you collect items for those in need.
           </p>
           <Link href="/admin/currentDrives"
             className="bg-ggreen text-white active:bg-teal-700 font-bold uppercase text-sm px-6 py-3 rounded-full shadow hover:shadow-lg outline-none focus:outline-none mr-1 mb-1 ease-linear transition-all duration-150">

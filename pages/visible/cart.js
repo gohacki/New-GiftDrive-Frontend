@@ -3,6 +3,7 @@ import React, { useContext, useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
 // import axios from 'axios'; // Not strictly needed if using fetch
+import PropTypes from 'prop-types'; // Added for prop validation
 
 import { CartContext } from '../../contexts/CartContext';
 import { AuthContext } from '../../contexts/AuthContext';
@@ -41,6 +42,22 @@ const ShippingAddressDisplay = ({ address }) => {
       </div>
     </fieldset>
   );
+};
+
+// Added PropTypes for ShippingAddressDisplay
+ShippingAddressDisplay.propTypes = {
+  address: PropTypes.shape({
+    firstName: PropTypes.string,
+    lastName: PropTypes.string,
+    address1: PropTypes.string,
+    address2: PropTypes.string,
+    city: PropTypes.string,
+    provinceCode: PropTypes.string,
+    postalCode: PropTypes.string,
+    countryCode: PropTypes.string,
+    email: PropTypes.string,
+    phone: PropTypes.string,
+  }),
 };
 
 const CartPage = () => {

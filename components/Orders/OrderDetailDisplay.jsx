@@ -1,7 +1,6 @@
 // src/components/Orders/OrderDetailDisplay.jsx
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { formatCurrency } from '@/lib/utils';
 import PropTypes from 'prop-types';
 
 // Helper function to format date/time nicely
@@ -312,25 +311,24 @@ const moneyType = PropTypes.shape({
     displayValue: PropTypes.string,
 });
 
-const baseItemDetailsType = PropTypes.shape({ // For cartLine.product or cartLine.variant
+const baseItemDetailsType = PropTypes.shape({
     id: PropTypes.string,
     title: PropTypes.string,
     images: PropTypes.arrayOf(PropTypes.shape({ url: PropTypes.string })),
-    price: moneyType, // For Amazon product
-    priceV2: moneyType, // For Shopify variant
-    image: PropTypes.shape({ url: PropTypes.string }), // For Shopify variant
+    price: moneyType,
+    priceV2: moneyType,
+    image: PropTypes.shape({ url: PropTypes.string }),
 });
 
-const cartLineItemType = PropTypes.shape({ // Structure of items within cart.stores[...].cartLines
+const cartLineItemType = PropTypes.shape({
     quantity: PropTypes.number.isRequired,
-    product: baseItemDetailsType, // Could be Amazon product or Shopify parent product
-    variant: baseItemDetailsType, // Shopify variant details
+    product: baseItemDetailsType,
+    variant: baseItemDetailsType,
 });
-
 
 OrderDetailDisplay.propTypes = {
     orderDetails: PropTypes.shape({
-        id: PropTypes.string.isRequired,
+        id: PropTypes.string,
         status: PropTypes.string,
         createdAt: PropTypes.string,
         marketplace: PropTypes.string,
@@ -342,7 +340,7 @@ OrderDetailDisplay.propTypes = {
         cart: PropTypes.shape({
             stores: PropTypes.arrayOf(PropTypes.shape({
                 store: PropTypes.string,
-                __typename: PropTypes.string, // 'AmazonStore' or 'ShopifyStore'
+                __typename: PropTypes.string,
                 cartLines: PropTypes.arrayOf(cartLineItemType),
             })),
         }),
@@ -357,6 +355,8 @@ OrderDetailDisplay.propTypes = {
             id: PropTypes.string,
             __typename: PropTypes.string,
             createdAt: PropTypes.string,
+            reason: PropTypes.string,
+            amount: moneyType,
         })),
         returns: PropTypes.arrayOf(PropTypes.shape({
             id: PropTypes.string,

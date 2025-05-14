@@ -2,10 +2,9 @@
 import React, { useContext } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-// REMOVE: import { XMarkIcon } from '@heroicons/react/24/solid'; // No longer needed
-import { ShoppingCartIcon } from '@heroicons/react/24/outline'; // Using outline for a potentially smaller look
 import { CartContext } from '@/contexts/CartContext';
 import { formatCurrency } from '@/lib/utils';
+import PropTypes from 'prop-types';
 
 const CartBlade = ({ isOpen, onClose }) => { // onClose is still used by the "Go to Cart" button
     const { cart, removeFromCart, updateCartItemQuantity, loading: cartLoading } = useContext(CartContext);
@@ -137,6 +136,11 @@ const CartBlade = ({ isOpen, onClose }) => { // onClose is still used by the "Go
             </div>
         </>
     );
+};
+
+CartBlade.propTypes = {
+    isOpen: PropTypes.bool.isRequired,
+    onClose: PropTypes.func.isRequired,
 };
 
 export default CartBlade;
