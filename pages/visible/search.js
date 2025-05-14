@@ -1,12 +1,11 @@
 // pages/visible/search.js
-import React, { useEffect, useState, useCallback, useRef } from 'react'; // Added useRef
+import React, { useEffect, useState } from 'react'; // Added useRef
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import Navbar from 'components/Navbars/AuthNavbar.js';
 import Footer from 'components/Footers/Footer.js';
 import DriveListCard from 'components/Cards/DriveListCard';
 import OrganizationCard from 'components/Cards/OrganizationCard';
-import Link from 'next/link';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -39,9 +38,6 @@ export default function CombinedSearchPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [searchAttempted, setSearchAttempted] = useState(false);
-
-    const isInitialMount = useRef(true); // To track initial mount
-
     // Effect 1: Initialize local input/filter states from URL when URL changes (e.g., navbar search, back/forward)
     useEffect(() => {
         setPageInputTerm(typeof q === 'string' ? q : '');

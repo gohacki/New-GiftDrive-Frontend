@@ -1,17 +1,32 @@
 // src/components/Navbars/AuthNavbar.js
-import React, { useContext, useState, useEffect, useRef, useCallback } from 'react'; // Added useCallback
+import React, { useContext, useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import PropTypes from 'prop-types';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
-import { FaShoppingCart, FaSpinner } from 'react-icons/fa'; // Added FaSpinner
+import { FaShoppingCart, FaSpinner } from 'react-icons/fa';
 import { CartContext } from '../../contexts/CartContext';
 import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-toastify';
-import axios from 'axios'; // Import axios
+import axios from 'axios';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL; // Define apiUrl
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+// --- Debounce Helper Function ---
+function debounce(func, delay) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, delay);
+  };
+}
+// --- End Debounce Helper ---
+
 
 const Navbar = ({ transparent, isBladeOpen }) => {
   const { user, logout } = useContext(AuthContext);
@@ -26,14 +41,12 @@ const Navbar = ({ transparent, isBladeOpen }) => {
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [searchQueryVal, setSearchQueryVal] = useState('');
   const searchInputRef = useRef(null);
-  const suggestionsContainerRef = useRef(null); // For click outside
+  const suggestionsContainerRef = useRef(null);
 
-  // --- State for Suggestions ---
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
-  // --- End State for Suggestions ---
 
   useEffect(() => {
     const handleScroll = () => {
@@ -51,7 +64,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
   useEffect(() => {
     const handleRouteChange = () => {
       setNavbarOpen(false);
-      setShowSuggestions(false); // Close suggestions on route change
+      setShowSuggestions(false);
     };
     router.events.on('routeChangeStart', handleRouteChange);
     return () => {
@@ -59,7 +72,6 @@ const Navbar = ({ transparent, isBladeOpen }) => {
     };
   }, [router.events]);
 
-  // --- Debounced Fetch Suggestions ---
   const debouncedFetchSuggestions = useCallback(
     debounce(async (query) => {
       if (!query.trim()) {
@@ -69,23 +81,22 @@ const Navbar = ({ transparent, isBladeOpen }) => {
         return;
       }
       setLoadingSuggestions(true);
-      setShowSuggestions(true); // Show container for loading/results
+      setShowSuggestions(true);
       try {
         const response = await axios.get(`${apiUrl}/api/search/suggestions`, {
           params: { q: query },
-          withCredentials: true, // If your suggestions endpoint requires auth
+          withCredentials: true,
         });
         setSuggestions(response.data || []);
-        setActiveSuggestionIndex(-1); // Reset active suggestion
+        setActiveSuggestionIndex(-1);
       } catch (error) {
         console.error("Error fetching suggestions:", error);
         setSuggestions([]);
-        // Optionally show an error in the suggestions box
       } finally {
         setLoadingSuggestions(false);
       }
-    }, 300), // 300ms debounce delay
-    [apiUrl] // Ensure apiUrl is stable or included if it can change
+    }, 300),
+    [apiUrl]
   );
 
   const handleSearchChange = (e) => {
@@ -93,9 +104,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
     setSearchQueryVal(query);
     debouncedFetchSuggestions(query);
   };
-  // --- End Debounced Fetch Suggestions ---
 
-  // --- Click Outside and Escape Key for Suggestions ---
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -119,7 +128,6 @@ const Navbar = ({ transparent, isBladeOpen }) => {
       document.removeEventListener('keydown', handleEscapeKey);
     };
   }, []);
-  // --- End Click Outside and Escape Key ---
 
   const handleLogout = async (e) => {
     e.preventDefault();
@@ -155,7 +163,6 @@ const Navbar = ({ transparent, isBladeOpen }) => {
       router.push(`/visible/search?q=${encodeURIComponent(query)}`);
       if (navbarOpen) setNavbarOpen(false);
       setShowSuggestions(false);
-      // setSearchQueryVal(''); // Optionally clear input, but often users want to see what they searched
     } else {
       toast.info("Please enter something to search.");
     }
@@ -164,13 +171,12 @@ const Navbar = ({ transparent, isBladeOpen }) => {
   const handleSuggestionClick = (suggestion) => {
     setSearchQueryVal(suggestion.name);
     setShowSuggestions(false);
-    handleSearchSubmit(null, suggestion.name); // Submit with the suggestion name
+    handleSearchSubmit(null, suggestion.name);
   };
 
-  // --- Keyboard Navigation for Suggestions ---
   const handleKeyDownOnSearch = (e) => {
     if (!showSuggestions || suggestions.length === 0) {
-      setActiveSuggestionIndex(-1); // Ensure index is reset if no suggestions
+      setActiveSuggestionIndex(-1);
       return;
     }
 
@@ -186,19 +192,15 @@ const Navbar = ({ transparent, isBladeOpen }) => {
       );
     } else if (e.key === 'Enter') {
       if (activeSuggestionIndex >= 0 && activeSuggestionIndex < suggestions.length) {
-        e.preventDefault(); // Prevent form submission if we're handling via suggestion
+        e.preventDefault();
         handleSuggestionClick(suggestions[activeSuggestionIndex]);
       } else {
-        // Allow normal form submission if no suggestion is selected
-        // handleSearchSubmit(e) will be called by the form's onSubmit
-        setShowSuggestions(false); // Hide suggestions on Enter if no item active
+        setShowSuggestions(false);
       }
     } else if (e.key === 'Escape') {
       setShowSuggestions(false);
     }
   };
-  // --- End Keyboard Navigation ---
-
 
   return (
     <nav
@@ -207,7 +209,8 @@ const Navbar = ({ transparent, isBladeOpen }) => {
                  ${(transparent && !scrolled && !navbarOpen && !isSearchExpanded) ? 'bg-transparent' : 'bg-secondary_green shadow-lg'}
                  ${isBladeOpen ? 'pr-[15rem]' : 'pr-0'}`}
     >
-      <div className="container mx-auto px-4 py-3 flex items-center">
+      <div className="container mx-auto px-4 py-3 flex items-center"> {/* Main flex row for navbar items */}
+        {/* Logo - Stays on the left */}
         <div className="flex-shrink-0">
           <Link href="/">
             <div className="leading-relaxed py-2 whitespace-nowrap cursor-pointer inter-semi-bold text-ggreen text-2xl flex items-center gap-2">
@@ -217,17 +220,19 @@ const Navbar = ({ transparent, isBladeOpen }) => {
           </Link>
         </div>
 
-        {/* --- Desktop Search Area (with suggestions) --- */}
+        {/* Desktop Search Area - Takes up middle space */}
+        {/* The parent div's class controls if it's a button or an expanded input field.
+            When isSearchExpanded = true, it gets flex-grow. */}
         <div className={`hidden lg:flex items-center mx-4 relative ${isSearchExpanded ? 'flex-grow' : 'flex-shrink-0'}`}>
           {isSearchExpanded ? (
-            <form onSubmit={handleSearchSubmit} className="relative flex items-center w-full max-w-lg">
+            <form onSubmit={handleSearchSubmit} className="relative flex items-center w-full"> {/* Removed max-w-lg to allow full growth */}
               <input
                 ref={searchInputRef}
                 type="search"
                 value={searchQueryVal}
                 onChange={handleSearchChange}
-                onKeyDown={handleKeyDownOnSearch} // Added for keyboard navigation
-                onFocus={() => searchQueryVal.trim() && suggestions.length > 0 && setShowSuggestions(true)} // Show suggestions on focus if query exists
+                onKeyDown={handleKeyDownOnSearch}
+                onFocus={() => searchQueryVal.trim() && suggestions.length > 0 && setShowSuggestions(true)}
                 placeholder="Search Drives & Organizations..."
                 className="w-full text-sm text-gray-700 bg-white border border-gray-300 rounded-full shadow-sm px-4 py-2.5 pr-10 focus:ring-2 focus:ring-ggreen focus:border-transparent transition-all duration-300"
                 autoComplete="off"
@@ -244,7 +249,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
                     <ul>
                       {suggestions.map((suggestion, index) => (
                         <li
-                          key={`${suggestion.type}-${suggestion.id}-${index}`} // Ensure unique key
+                          key={`${suggestion.type}-${suggestion.id}-${index}`}
                           onClick={() => handleSuggestionClick(suggestion)}
                           className={`px-4 py-2.5 text-sm cursor-pointer hover:bg-gray-100 ${index === activeSuggestionIndex ? 'bg-gray-100' : ''}`}
                         >
@@ -266,9 +271,10 @@ const Navbar = ({ transparent, isBladeOpen }) => {
             </button>
           )}
         </div>
-        {/* --- End Desktop Search Area --- */}
 
-        <div className={`hidden lg:flex flex-grow items-center ${isSearchExpanded ? 'lg:hidden' : 'justify-center'}`}>
+        {/* NEW: Right Aligned Group for Desktop. Uses ml-auto to push to the right. */}
+        <div className="hidden lg:flex items-center ml-auto space-x-4"> {/* Increased space-x for better separation */}
+          {/* Auth Links (Login/Register or Account/Logout) */}
           <ul className="flex flex-row list-none items-center space-x-1">
             {user && (
               <>
@@ -301,17 +307,18 @@ const Navbar = ({ transparent, isBladeOpen }) => {
               </>
             )}
           </ul>
-        </div>
 
-        <div className={`flex items-center flex-shrink-0 ${isSearchExpanded ? 'ml-auto lg:hidden' : 'lg:ml-auto'}`}>
-          <div className={`hidden lg:flex items-center mr-2 flex-shrink-0 ${isSearchExpanded ? 'lg:hidden' : ''}`}>
+          {/* Create A Drive Button */}
+          <div> {/* Simple div wrapper */}
             <Link href="/visible/registerdrive">
               <button className="bg-white text-blueGray-700 active:bg-blueGray-50 text-xs inter-regular uppercase px-3 py-2 rounded-full shadow hover:shadow-md outline-none focus:outline-none ease-linear transition-all duration-150 whitespace-nowrap" type="button">
                 Create A Drive
               </button>
             </Link>
           </div>
-          <div className={`navbar-cart items-center hidden lg:flex flex-shrink-0 mr-2 ${isSearchExpanded ? 'lg:hidden' : ''}`}>
+
+          {/* Cart Icon */}
+          <div className="navbar-cart flex items-center"> {/* Added flex to align icon properly if needed */}
             <Link href="/visible/cart">
               <div className="relative p-1">
                 <FaShoppingCart className="h-6 w-6 text-ggreen" />
@@ -323,34 +330,36 @@ const Navbar = ({ transparent, isBladeOpen }) => {
               </div>
             </Link>
           </div>
+        </div>
 
-          <div className="lg:hidden flex items-center">
-            <Link href="/visible/cart" className="p-2 text-ggreen hover:text-gyellow">
-              <div className="relative">
-                <FaShoppingCart className="h-6 w-6" />
-                {itemCount > 0 && (
-                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] inter-regular leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
-                    {itemCount}
-                  </span>
-                )}
-              </div>
-            </Link>
-            <button
-              className="text-ggreen cursor-pointer text-xl leading-none px-3 py-1 border border-solid border-transparent rounded bg-transparent block outline-none focus:outline-none"
-              type="button"
-              onClick={() => { setNavbarOpen(!navbarOpen); if (isSearchExpanded) setIsSearchExpanded(false); setShowSuggestions(false); }}
-              aria-label="Toggle navigation menu"
-            >
-              {navbarOpen ? <XMarkIcon className="h-6 w-6" /> : <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>}
-            </button>
-          </div>
+        {/* Mobile Specific Controls (Cart icon and Hamburger menu toggle) */}
+        {/* This uses lg:hidden and ml-auto to be on the far right for mobile views */}
+        <div className="lg:hidden flex items-center ml-auto">
+          <Link href="/visible/cart" className="p-2 text-ggreen hover:text-gyellow">
+            <div className="relative">
+              <FaShoppingCart className="h-6 w-6" />
+              {itemCount > 0 && (
+                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] inter-regular leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+                  {itemCount}
+                </span>
+              )}
+            </div>
+          </Link>
+          <button
+            className="text-ggreen cursor-pointer text-xl leading-none px-3 py-1 border border-solid border-transparent rounded bg-transparent block outline-none focus:outline-none"
+            type="button"
+            onClick={() => { setNavbarOpen(!navbarOpen); if (isSearchExpanded) setIsSearchExpanded(false); setShowSuggestions(false); }}
+            aria-label="Toggle navigation menu"
+          >
+            {navbarOpen ? <XMarkIcon className="h-6 w-6" /> : <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>}
+          </button>
         </div>
       </div>
 
-      {/* Mobile Menu Dropdown */}
+      {/* Mobile Menu Dropdown - No changes needed here for desktop layout */}
       {navbarOpen && (
         <div className="lg:hidden bg-secondary_green shadow-lg">
-          {/* --- Mobile Search (with suggestions) --- */}
+          {/* Mobile Search Form */}
           <form onSubmit={handleSearchSubmit} className="p-4 border-b border-gray-200 relative">
             <div className="relative flex items-center">
               <input
@@ -368,7 +377,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
               </button>
             </div>
             {/* Suggestions Dropdown - Mobile */}
-            {showSuggestions && navbarOpen && ( // Only show if navbar is open (mobile context)
+            {showSuggestions && navbarOpen && (
               <div ref={suggestionsContainerRef} className="absolute left-4 right-4 mt-1.5 bg-white border border-gray-300 rounded-md shadow-lg z-20 max-h-60 overflow-y-auto">
                 {loadingSuggestions ? (
                   <div className="p-3 text-sm text-gray-500 flex items-center justify-center"><FaSpinner className="animate-spin mr-2" /> Loading...</div>
@@ -391,7 +400,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
               </div>
             )}
           </form>
-          {/* --- End Mobile Search --- */}
+          {/* Mobile Nav Links */}
           <ul className="flex flex-col list-none py-2">
             {user && (
               <>
@@ -420,20 +429,6 @@ const Navbar = ({ transparent, isBladeOpen }) => {
     </nav>
   );
 };
-
-// --- Debounce Helper Function ---
-function debounce(func, delay) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, delay);
-  };
-}
-// --- End Debounce Helper ---
 
 Navbar.propTypes = {
   transparent: PropTypes.bool,
