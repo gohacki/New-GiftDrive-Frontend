@@ -64,13 +64,29 @@ const Navbar = ({ transparent, isBladeOpen }) => {
   useEffect(() => {
     const handleRouteChange = () => {
       setNavbarOpen(false);
-      setShowSuggestions(false);
+      // Do not hide search suggestions on route change start,
+      // as it might be a search submission causing the route change.
+      // setShowSuggestions(false); // This was potentially closing suggestions prematurely
     };
     router.events.on('routeChangeStart', handleRouteChange);
+    const handleRouteComplete = () => {
+      // Hide suggestions once navigation is complete, unless it's the search page itself.
+      if (!router.pathname.startsWith('/visible/search')) {
+        setShowSuggestions(false);
+      }
+      if (isSearchExpanded && !router.pathname.startsWith('/visible/search')) {
+        // If search was expanded and we navigate away from search results, collapse it.
+        // This line is a bit aggressive, consider if user wants to keep it open.
+        // setIsSearchExpanded(false);
+      }
+    };
+    router.events.on('routeChangeComplete', handleRouteComplete);
     return () => {
       router.events.off('routeChangeStart', handleRouteChange);
+      router.events.off('routeChangeComplete', handleRouteComplete);
     };
-  }, [router.events]);
+  }, [router.events, router.pathname, isSearchExpanded]);
+
 
   const debouncedFetchSuggestions = useCallback(
     debounce(async (query) => {
@@ -81,14 +97,14 @@ const Navbar = ({ transparent, isBladeOpen }) => {
         return;
       }
       setLoadingSuggestions(true);
-      setShowSuggestions(true);
+      setShowSuggestions(true); // Show suggestions container when fetching
       try {
         const response = await axios.get(`${apiUrl}/api/search/suggestions`, {
           params: { q: query },
           withCredentials: true,
         });
         setSuggestions(response.data || []);
-        setActiveSuggestionIndex(-1);
+        setActiveSuggestionIndex(-1); // Reset active suggestion
       } catch (error) {
         console.error("Error fetching suggestions:", error);
         setSuggestions([]);
@@ -96,7 +112,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
         setLoadingSuggestions(false);
       }
     }, 300),
-    [apiUrl]
+    [apiUrl] // apiUrl is stable
   );
 
   const handleSearchChange = (e) => {
@@ -105,8 +121,9 @@ const Navbar = ({ transparent, isBladeOpen }) => {
     debouncedFetchSuggestions(query);
   };
 
+  // Effect for hiding suggestions on outside click or Escape key
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClickOutsideSuggestions = (event) => {
       if (
         suggestionsContainerRef.current &&
         !suggestionsContainerRef.current.contains(event.target) &&
@@ -117,17 +134,24 @@ const Navbar = ({ transparent, isBladeOpen }) => {
     };
     const handleEscapeKey = (event) => {
       if (event.key === 'Escape') {
-        setShowSuggestions(false);
+        if (showSuggestions) {
+          setShowSuggestions(false);
+        } else if (isSearchExpanded) {
+          // If suggestions are already hidden but search is expanded, then collapse search.
+          // This is now handled by the new click-outside for the search bar itself.
+          // For Escape key, we might want similar behavior:
+          // toggleSearchExpansion(); // This would collapse it.
+        }
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutsideSuggestions);
     document.addEventListener('keydown', handleEscapeKey);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutsideSuggestions);
       document.removeEventListener('keydown', handleEscapeKey);
     };
-  }, []);
+  }, [showSuggestions, isSearchExpanded]); // Re-evaluate if showSuggestions or isSearchExpanded changes
 
   const handleLogout = async (e) => {
     e.preventDefault();
@@ -140,21 +164,60 @@ const Navbar = ({ transparent, isBladeOpen }) => {
 
   const isActive = (href) => router.pathname === href;
 
-  const toggleSearchExpansion = () => {
-    setIsSearchExpanded(prev => {
-      const nextState = !prev;
-      if (nextState) {
+  // Memoize toggleSearchExpansion
+  const toggleSearchExpansion = useCallback(() => {
+    setIsSearchExpanded(prevIsSearchExpanded => {
+      const nextIsSearchExpanded = !prevIsSearchExpanded;
+      if (nextIsSearchExpanded) {
         setTimeout(() => searchInputRef.current?.focus(), 0);
       } else {
+        // This cleanup is now effectively handled by the useEffect watching isSearchExpanded
+        // if we call setIsSearchExpanded(false) directly from outside click.
+        // However, keeping it here ensures cleanup if toggle is called directly (e.g., by X button).
         setSearchQueryVal('');
         setShowSuggestions(false);
       }
-      if (navbarOpen && nextState) {
+      if (navbarOpen && nextIsSearchExpanded) {
         setNavbarOpen(false);
       }
-      return nextState;
+      return nextIsSearchExpanded;
     });
-  };
+  }, [navbarOpen, /* stable setters: setIsSearchExpanded, setSearchQueryVal, setShowSuggestions, setNavbarOpen */]);
+
+  // NEW: Effect to handle clicks outside the search bar to collapse it (for desktop)
+  useEffect(() => {
+    const handleClickOutsideSearch = (event) => {
+      if (!isSearchExpanded) return; // Only run if search is expanded
+
+      const searchFormElement = searchInputRef.current?.closest('form');
+
+      const clickedOutsideSearchForm = searchFormElement && !searchFormElement.contains(event.target);
+      const clickedOutsideSuggestions = !suggestionsContainerRef.current || !suggestionsContainerRef.current.contains(event.target);
+
+      if (clickedOutsideSearchForm && clickedOutsideSuggestions) {
+        setIsSearchExpanded(false); // Directly set to false
+      }
+    };
+
+    if (isSearchExpanded) {
+      document.addEventListener('mousedown', handleClickOutsideSearch);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutsideSearch);
+    };
+  }, [isSearchExpanded]); // Dependency: isSearchExpanded
+
+  // NEW: Effect to clean up search state when isSearchExpanded becomes false
+  useEffect(() => {
+    if (!isSearchExpanded) {
+      setSearchQueryVal('');
+      setShowSuggestions(false);
+      // Potentially reset activeSuggestionIndex if needed
+      setActiveSuggestionIndex(-1);
+    }
+  }, [isSearchExpanded]);
+
 
   const handleSearchSubmit = (e, queryOverride) => {
     if (e) e.preventDefault();
@@ -162,7 +225,10 @@ const Navbar = ({ transparent, isBladeOpen }) => {
     if (query) {
       router.push(`/visible/search?q=${encodeURIComponent(query)}`);
       if (navbarOpen) setNavbarOpen(false);
-      setShowSuggestions(false);
+      // setShowSuggestions(false); // Let routeChangeComplete handle this
+      // setIsSearchExpanded(false); // Keep search expanded on search page, or let user decide.
+      // Or collapse if navigating to a non-search page.
+      // This can be handled by routeChangeComplete too.
     } else {
       toast.info("Please enter something to search.");
     }
@@ -170,13 +236,17 @@ const Navbar = ({ transparent, isBladeOpen }) => {
 
   const handleSuggestionClick = (suggestion) => {
     setSearchQueryVal(suggestion.name);
-    setShowSuggestions(false);
+    // setShowSuggestions(false); // Will be hidden by navigation or click-outside
     handleSearchSubmit(null, suggestion.name);
   };
 
   const handleKeyDownOnSearch = (e) => {
     if (!showSuggestions || suggestions.length === 0) {
       setActiveSuggestionIndex(-1);
+      if (e.key === 'Enter') { // Allow submitting form even if no suggestions shown/selected
+        // Form onSubmit will handle this
+        return;
+      }
       return;
     }
 
@@ -192,10 +262,11 @@ const Navbar = ({ transparent, isBladeOpen }) => {
       );
     } else if (e.key === 'Enter') {
       if (activeSuggestionIndex >= 0 && activeSuggestionIndex < suggestions.length) {
-        e.preventDefault();
+        e.preventDefault(); // Prevent form submission if selecting suggestion
         handleSuggestionClick(suggestions[activeSuggestionIndex]);
       } else {
-        setShowSuggestions(false);
+        // If Enter is pressed and no suggestion is active, let the form submit
+        setShowSuggestions(false); // Hide suggestions on explicit submit
       }
     } else if (e.key === 'Escape') {
       setShowSuggestions(false);
@@ -220,12 +291,10 @@ const Navbar = ({ transparent, isBladeOpen }) => {
           </Link>
         </div>
 
-        {/* Desktop Search Area - Takes up middle space */}
-        {/* The parent div's class controls if it's a button or an expanded input field.
-            When isSearchExpanded = true, it gets flex-grow. */}
+        {/* Desktop Search Area */}
         <div className={`hidden lg:flex items-center mx-4 relative ${isSearchExpanded ? 'flex-grow' : 'flex-shrink-0'}`}>
           {isSearchExpanded ? (
-            <form onSubmit={handleSearchSubmit} className="relative flex items-center w-full"> {/* Removed max-w-lg to allow full growth */}
+            <form onSubmit={handleSearchSubmit} className="relative flex items-center w-full">
               <input
                 ref={searchInputRef}
                 type="search"
@@ -259,7 +328,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
                       ))}
                     </ul>
                   ) : (
-                    searchQueryVal.trim() && <div className="p-3 text-sm text-gray-500">No suggestions found.</div>
+                    searchQueryVal.trim() && !loadingSuggestions && <div className="p-3 text-sm text-gray-500">No suggestions found.</div>
                   )}
                 </div>
               )}
@@ -272,9 +341,8 @@ const Navbar = ({ transparent, isBladeOpen }) => {
           )}
         </div>
 
-        {/* NEW: Right Aligned Group for Desktop. Uses ml-auto to push to the right. */}
-        <div className="hidden lg:flex items-center ml-auto space-x-4"> {/* Increased space-x for better separation */}
-          {/* Auth Links (Login/Register or Account/Logout) */}
+        {/* Right Aligned Group for Desktop */}
+        <div className="hidden lg:flex items-center ml-auto space-x-4">
           <ul className="flex flex-row list-none items-center space-x-1">
             {user && (
               <>
@@ -307,18 +375,14 @@ const Navbar = ({ transparent, isBladeOpen }) => {
               </>
             )}
           </ul>
-
-          {/* Create A Drive Button */}
-          <div> {/* Simple div wrapper */}
+          <div>
             <Link href="/visible/registerdrive">
               <button className="bg-white text-blueGray-700 active:bg-blueGray-50 text-xs inter-regular uppercase px-3 py-2 rounded-full shadow hover:shadow-md outline-none focus:outline-none ease-linear transition-all duration-150 whitespace-nowrap" type="button">
                 Create A Drive
               </button>
             </Link>
           </div>
-
-          {/* Cart Icon */}
-          <div className="navbar-cart flex items-center"> {/* Added flex to align icon properly if needed */}
+          <div className="navbar-cart flex items-center">
             <Link href="/visible/cart">
               <div className="relative p-1">
                 <FaShoppingCart className="h-6 w-6 text-ggreen" />
@@ -332,8 +396,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
           </div>
         </div>
 
-        {/* Mobile Specific Controls (Cart icon and Hamburger menu toggle) */}
-        {/* This uses lg:hidden and ml-auto to be on the far right for mobile views */}
+        {/* Mobile Specific Controls */}
         <div className="lg:hidden flex items-center ml-auto">
           <Link href="/visible/cart" className="p-2 text-ggreen hover:text-gyellow">
             <div className="relative">
@@ -348,7 +411,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
           <button
             className="text-ggreen cursor-pointer text-xl leading-none px-3 py-1 border border-solid border-transparent rounded bg-transparent block outline-none focus:outline-none"
             type="button"
-            onClick={() => { setNavbarOpen(!navbarOpen); if (isSearchExpanded) setIsSearchExpanded(false); setShowSuggestions(false); }}
+            onClick={() => { setNavbarOpen(!navbarOpen); if (isSearchExpanded) setIsSearchExpanded(false); /* setShowSuggestions(false); This is now handled by isSearchExpanded effect */ }}
             aria-label="Toggle navigation menu"
           >
             {navbarOpen ? <XMarkIcon className="h-6 w-6" /> : <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>}
@@ -356,7 +419,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
         </div>
       </div>
 
-      {/* Mobile Menu Dropdown - No changes needed here for desktop layout */}
+      {/* Mobile Menu Dropdown */}
       {navbarOpen && (
         <div className="lg:hidden bg-secondary_green shadow-lg">
           {/* Mobile Search Form */}
@@ -377,7 +440,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
               </button>
             </div>
             {/* Suggestions Dropdown - Mobile */}
-            {showSuggestions && navbarOpen && (
+            {showSuggestions && navbarOpen && ( // Only show if mobile menu is open
               <div ref={suggestionsContainerRef} className="absolute left-4 right-4 mt-1.5 bg-white border border-gray-300 rounded-md shadow-lg z-20 max-h-60 overflow-y-auto">
                 {loadingSuggestions ? (
                   <div className="p-3 text-sm text-gray-500 flex items-center justify-center"><FaSpinner className="animate-spin mr-2" /> Loading...</div>
@@ -395,7 +458,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
                     ))}
                   </ul>
                 ) : (
-                  searchQueryVal.trim() && <div className="p-3 text-sm text-gray-500">No suggestions found.</div>
+                  searchQueryVal.trim() && !loadingSuggestions && <div className="p-3 text-sm text-gray-500">No suggestions found.</div>
                 )}
               </div>
             )}
