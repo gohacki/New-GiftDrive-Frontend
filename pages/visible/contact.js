@@ -1,8 +1,10 @@
 // पेजेस/विजिबल/contact.js
 import React, { useState } from 'react';
-import Navbar from 'components/Navbars/AuthNavbar.js';
-import Footer from 'components/Footers/Footer.js';
-import Auth from 'layouts/Auth.js'; // Using Auth layout for Navbar and Footer consistency
+import Auth from 'layouts/Auth.js';
+import axios from 'axios'; // <<< IMPORT AXIOS
+import { toast } from 'react-toastify'; // <<< IMPORT TOASTIFY for better feedback
+
+const apiUrl = process.env.NEXT_PUBLIC_API_URL; // Ensure you have this for your API base URL
 
 const ContactPage = () => {
     const [formData, setFormData] = useState({
@@ -12,7 +14,7 @@ const ContactPage = () => {
         message: '',
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitMessage, setSubmitMessage] = useState('');
+    // Removed submitMessage state, will use react-toastify
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -22,23 +24,22 @@ const ContactPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
-        setSubmitMessage('');
 
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        try {
+            // Make API call to your backend
+            const response = await axios.post(`${apiUrl}/api/contact`, formData); // Use apiUrl
+            toast.success(response.data.message || 'Your message has been sent successfully!');
+            setFormData({ fullName: '', email: '', subject: '', message: '' }); // Reset form
+        } catch (error) {
+            console.error("Contact form submission error:", error.response?.data || error.message);
+            if (error.response && error.response.data && error.response.data.errors) {
+                // Display validation errors
+                error.response.data.errors.forEach(err => toast.error(err.msg));
+            } else {
+                toast.error(error.response?.data?.error || 'Failed to send message. Please try again.');
+            }
+        }
 
-        // In a real app, you would send formData to your backend here
-        // For example:
-        // try {
-        //   const response = await axios.post('/api/contact', formData);
-        //   setSubmitMessage('Your message has been sent successfully!');
-        //   setFormData({ fullName: '', email: '', subject: '', message: '' });
-        // } catch (error) {
-        //   setSubmitMessage('Failed to send message. Please try again.');
-        // }
-
-        setSubmitMessage(`Thank you, ${formData.fullName}! Your message about "${formData.subject}" has been received. We will contact you at ${formData.email} if a response is needed.`);
-        setFormData({ fullName: '', email: '', subject: '', message: '' });
         setIsSubmitting(false);
     };
 
@@ -51,11 +52,7 @@ const ContactPage = () => {
                             Contact Us
                         </h1>
 
-                        {submitMessage && (
-                            <div className={`mb-6 p-3 rounded-md text-sm ${submitMessage.includes('Failed') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                                {submitMessage}
-                            </div>
-                        )}
+                        {/* react-toastify will handle messages, so no need for submitMessage div here */}
 
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div>
@@ -139,6 +136,6 @@ const ContactPage = () => {
     );
 };
 
-ContactPage.layout = Auth; // This ensures Navbar and Footer are applied via the Auth layout
+ContactPage.layout = Auth;
 
 export default ContactPage;
