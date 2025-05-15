@@ -44,7 +44,7 @@ export default function Footer({ isBladeOpen }) { // Add isBladeOpen prop
                 <a href="#">Resources</a>
               </li>
               <li>
-                <a href="#">Contact Us</a>
+                <a href="/visible/contact">Contact Us</a>
               </li>
             </ul>
           </div>
