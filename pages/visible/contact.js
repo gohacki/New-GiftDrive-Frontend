@@ -1,10 +1,10 @@
 // पेजेस/विजिबल/contact.js
 import React, { useState } from 'react';
 import Auth from 'layouts/Auth.js';
-import axios from 'axios'; // <<< IMPORT AXIOS
-import { toast } from 'react-toastify'; // <<< IMPORT TOASTIFY for better feedback
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL; // Ensure you have this for your API base URL
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const ContactPage = () => {
     const [formData, setFormData] = useState({
@@ -14,7 +14,6 @@ const ContactPage = () => {
         message: '',
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
-    // Removed submitMessage state, will use react-toastify
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -26,37 +25,40 @@ const ContactPage = () => {
         setIsSubmitting(true);
 
         try {
-            // Make API call to your backend
-            const response = await axios.post(`${apiUrl}/api/contact`, formData); // Use apiUrl
+            const response = await axios.post(`${apiUrl}/api/contact`, formData);
             toast.success(response.data.message || 'Your message has been sent successfully!');
-            setFormData({ fullName: '', email: '', subject: '', message: '' }); // Reset form
+            setFormData({ fullName: '', email: '', subject: '', message: '' });
         } catch (error) {
             console.error("Contact form submission error:", error.response?.data || error.message);
             if (error.response && error.response.data && error.response.data.errors) {
-                // Display validation errors
                 error.response.data.errors.forEach(err => toast.error(err.msg));
             } else {
                 toast.error(error.response?.data?.error || 'Failed to send message. Please try again.');
             }
         }
-
         setIsSubmitting(false);
     };
 
     return (
         <>
+            {/* Navbar and Footer are handled by Auth.layout */}
             <main className="min-h-screen bg-secondary_green text-gray-800 relative pt-20 pb-16">
                 <div className="container mx-auto px-4 py-8">
-                    <div className="max-w-3xl mx-auto bg-white p-8 md:p-12 shadow-lg rounded-lg">
-                        <h1 className="text-3xl font-semibold text-ggreen mb-8 text-center">
+                    {/* Removed bg-white, shadow-lg, rounded-lg from this div. 
+                        Padding is kept to maintain spacing. 
+                        The max-w-3xl and mx-auto keep it centered and constrained. */}
+                    <div className="max-w-3xl mx-auto p-0 md:p-4"> {/* Adjusted padding for better centering of title and form */}
+                        <h1 className="text-3xl font-medium text-ggreen mb-6 text-left"> {/* Changed to text-left */}
                             Contact Us
                         </h1>
 
-                        {/* react-toastify will handle messages, so no need for submitMessage div here */}
+                        {/* Horizontal line like in the screenshot */}
+                        <hr className="-mx-64 mb-8 border-t-1 border-gray-300" /> {/* Adjusted color to be more visible */}
+
 
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div>
-                                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
+                                <label htmlFor="fullName" className="block text-sm font-bold text-gray-700 mb-1">
                                     Full Name
                                 </label>
                                 <input
@@ -66,13 +68,12 @@ const ContactPage = () => {
                                     value={formData.fullName}
                                     onChange={handleChange}
                                     required
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-ggreen focus:border-ggreen sm:text-sm"
-                                    placeholder="John Doe"
+                                    className="mt-1 block w-full px-3 py-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-ggreen focus:border-ggreen sm:text-sm bg-white"
                                 />
                             </div>
 
                             <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                                <label htmlFor="email" className="block text-sm font-bold text-gray-700 mb-1">
                                     Email
                                 </label>
                                 <input
@@ -82,13 +83,12 @@ const ContactPage = () => {
                                     value={formData.email}
                                     onChange={handleChange}
                                     required
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-ggreen focus:border-ggreen sm:text-sm"
-                                    placeholder="you@example.com"
+                                    className="mt-1 block w-full px-3 py-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-ggreen focus:border-ggreen sm:text-sm bg-white"
                                 />
                             </div>
 
                             <div>
-                                <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">
+                                <label htmlFor="subject" className="block text-sm font-bold text-gray-700 mb-1">
                                     Subject
                                 </label>
                                 <input
@@ -98,13 +98,12 @@ const ContactPage = () => {
                                     value={formData.subject}
                                     onChange={handleChange}
                                     required
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-ggreen focus:border-ggreen sm:text-sm"
-                                    placeholder="Regarding my drive..."
+                                    className="mt-1 block w-full px-3 py-4 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-ggreen focus:border-ggreen sm:text-sm bg-white"
                                 />
                             </div>
 
                             <div>
-                                <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
+                                <label htmlFor="message" className="block text-sm font-bold text-gray-700 mb-1">
                                     Message
                                 </label>
                                 <textarea
@@ -114,8 +113,7 @@ const ContactPage = () => {
                                     value={formData.message}
                                     onChange={handleChange}
                                     required
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-ggreen focus:border-ggreen sm:text-sm"
-                                    placeholder="Your message here..."
+                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-ggreen focus:border-ggreen sm:text-sm bg-white"
                                 ></textarea>
                             </div>
 
@@ -123,7 +121,7 @@ const ContactPage = () => {
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-ggreen hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ggreen disabled:opacity-50"
+                                    className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-bold text-white bg-ggreen hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ggreen disabled:opacity-50"
                                 >
                                     {isSubmitting ? 'Sending...' : 'Send Message'}
                                 </button>
