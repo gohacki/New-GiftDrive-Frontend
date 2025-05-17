@@ -6,7 +6,7 @@ import { RyePay } from '@rye-api/rye-pay'; // Ensure this path is correct
 import { formatCurrency } from '../../lib/utils'; // Adjust path if needed
 import PropTypes from 'prop-types';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+// const apiUrl = process.env.NEXT_PUBLIC_API_URL; // Removed, use relative path for internal API
 
 export default function RyePayForm({ cartData, onProcessing, onSuccess, onError }) {
     const [message, setMessage] = useState(null);
@@ -106,7 +106,7 @@ export default function RyePayForm({ cartData, onProcessing, onSuccess, onError 
         }
         console.log(`RyePayForm: generateJWT callback invoked for cart: ${componentCartId}`);
         try {
-            const response = await fetch(`${apiUrl}/api/rye/generate-jwt`, { method: 'POST' });
+            const response = await fetch(`/api/rye/generate-jwt`, { method: 'POST' }); // Use relative path
             if (!response.ok) {
                 let errorBody;
                 try { errorBody = await response.json(); } catch { errorBody = { error: `JWT fetch failed: ${response.status}` }; }

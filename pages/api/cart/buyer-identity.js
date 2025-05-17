@@ -77,7 +77,7 @@ export default async function handler(req, res) {
 
         // Fetch organization details
         const [orgRows] = await pool.query(
-            'SELECT name AS org_name, address, address2, city, state, zip_code, country, phone FROM organizations WHERE org_id = ?',
+            'SELECT name AS org_name, address, city, state, zip_code, country, phone FROM organizations WHERE org_id = ?',
             [orgId]
         );
 
