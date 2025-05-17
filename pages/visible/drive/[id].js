@@ -55,6 +55,7 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
   const user = session?.user;
 
   const [drive, setDrive] = useState(initialDriveData);
+  // eslint-disable-next-line no-unused-vars
   const [pageUrl, setPageUrl] = useState('');
   const [pageError, setPageError] = useState(initialError || null);
 
@@ -199,10 +200,6 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
     }
   };
 
-  const openChildModal = (childId) => {
-    setSelectedChildIdForModal(childId);
-    setIsChildModalOpen(true);
-  };
   const closeChildModal = () => {
     setSelectedChildIdForModal(null);
     setIsChildModalOpen(false);

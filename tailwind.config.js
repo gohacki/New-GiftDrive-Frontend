@@ -3,100 +3,38 @@ const plugin = require("tailwindcss/plugin");
 
 module.exports = {
   content: [
-    // Components: All JS/JSX/TS/TSX files in the components directory and its subdirectories
+    // ... your existing content paths
     "./components/**/*.{js,jsx,ts,tsx}",
-    // Contexts: All JS/JSX/TS/TSX files in the contexts directory and its subdirectories
     "./contexts/**/*.{js,jsx,ts,tsx}",
-    // Layouts: All JS/JSX/TS/TSX files in the layouts directory and its subdirectories
     "./layouts/**/*.{js,jsx,ts,tsx}",
-    // Pages: All JS/JSX/TS/TSX files in the pages directory and its subdirectories
     "./pages/**/*.{js,jsx,ts,tsx}",
-    // Public: Any HTML files in the public directory (if you have any)
     "./public/**/*.html",
-    // Styles: All CSS and SCSS files in the styles directory
     "./styles/**/*.{css,scss}",
-    // Utils: All JS/JSX/TS/TSX files in the utils directory and its subdirectories
     "./utils/**/*.{js,jsx,ts,tsx}",
-    // Add any other directories or file types as needed
   ],
   theme: {
     extend: {
       colors: {
-        // No need to spread colors anymore, Tailwind v3 includes them by default.
-        // You can still define custom colors or override existing ones.
-        // Keep your custom colors:
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        // ... your existing custom colors
         'ggreen': '#11393B',
-        'gyellow': 'rgb(0, 190, 29)', // Note: this is a green, not yellow
+        'gyellow': 'rgb(0, 190, 29)',
         'secondary_green': '#F6F3EE',
-        // Updated color names (if you were using them directly, Tailwind's default palette already has them)
-        // e.g., if you had custom 'blueGray', you'd now use 'slate' from the default palette
-        // or define your own 'blueGray' if it was truly custom.
-        // For now, assuming you'll use Tailwind's default 'slate', 'sky', etc.
+        'hero-bg-muted-teal': '#7A9E9F',
       },
       fontFamily: {
-        georgia: ['Georgia Pro', 'serif'],
+        // Explicitly set sans to Inter first, then fallback system fonts
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'],
+        // Removed: georgia: ['Georgia Pro', 'serif'],
       },
       minHeight: {
         "screen-75": "75vh",
+        "screen-90": "90vh",
       },
-      fontSize: {
-        55: "55rem",
-      },
-      opacity: {
-        80: ".8",
-      },
-      zIndex: {
-        2: 2,
-        3: 3,
-      },
-      inset: {
-        "-100": "-100%",
-        "-225-px": "-225px",
-        "-160-px": "-160px",
-        "-150-px": "-150px",
-        "-94-px": "-94px",
-        "-50-px": "-50px",
-        "-29-px": "-29px",
-        "-20-px": "-20px",
-        "25-px": "25px",
-        "40-px": "40px",
-        "95-px": "95px",
-        "145-px": "145px",
-        "195-px": "195px",
-        "210-px": "210px",
-        "260-px": "260px",
-      },
-      height: {
-        "95-px": "95px",
-        "70-px": "70px",
-        "350-px": "350px",
-        "500-px": "500px",
-        "600-px": "600px",
-      },
-      maxHeight: {
-        "860-px": "860px",
-      },
-      maxWidth: {
-        "100-px": "100px",
-        "120-px": "120px",
-        "150-px": "150px",
-        "180-px": "180px",
-        "200-px": "200px",
-        "210-px": "210px",
-        "580-px": "580px",
-      },
-      minWidth: {
-        "140-px": "140px",
-        48: "12rem",
-      },
-      backgroundSize: {
-        full: "100%",
-      },
+      // ... rest of your theme.extend
     },
   },
   plugins: [
+    // ... your existing plugins
     require("@tailwindcss/forms"),
     plugin(function ({ addComponents, theme }) {
       const screens = theme("screens", {});

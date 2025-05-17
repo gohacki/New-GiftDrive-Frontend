@@ -7,39 +7,50 @@ import Image from "next/image";
 // components
 import Navbar from "components/Navbars/AuthNavbar.js";
 import Footer from "components/Footers/Footer.js";
+import { FaArrowRight } from 'react-icons/fa'; // For the button arrow
 
 export default function Landing() {
   return (
     <>
       <Navbar transparent />
-      <main className="min-h-screen bg-secondary_green text-gray-800 relative">
+      <main className="min-h-screen bg-hero-bg-muted-teal text-white relative flex flex-col">
         {/* Hero Section */}
-        <section className="bg-background px-4 py-12 sm:py-20">
-          <div className="max-w-7xl mx-auto flex flex-col items-center text-center">
-            <h1 className="inter-regular text-ggreen text-6xl sm:text-5xl mt-20 mb-4">
-              Organize physical item donation
-            </h1>
-            <h1 className="inter-regular text-ggreen text-3xl sm:text-5xl mt-4 mb-4">
-              drives for any occassion.
-            </h1>
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-32 mb-20">
-              {/* <Link href="/visible/orglist">
-                <div className="px-6 py-3 text-ggreen inter-semi-bold cursor-pointer">
-                  Find a Donation Drive Page
-                </div>
-              </Link> */}
-              <Link href="/visible/registerorg">
-                <div className="px-6 py-3 bg-ggreen text-white inter-semi-bold rounded-full cursor-pointer">
-                  Get Started, It&apos;s Free
-                </div>
-              </Link>
-            </div>
+        <section className="flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8 pt-20 md:pt-32 pb-12 md:pb-48">
+          <div className="max-w-7xl w-full mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center">
+            {/* Left: Main Heading */}
 
+            <h1 className="font-semibold text-7xl sm:text-8xl lg:text-9xl leading-tight text-white drop-shadow-lg">
+              Make<br className="mb-12" />
+              Giving<br className="mb-12" />
+              Simple
+            </h1>
+
+
+
+            {/* Right: Sub-content & CTAs */}
+            <div className="md:col-span-1 text-center md:text-left flex flex-col items-center md:items-start md:pt-8 lg:pt-12">
+              <p className="text-2xl sm:text-3xl lg:text-4xl mb-10 md:mb-12 leading-relaxed">
+                Organize physical item donation drives for any occasion.
+              </p>
+              <div className="flex flex-col items-center md:items-start space-y-5">
+                <Link href="/visible/registerorg" legacyBehavior>
+                  <a className="inline-flex items-center justify-center px-8 py-4 bg-ggreen text-white text-lg font-semibold rounded-full shadow-md hover:bg-opacity-90 transition-colors duration-300">
+                    Get Started, It&apos;s Free
+                    <FaArrowRight className="ml-3 h-5 w-5" />
+                  </a>
+                </Link>
+                <Link href="/visible/orglist" legacyBehavior>
+                  <a className="text-white text-md hover:opacity-80 transition-opacity underline">
+                    Find a Donation Drive Page
+                  </a>
+                </Link>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section className="px-4 py-12 sm:py-20">
+
+        <section className="bg-white px-4 py-12 sm:py-20">
           <div className="max-w-7xl mx-auto">
             <h2 className="inter-bold text-2xl sm:text-3xl text-center mb-10">
               How It Works
