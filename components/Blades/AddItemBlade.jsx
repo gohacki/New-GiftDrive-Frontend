@@ -122,7 +122,7 @@ const AddItemBlade = ({ isOpen, driveId, existingDriveItem, onSave, onClose }) =
             const response = await axios.get(`/api/items?search=${encodeURIComponent(trimmedQuery)}`, { withCredentials: true });
             setSearchedItems(response.data || []);
             if (response.data.length === 0) toast.info("No products found in catalog.");
-        } catch (error) {
+        } catch {
             toast.error("Failed to search items.");
         } finally {
             setIsLoading(false);

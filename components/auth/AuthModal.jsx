@@ -1,6 +1,7 @@
 // components/auth/AuthModal.jsx
 'use client';
 import React from 'react';
+import PropTypes from 'prop-types';
 
 // Simple Modal Component
 export default function AuthModal({ isOpen, onClose, children }) {
@@ -29,3 +30,9 @@ export default function AuthModal({ isOpen, onClose, children }) {
         </>
     );
 }
+
+AuthModal.propTypes = {
+    isOpen: PropTypes.bool.isRequired,
+    onClose: PropTypes.func.isRequired,
+    children: PropTypes.node.isRequired,
+};
