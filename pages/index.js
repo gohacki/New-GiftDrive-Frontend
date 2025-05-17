@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion"; // Import Framer Motion
+import PropTypes from 'prop-types'; // Import PropTypes
 
 // components
 import Navbar from "components/Navbars/AuthNavbar.js";
@@ -29,6 +30,10 @@ const AnimatedTextLine = ({ children }) => {
       {children}
     </motion.div>
   );
+};
+
+AnimatedTextLine.propTypes = {
+  children: PropTypes.node.isRequired, // Children can be any renderable React node, and it's required
 };
 
 export default function Landing() {
@@ -115,7 +120,7 @@ export default function Landing() {
               >
                 <Link href="/visible/registerorg" legacyBehavior>
                   <a className="inline-flex items-center justify-center px-8 py-4 bg-ggreen text-white text-lg font-semibold rounded-full shadow-md hover:bg-opacity-90 transition-colors duration-300">
-                    Get Started, It's Free
+                    Get Started, It&apos;s Free
                     <FaArrowRight className="ml-3 h-5 w-5" />
                   </a>
                 </Link>
@@ -279,7 +284,7 @@ export default function Landing() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="bg-white border border-gray-200 rounded-lg p-6 shadow">
                 <p className="text-gray-700 mb-4">
-                  “GiftDrive made organizing our school's back-to-school supplies drive
+                  “GiftDrive made organizing our school&apos;s back-to-school supplies drive
                   easier than ever. We reached our goal way faster than in previous years,
                   and it was super simple to share with everyone!”
                 </p>
@@ -289,7 +294,7 @@ export default function Landing() {
               <div className="bg-white border border-gray-200 rounded-lg p-6 shadow">
                 <p className="text-gray-700 mb-4">
                   “Thanks to GiftDrive, we were finally able to take our drive online,
-                  something we've been aiming to do for years! We hit our goal and
+                  something we&apos;ve been aiming to do for years! We hit our goal and
                   saved a lot of time and effort in the busy holiday season!”
                 </p>
                 <p className="inter-semi-bold text-gray-900">Lila Fairbrooke</p>
@@ -297,9 +302,9 @@ export default function Landing() {
               </div>
               <div className="bg-white border border-gray-200 rounded-lg p-6 shadow">
                 <p className="text-gray-700 mb-4">
-                  “You won't regret taking your drive online with GiftDrive. Being able
+                  “You won&apos;t regret taking your drive online with GiftDrive. Being able
                   to track progress in real time and have items shipped directly to us
-                  saved so much hassle. There's no going back!”
+                  saved so much hassle. There&apos;s no going back!”
                 </p>
                 <p className="inter-semi-bold text-gray-900">Jaxon Tremont</p>
                 <p className="text-sm text-gray-500">
