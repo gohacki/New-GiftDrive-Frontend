@@ -38,12 +38,12 @@ const DriveItemCard = ({
             </div>
 
             <div className="p-4 flex flex-col flex-grow">
-                <h3 className="text-slate-900 font-semibold text-base mb-1 line-clamp-2" title={displayName}>
+                <h3 className="text-slate-900 text-center font-semibold text-base mb-1 line-clamp-2" title={displayName}>
                     {displayName}
                 </h3>
 
                 {displayPrice !== null && (
-                    <p className="text-xl font-bold text-slate-800 mb-4"> {/* Price styled to be prominent */}
+                    <p className="text-xl text-center font-bold text-slate-800 mb-2"> {/* Price styled to be prominent */}
                         {formatCurrency(displayPrice * 100, 'USD')}
                     </p>
                 )}
@@ -55,7 +55,7 @@ const DriveItemCard = ({
                                 onAddToCart(itemNeed, itemKeyType);
                             }}
                             disabled={!canAddToCartOnline || actionButtonLoading || isCompletelyFulfilled}
-                            className={`w-full px-3 py-2.5 text-sm font-semibold rounded-md shadow-sm transition-colors
+                            className={`w-full px-3 py-2.5 text-sm font-semibold rounded-full shadow-sm transition-colors
                                 ${(!canAddToCartOnline || actionButtonLoading || isCompletelyFulfilled)
                                     ? 'bg-slate-300 text-slate-600 cursor-not-allowed'
                                     : 'bg-white text-ggreen border-2 border-ggreen hover:bg-ggreen hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-teal-500'
@@ -73,13 +73,6 @@ const DriveItemCard = ({
                             {isCompletelyFulfilled ? 'Fulfilled' : 'Unavailable Online'}
                         </button>
                     )}
-
-                    <button
-                        onClick={() => toast.info("Please contact the organization for in-person purchase options.")}
-                        className="w-full text-center text-ggreen hover:text-teal-700 hover:underline text-xs font-medium"
-                    >
-                        Purchase in person
-                    </button>
                 </div>
             </div>
         </div>

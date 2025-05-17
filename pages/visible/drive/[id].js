@@ -4,31 +4,22 @@ import axios from 'axios';
 import PropTypes from 'prop-types';
 import { useRouter } from 'next/router';
 import { toast } from 'react-toastify';
-import { MapPinIcon, BuildingLibraryIcon, GiftIcon as GiftSolidIcon } from '@heroicons/react/24/solid'; // Solid icons
-import { ShareIcon } from '@heroicons/react/24/outline'; // Outline for share icon
+// Removed GiftSolidIcon as it's being replaced
+import { MapPinIcon, BuildingLibraryIcon, ShareIcon as ShareOutlineIcon } from '@heroicons/react/24/outline'; // Using ShareOutlineIcon for consistency if preferred
+// Or keep ShareIcon from solid if that's the style for the button
+// import { ShareIcon } from '@heroicons/react/24/solid';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import Image from 'next/image'; // For donor avatars
+import Image from 'next/image'; // Ensure Image from next/image is imported
 
 import Navbar from 'components/Navbars/AuthNavbar.js';
 import Footer from 'components/Footers/Footer.js';
-// Breadcrumbs might not be needed if the screenshot design is followed closely for this page
-// import Breadcrumbs from 'components/UI/Breadcrumbs.js';
 import ChildModal from 'components/Modals/ChildModal';
 import CartBlade from '@/components/Blades/CartBlade';
-// ShareButton is used within the progress card now
-// import ShareButton from '@/components/Share/ShareButton';
 import { CartContext } from 'contexts/CartContext';
 import DriveItemsSection from '@/components/DrivePage/DriveItemsSection';
-// DriveHeaderDetails is not used directly; elements integrated
-// import DriveHeaderDetails from '@/components/DrivePage/DriveHeaderDetails';
-// DriveOrganizationAside is not used for the left column donor cards
-// import DriveOrganizationAside from '@/components/DrivePage/DriveOrganizationAside';
-// SupportedChildrenSection is not shown in the target screenshot for this specific layout.
-// If it's needed for other drives, it could be conditionally rendered.
-// import SupportedChildrenSection from '@/components/DrivePage/SupportedChildrenSection';
 
-
+// Helper function to check if an item is in the cart
 function isThisSpecificNeedInCart(itemNeed, cartFromContext, itemKeyType) {
   if (!cartFromContext || !cartFromContext.stores || !itemNeed) return false;
   const sourceIdToCheck = itemNeed[itemKeyType];
@@ -37,12 +28,14 @@ function isThisSpecificNeedInCart(itemNeed, cartFromContext, itemKeyType) {
     store.cartLines?.some(line => line[sourceFieldInCart] != null && line[sourceFieldInCart] === sourceIdToCheck)
   );
 }
+
+// Helper function to calculate days remaining
 const calculateDaysRemaining = (endDateString) => {
   if (!endDateString) return 0;
   const now = new Date();
   const end = new Date(endDateString);
-  if (isNaN(end.getTime())) return 0;
-  const diffTime = Math.max(0, end.getTime() - now.getTime());
+  if (isNaN(end.getTime())) return 0; // Invalid date string
+  const diffTime = Math.max(0, end.getTime() - now.getTime()); // Ensure non-negative
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   return diffDays;
 };
@@ -56,7 +49,7 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
 
   const [drive, setDrive] = useState(initialDriveData);
   // eslint-disable-next-line no-unused-vars
-  const [pageUrl, setPageUrl] = useState('');
+  const [pageUrl, setPageUrl] = useState(''); // Used for share functionality
   const [pageError, setPageError] = useState(initialError || null);
 
   const [isBladeDismissed, setIsBladeDismissed] = useState(false);
@@ -69,7 +62,7 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
   const [itemQuantities, setItemQuantities] = useState({});
   const [isAddingToCart, setIsAddingToCart] = useState({});
 
-  // Placeholder data for Top Donors and Recent Donations
+  // Placeholder data for Top Donors and Recent Donations (as in your original code)
   const topDonorsData = [
     { name: 'Maggie Whitman', items: 7, avatar: '/img/team-1-800x800.jpg', badge: '🥇' },
     { name: 'Jacob Medici', items: 4, avatar: '/img/team-2-800x800.jpg', badge: '🥈' },
@@ -255,22 +248,13 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
       <Navbar isBladeOpen={isCartBladeEffectivelyOpen} />
       <main className={`min-h-screen bg-white text-slate-800 relative pt-24 pb-16 ${isCartBladeEffectivelyOpen ? 'mr-[15rem]' : 'mr-0'} transition-all duration-300 ease-in-out`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Back button and Share moved above metadata */}
-          {/* Removed Breadcrumbs for cleaner look matching screenshot */}
-          {/* 
-          <div className="flex justify-between items-center my-6">
-             <button onClick={() => router.back()} className="text-ggreen hover:text-teal-700 flex items-center text-sm"><ArrowLeftIcon className="h-4 w-4 mr-1" /> Back</button>
-             {pageUrl && drive && <ShareButton pageType="drive" pageData={drive} pageUrl={pageUrl} />}
-          </div>
-          */}
-
-          {/* Drive Title */}
           <h1 className="text-3xl lg:text-4xl font-bold text-ggreen mb-3 mt-6 text-center md:text-left">{name}</h1>
 
           {/* Drive Metadata Row */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-600 mb-8 justify-center md:justify-start">
             <div className="flex items-center">
-              <GiftSolidIcon className="h-5 w-5 mr-1.5 text-ggreen" />
+              {/* MODIFICATION 1: Site Logo for "Items Needed" */}
+              <Image src="/img/brand/favicon.svg" alt="Items Needed" width={20} height={20} className="mr-1.5" />
               <span>{totalNeeded || 0} Item{totalNeeded !== 1 ? 's' : ''} Needed</span>
             </div>
             {(org_city && org_state) && (
@@ -298,20 +282,63 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
                 ) : (
                   <p className="text-sm text-red-500 mb-3 font-medium">This drive has ended.</p>
                 )}
-                <div className="w-full bg-gray-200 rounded-full h-2.5 mb-1 overflow-hidden">
+
+                {/* MODIFICATION 2: Progress Bar with Custom Icon */}
+                <div className="relative w-full" style={{ marginBottom: '0.5rem', height: '4rem' }}> {/* Increased parent height for thicker bar + icon */}
+                  {/* Progress bar TRACK (thicker, inset shadow for 3D) */}
+                  <div className="absolute bottom-0 w-full rounded-full h-7 shadow-inner ring-1 ring-ggreen"> {/* Thicker: h-5, darker bg, shadow-inner, subtle ring */}
+                    {/* Progress bar FILL (thicker, gradient, raised shadow for 3D) */}
+                    <div
+                      className="bg-gradient-to-b from-teal-400 to-ggreen h-7 rounded-full shadow-lg transition-all duration-500 ease-out" // Thicker: h-5, gradient, shadow, subtle outer ring
+                      style={{ width: `${progressPercentage}%` }}
+                    ></div>
+                  </div>
+
+                  {/* Custom Icon with Pointer - adjust 'bottom' based on new bar height (h-5 = 1.25rem) */}
                   <div
-                    className="bg-ggreen h-2.5 rounded-full transition-all duration-500 ease-out"
-                    style={{ width: `${progressPercentage}%` }}
-                  ></div>
+                    className="absolute transform -translate-x-1/2" // Center the icon package horizontally
+                    style={{
+                      left: `${progressPercentage}%`,
+                      bottom: 'calc(2rem + 2px)', // Icon base 2px above the new h-5 bar (1.25rem = 20px)
+                    }}
+                  >
+                    <div className="flex flex-col items-center"> {/* Stack icon and arrow */}
+                      <Image
+                        src="/img/brand/favicon.svg" // YOUR CUSTOM ICON PATH
+                        alt="Progress Marker"
+                        width={20}
+                        height={20}
+                      />
+                      {/* Small triangle pointer below the icon */}
+                      <div
+                        style={{
+                          width: 0,
+                          height: 0,
+                          borderLeft: '6px solid transparent', // Slightly larger arrow
+                          borderRight: '6px solid transparent',
+                          borderTop: `6px solid #11393B`, // Arrow color: ggreen
+                          marginTop: '2px' // Slight overlap
+                        }}
+                      ></div>
+                    </div>
+                  </div>
                 </div>
+
                 <p className="text-sm text-slate-700 font-medium mb-5">
                   {donationsToGo > 0 ? `${donationsToGo} Donation${donationsToGo !== 1 ? 's' : ''} to go!` : "Goal Reached!"}
                 </p>
+                {/* End of MODIFICATION 2 */}
+
                 <button
-                  onClick={() => toast.info("Share functionality coming soon!")} // Placeholder for ShareModal
-                  className="w-full flex items-center justify-center px-4 py-3 bg-ggreen text-white font-semibold rounded-md hover:bg-teal-700 transition-colors text-sm shadow"
+                  onClick={() => {
+                    // Replace with your ShareModal logic if available
+                    // For example, if you have a ShareButton component:
+                    // openShareModal(); // Assuming you have a function to control ShareModal visibility
+                    toast.info("Share functionality can be integrated here.");
+                  }}
+                  className="w-full flex items-center justify-center px-4 py-3 bg-ggreen text-white font-semibold rounded-full hover:bg-teal-700 transition-colors text-sm shadow"
                 >
-                  <ShareIcon className="h-5 w-5 mr-2" /> Share Drive!
+                  <ShareOutlineIcon className="h-5 w-5 mr-2" /> Share Drive!
                 </button>
               </div>
 
@@ -375,11 +402,10 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
                   <p className="text-slate-600 mt-2">Check back later or support the organization directly!</p>
                 </div>
               )}
-              {/* SupportedChildrenSection removed as it's not in the target screenshot */}
             </div>
           </div>
         </div>
-      </main>
+      </main >
       <ChildModal isOpen={isChildModalOpen} onClose={closeChildModal} childId={selectedChildIdForModal} />
       <CartBlade isOpen={isCartBladeEffectivelyOpen} onClose={handleBladeClose} />
       <Footer isBladeOpen={isCartBladeEffectivelyOpen} />
@@ -387,6 +413,7 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
   );
 };
 
+// getServerSideProps remains the same
 export async function getServerSideProps(context) {
   const { id } = context.params;
   const baseApiUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
