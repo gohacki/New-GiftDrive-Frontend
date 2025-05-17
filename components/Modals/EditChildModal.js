@@ -1,16 +1,12 @@
+// File: components/Modals/EditChildModal.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import PropTypes from 'prop-types';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
-// Validate apiUrl
-if (!apiUrl) {
-  throw new Error('NEXT_PUBLIC_API_URL is not defined');
-}
+// REMOVED: const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+// REMOVED: Validation block for apiUrl
 
 const EditChildModal = ({ child, onClose, onUpdateChild }) => {
-  // State to manage current items with quantities
   const [currentItems, setCurrentItems] = useState(
     child.items?.map((item) => ({
       child_item_id: Number(item.child_item_id),
@@ -22,23 +18,20 @@ const EditChildModal = ({ child, onClose, onUpdateChild }) => {
     })) || []
   );
 
-  // State to manage all items fetched from the backend
   const [allItems, setAllItems] = useState([]);
-  
-  // State for search term
   const [searchTerm, setSearchTerm] = useState('');
-
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchAllItems();
-    fetchCurrentItems(); 
-  }, []);
+    fetchCurrentItems();
+  }, []); // Removed child.child_id from dependency array if fetchCurrentItems doesn't change based on it externally after initial load
 
   const fetchAllItems = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/api/items/`, {
+      // UPDATED to relative path
+      const response = await axios.get(`/api/items/`, {
         withCredentials: true,
       });
       setAllItems(response.data);
@@ -48,94 +41,16 @@ const EditChildModal = ({ child, onClose, onUpdateChild }) => {
     }
   };
 
-  // Compute available items by excluding current items
-  const availableItems = allItems.filter(
-    (item) => !currentItems.some((ci) => ci.item_id === item.item_id)
-  );
-
-  // Handler to adjust quantity
-  const handleQuantityChange = (childItemId, delta) => {
-    setCurrentItems((prevItems) =>
-      prevItems.map((item) =>
-        item.child_item_id === childItemId
-          ? {
-              ...item,
-              quantity: Math.max(item.quantity + delta, 1),
-            }
-          : item
-      )
-    );
-  };
-
-  // Handler to remove an item
-  // Handler to remove an item
-const handleRemoveItem = async (childItemId) => {
-    try {
-      const response = await axios.delete(
-        `${apiUrl}/api/children/${child.child_id}/items/${childItemId}`,
-        {
-          withCredentials: true,
-        }
-      );
-
-      console.log('Item removed successfully:', response.data);
-
-      // Fetch the updated list of child items
-      await fetchCurrentItems();
-    } catch (error) {
-      console.error('Error removing item from child:', error);
-      setError(
-        error.response?.data?.error ||
-          'Failed to remove item. Please try again.'
-      );
-    }
-};
-
-
-  // Handler to add an item
-  // Handler to add an item
-  const handleAddItem = async (item) => {
-    try {
-      // Send POST request to add the item
-      const response = await axios.post(
-        `${apiUrl}/api/children/${child.child_id}/items`,
-        {
-          item_id: item.item_id,
-          config_id: item.config_id || null, // Include config_id if applicable
-          quantity: 1, // Default quantity
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          withCredentials: true,
-        }
-      );
-
-      console.log('Item added successfully:', response.data);
-
-      // Fetch the updated list of child items
-      await fetchCurrentItems();
-    } catch (error) {
-      console.error('Error adding item to child:', error);
-      setError(
-        error.response?.data?.error ||
-          'Failed to add item to child. Please try again.'
-      );
-    }
-  };
-
-  // Function to fetch current items for the child
   const fetchCurrentItems = async () => {
+    if (!child || !child.child_id) return; // Ensure child and child_id exist
     try {
+      // UPDATED to relative path
       const response = await axios.get(
-        `${apiUrl}/api/children/${child.child_id}/items`,
+        `/api/children/${child.child_id}/items`,
         {
           withCredentials: true,
         }
       );
-
-      // Update the currentItems state with fetched data
       setCurrentItems(
         response.data.map((item) => ({
           child_item_id: Number(item.child_item_id),
@@ -152,15 +67,86 @@ const handleRemoveItem = async (childItemId) => {
     }
   };
 
+  const availableItems = allItems.filter(
+    (item) => !currentItems.some((ci) => ci.item_id === item.item_id)
+  );
 
+  const handleQuantityChange = (childItemId, delta) => {
+    setCurrentItems((prevItems) =>
+      prevItems.map((item) =>
+        item.child_item_id === childItemId
+          ? {
+            ...item,
+            quantity: Math.max(item.quantity + delta, 1),
+          }
+          : item
+      )
+    );
+  };
 
-  // Handler for search input
+  const handleRemoveItem = async (childItemId) => {
+    try {
+      // UPDATED to relative path
+      const response = await axios.delete(
+        `/api/children/${child.child_id}/items/${childItemId}`,
+        {
+          withCredentials: true,
+        }
+      );
+      console.log('Item removed successfully:', response.data);
+      await fetchCurrentItems();
+    } catch (error) {
+      console.error('Error removing item from child:', error);
+      setError(
+        error.response?.data?.error ||
+        'Failed to remove item. Please try again.'
+      );
+    }
+  };
+
+  const handleAddItem = async (item) => {
+    try {
+      // UPDATED to relative path
+      const response = await axios.post(
+        `/api/children/${child.child_id}/items`,
+        {
+          item_id: item.item_id,
+          config_id: item.config_id || null,
+          quantity: 1,
+          // Assuming your API for adding child items expects base_catalog_item_id,
+          // selected_rye_variant_id, etc. if the item is directly purchasable.
+          // You might need to adjust the payload here based on what POST /api/children/:childId/items expects.
+          // For now, matching the structure of what was in your Express backend.
+          // If your items table now holds all display info, and child_items only links and sets quantity,
+          // then the payload might be simpler.
+          // Let's assume for now your API still needs these details or derives them from item_id.
+          base_catalog_item_id: item.item_id,
+          selected_rye_variant_id: item.rye_variant_id || item.rye_product_id, // Example heuristic
+          selected_rye_marketplace: item.marketplace,
+          variant_display_name: item.name,
+          variant_display_price: item.price,
+          variant_display_photo: item.image_url,
+        },
+        {
+          headers: { 'Content-Type': 'application/json' },
+          withCredentials: true,
+        }
+      );
+      console.log('Item added successfully:', response.data);
+      await fetchCurrentItems();
+    } catch (error) {
+      console.error('Error adding item to child:', error);
+      setError(
+        error.response?.data?.error ||
+        'Failed to add item to child. Please try again.'
+      );
+    }
+  };
+
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
   };
-  
 
-  // Filtered available items based on search term
   const filteredAvailableItems = availableItems.filter((item) =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -169,42 +155,43 @@ const handleRemoveItem = async (childItemId) => {
     e.preventDefault();
     setError(null);
     setIsSubmitting(true);
-  
+
     try {
-      const payload = {
-        child_item_ids: currentItems.map((item) => item.child_item_id),
-        quantities: currentItems.reduce((acc, item) => {
-          acc[item.child_item_id] = item.quantity;
-          return acc;
-        }, {}),
-      };
-  
+      // Construct payload for updating child item quantities
+      // This assumes your PUT /api/children/:childId endpoint handles updates to item quantities
+      // based on child_item_id and their new quantities.
+      // Your original backend had a complex payload for child PUT, this might need adjustment
+      // based on how your Next.js API route for PUT /api/children/[childId] is structured.
+      // For now, let's assume it takes an array of items with their new quantities or a similar structure.
+      const itemsToUpdate = currentItems.map(item => ({
+        child_item_id: item.child_item_id,
+        quantity: item.quantity
+        // Potentially other fields if your API expects them for updates
+      }));
+
+      // UPDATED to relative path
       const response = await axios.put(
-        `${apiUrl}/api/children/${child.child_id}`,
-        payload,
+        `/api/children/${child.child_id}`, // This should be the endpoint to update child properties or its associated items
+        { items: itemsToUpdate }, // Example payload, adjust based on your API
         {
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           withCredentials: true,
         }
       );
-  
+
       console.log('Child updated successfully:', response.data);
-  
-      onUpdateChild(response.data);
+      if (onUpdateChild) onUpdateChild(response.data); // Assuming response.data is the updated child
       onClose();
     } catch (error) {
       console.error('Error updating child:', error);
       setError(
         error.response?.data?.error ||
-          'Failed to update child. Please check your inputs and try again.'
+        'Failed to update child. Please check your inputs and try again.'
       );
     } finally {
       setIsSubmitting(false);
     }
   };
-  
 
   return (
     <div
@@ -218,7 +205,7 @@ const handleRemoveItem = async (childItemId) => {
         role="document"
       >
         <h2 id="edit-child-modal-title" className="text-2xl font-semibold mb-6">
-          Manage Child&apos;s Items
+          Manage {child.child_name}&apos;s Items {/* Added child's name */}
         </h2>
         <form onSubmit={handleSubmit}>
           {error && (
@@ -236,7 +223,7 @@ const handleRemoveItem = async (childItemId) => {
               <ul className="space-y-4">
                 {currentItems.map((item) => (
                   <li
-                    key={item.child_item_id}
+                    key={item.child_item_id} // Ensure unique key
                     className="flex items-center justify-between bg-gray-100 p-4 rounded"
                   >
                     <div className="flex items-center space-x-4">
@@ -249,7 +236,7 @@ const handleRemoveItem = async (childItemId) => {
                       )}
                       <div>
                         <h4 className="text-lg font-semibold">{item.item_name}</h4>
-                        <p className="text-gray-600">${item.price.toFixed(2)}</p>
+                        <p className="text-gray-600">${Number(item.price).toFixed(2)}</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-4">
@@ -283,14 +270,13 @@ const handleRemoveItem = async (childItemId) => {
                     </div>
                   </li>
                 ))}
-
               </ul>
             )}
           </div>
 
           {/* Available Items Section */}
           <div className="mb-6">
-            <h3 className="text-xl font-medium mb-3">Available Items</h3>
+            <h3 className="text-xl font-medium mb-3">Available Items to Add</h3>
             <div className="mb-4">
               <input
                 type="text"
@@ -302,16 +288,16 @@ const handleRemoveItem = async (childItemId) => {
               />
             </div>
             {filteredAvailableItems.length === 0 ? (
-              <p className="text-gray-600">No available items match your search.</p>
+              <p className="text-gray-600">No available items match your search or all items are already added.</p>
             ) : (
               <ul className="space-y-4 max-h-64 overflow-y-auto">
                 {filteredAvailableItems.map((item) => (
                   <li
-                    key={item.item_id}
+                    key={item.item_id} // Ensure unique key
                     className="flex items-center justify-between bg-gray-50 p-4 rounded"
                   >
                     <div className="flex items-center space-x-4">
-                      {item.image_url && (
+                      {item.image_url && ( // Changed from item_photo to image_url based on /api/items
                         <img
                           src={item.image_url}
                           alt={item.name}
@@ -349,9 +335,8 @@ const handleRemoveItem = async (childItemId) => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 ${
-                isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
+              className={`px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
             >
               {isSubmitting ? 'Saving...' : 'Save Changes'}
             </button>
@@ -362,7 +347,6 @@ const handleRemoveItem = async (childItemId) => {
   );
 };
 
-// Enhanced PropTypes Validation
 EditChildModal.propTypes = {
   child: PropTypes.shape({
     child_id: PropTypes.number.isRequired,
@@ -371,7 +355,7 @@ EditChildModal.propTypes = {
     items: PropTypes.arrayOf(
       PropTypes.shape({
         child_item_id: PropTypes.number,
-        child_id: PropTypes.number,
+        child_id: PropTypes.number, // Should match parent child_id
         item_id: PropTypes.number,
         item_name: PropTypes.string,
         description: PropTypes.string,

@@ -1,139 +1,133 @@
-// components/Cards/ChildList.js
+// File: components/Cards/ChildList.js
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import ChildCard from './ChildCard';
 import { useModal, MODAL_TYPES } from '../../contexts/ModalContext';
 import axios from 'axios';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
-// Validate apiUrl
-if (!apiUrl) {
-  throw new Error('NEXT_PUBLIC_API_URL is not defined');
-}
-
 const ChildList = ({ driveId }) => {
   const [children, setChildren] = useState([]);
   const { openModal } = useModal();
-  const [loading, setLoading] = useState(true); // Optional: To handle loading state
-  const [error, setError] = useState(null); // Optional: To handle errors
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetchChildrenWithItems();
-  }, [driveId]);
-
-  /**
-   * Fetches all children for the given driveId and their associated items.
-   */
-  const fetchChildrenWithItems = async () => {
+  // Renamed for clarity and to avoid potential conflicts if driveId prop changes
+  const fetchChildrenForDrive = async (currentDriveId) => {
+    if (!currentDriveId) {
+      setLoading(false);
+      setError("Drive ID is missing, cannot fetch children.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      // Step 1: Fetch all children for the given driveId
-      const response = await axios.get(`${apiUrl}/api/drives/${driveId}`, {
+      // Step 1: Fetch drive details which include its children (basic info)
+      // UPDATED to relative path
+      const driveResponse = await axios.get(`/api/drives/${currentDriveId}`, {
         withCredentials: true,
       });
 
-      const childrenData = response.data.children;
+      // Assuming the drive object has a 'children' array with basic child info (id, name, photo)
+      const childrenDataFromDrive = driveResponse.data.children;
 
-      if (!Array.isArray(childrenData)) {
-        throw new Error('Invalid children data format received from server.');
+      if (!Array.isArray(childrenDataFromDrive)) {
+        console.warn(`No children array or invalid format in drive data for drive ID ${currentDriveId}.`);
+        setChildren([]);
+        setLoading(false);
+        return;
       }
 
-      // Step 2: For each child, fetch their associated items
-      const childrenWithItems = await Promise.all(
-        childrenData.map(async (child) => {
-          try {
-            const itemsResponse = await axios.get(
-              `${apiUrl}/api/children/${child.child_id}/items`,
-              { withCredentials: true }
+      // Step 2: For each child, fetch their associated items (detailed info)
+      // This step might be redundant if EditChildModal (triggered by ChildCard) fetches items on demand.
+      // However, keeping it for now if ChildList needs to display item counts or similar.
+      // If not, this can be simplified.
+      const childrenWithItemsPromises = childrenDataFromDrive.map(async (child) => {
+        try {
+          // UPDATED to relative path
+          const itemsResponse = await axios.get(
+            `/api/children/${child.child_id}/items`,
+            { withCredentials: true }
+          );
+          const itemsData = itemsResponse.data;
+          if (!Array.isArray(itemsData)) {
+            console.warn(
+              `Invalid items data format for child_id ${child.child_id}. Expected an array.`
             );
-
-            const itemsData = itemsResponse.data;
-
-            // Ensure itemsData is an array
-            if (!Array.isArray(itemsData)) {
-              console.warn(
-                `Invalid items data format for child_id ${child.child_id}. Expected an array.`
-              );
-              return { ...child, items: [] };
-            }
-
-            // Merge items into the child object
-            return { ...child, items: itemsData };
-          } catch (itemsError) {
-            console.error(
-              `Error fetching items for child_id ${child.child_id}:`,
-              itemsError
-            );
-            // Optionally, you can set items to an empty array or keep previous items
-            return { ...child, items: [] };
+            return { ...child, items: [] }; // Ensure items is always an array
           }
-        })
-      );
+          return { ...child, items: itemsData };
+        } catch (itemsError) {
+          console.error(
+            `Error fetching items for child_id ${child.child_id}:`,
+            itemsError
+          );
+          return { ...child, items: [] }; // Default to empty items on error
+        }
+      });
 
-      setChildren(childrenWithItems);
+      const resolvedChildrenWithItems = await Promise.all(childrenWithItemsPromises);
+      setChildren(resolvedChildrenWithItems);
+
     } catch (err) {
-      console.error('Error fetching children:', err);
+      console.error(`Error fetching children for drive ${currentDriveId}:`, err);
       setError('Failed to load children. Please try again later.');
+      setChildren([]); // Clear children on error
     } finally {
       setLoading(false);
     }
   };
 
-  /**
-   * Handles the update of a child (e.g., after editing items).
-   * @param {Object} updatedChild - The updated child object returned from the server.
-   */
+  useEffect(() => {
+    if (driveId) { // Ensure driveId is present
+      fetchChildrenForDrive(driveId);
+    }
+  }, [driveId]); // Re-fetch if driveId changes
+
   const handleUpdateChild = (updatedChild) => {
     setChildren((prevChildren) =>
       prevChildren.map((child) =>
         child.child_id === updatedChild.child_id ? updatedChild : child
       )
     );
+    // Optionally, refetch all children if updates can have broader implications
+    // fetchChildrenForDrive(driveId);
   };
 
-  /**
-   * Handles the deletion of a child.
-   * @param {number} childId - The ID of the child to delete.
-   */
-  const handleDeleteChild = async (childId) => {
+  const handleDeleteChild = async (childIdToDelete) => {
     if (confirm('Are you sure you want to delete this child?')) {
       try {
-        await axios.delete(`${apiUrl}/api/children/${childId}`, {
+        // UPDATED to relative path
+        // The API route should handle cascading deletes or deactivations (e.g., child_items, cart_contents)
+        await axios.delete(`/api/children/${childIdToDelete}`, {
           withCredentials: true,
         });
-        // Remove the deleted child from the state
-        setChildren((prevChildren) =>
-          prevChildren.filter((child) => child.child_id !== childId)
-        );
-      } catch (error) {
-        console.error(`Error deleting child_id ${childId}:`, error);
-        alert('Failed to delete child. Please try again.');
+        // Refetch children list to reflect deletion
+        fetchChildrenForDrive(driveId);
+        // Or, filter locally for faster UI update, but refetch is safer for consistency:
+        // setChildren((prevChildren) =>
+        //   prevChildren.filter((child) => child.child_id !== childIdToDelete)
+        // );
+      } catch (err) {
+        console.error(`Error deleting child_id ${childIdToDelete}:`, err);
+        alert('Failed to delete child. Please try again.'); // Or use toast
       }
     }
   };
 
-  /**
-   * Triggers the modal to add a new child.
-   */
   const triggerAddChildModal = (e) => {
-    e.stopPropagation()
+    if (e) e.stopPropagation();
     openModal(MODAL_TYPES.ADD_CHILD, {
-      driveId,
-      onAddChild: fetchChildrenWithItems, // Refresh the list after adding
+      driveId, // Pass driveId to the modal
+      onAddChild: () => fetchChildrenForDrive(driveId), // Refresh the list after adding
     });
   };
 
-  /**
-   * Optional: Loading and Error Handling UI
-   */
   if (loading) {
-    return <p>Loading children...</p>;
+    return <p className="text-center py-4">Loading children...</p>;
   }
 
   if (error) {
-    return <p className="text-red-500">{error}</p>;
+    return <p className="text-red-500 text-center py-4">{error}</p>;
   }
 
   return (
@@ -153,21 +147,21 @@ const ChildList = ({ driveId }) => {
           {children.map((child) => (
             <ChildCard
               key={child.child_id}
-              child={child}
+              child={child} // ChildCard expects a child object
               onDelete={handleDeleteChild}
-              onUpdateChild={handleUpdateChild} // Pass the handler to update specific child
+              onUpdateChild={handleUpdateChild}
             />
           ))}
         </div>
       ) : (
-        <p className="text-gray-600">No children added to this drive yet.</p>
+        <p className="text-gray-600 py-4 text-center">No children added to this drive yet.</p>
       )}
     </div>
   );
 };
 
 ChildList.propTypes = {
-  driveId: PropTypes.number.isRequired,
+  driveId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired, // driveId can be string from URL or number
 };
 
 export default ChildList;

@@ -1,33 +1,59 @@
-// components/Cards/CardSocialTraffic.js
-
-import React, { useEffect, useState, useContext } from "react";
+// File: components/Cards/CardSocialTraffic.js
+import React, { useEffect, useState } from "react";
 import axios from "axios";
-import PropTypes from "prop-types";
-import { AuthContext } from "../../contexts/AuthContext";
+import { useSession } from "next-auth/react"; // ADD THIS LINE
 
-export default function CardSocialTraffic({ apiUrl }) {
+// REMOVED: apiUrl prop
+
+export default function CardSocialTraffic() { // Removed apiUrl prop
   const [socialTraffic, setSocialTraffic] = useState([]);
-  const { user } = useContext(AuthContext);
+  const [isLoading, setIsLoading] = useState(true); // Added loading state
+  const [error, setError] = useState(null); // Added error state
+
+  // const { user } = useContext(AuthContext); // REMOVE THIS LINE
+  const { data: session, status: authStatus } = useSession(); // USE useSession hook
+  const user = session?.user; // User object from NextAuth session
 
   useEffect(() => {
     const fetchSocialTraffic = async () => {
-      try {
-        if (user && user.org_id) {
-          const response = await axios.get(`${apiUrl}/api/analytics/social-traffic`, {
-            params: {
-              org_id: user.org_id,
-            },
-            withCredentials: true,
-          });
-          setSocialTraffic(response.data);
+      if (authStatus === "loading") {
+        setIsLoading(true);
+        return;
+      }
+      if (authStatus === "unauthenticated" || !user || !user.org_id) {
+        setSocialTraffic([]);
+        setIsLoading(false);
+        if (user && !user.org_id) {
+          console.warn("CardSocialTraffic: User is authenticated but has no org_id.");
+          // setError("Organization ID not found for this user."); // Optional
         }
-      } catch (error) {
-        console.error("Error fetching social traffic:", error);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+      try {
+        // UPDATED to relative path and removed apiUrl
+        // Assuming your API route is /api/analytics/social-traffic
+        // and it can infer org_id from session or use the passed param.
+        const response = await axios.get(`/api/analytics/social-traffic`, { // Adjust API path if different
+          params: {
+            org_id: user.org_id, // Pass org_id if your backend API route needs it
+          },
+          withCredentials: true,
+        });
+        setSocialTraffic(response.data || []);
+      } catch (err) {
+        console.error("Error fetching social traffic:", err.response?.data || err.message);
+        setError("Failed to load social traffic data.");
+        setSocialTraffic([]);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchSocialTraffic();
-  }, [apiUrl, user]);
+  }, [user, authStatus]); // Depend on user and authStatus
 
   return (
     <>
@@ -37,67 +63,71 @@ export default function CardSocialTraffic({ apiUrl }) {
             <div className="relative w-full px-4 max-w-full flex-grow flex-1">
               <h3 className="font-semibold text-base text-blueGray-700">Social Traffic</h3>
             </div>
+            {/* Optional: Add a refresh button or date range selector here */}
           </div>
         </div>
         <div className="block w-full overflow-x-auto">
-          {/* Social Traffic table */}
-          <table className="items-center w-full bg-transparent border-collapse">
-            <thead>
-              <tr>
-                <th className="px-6 bg-blueGray-50 text-blueGray-500 align-middle border border-solid border-blueGray-100 py-3 text-xs uppercase border-l-0 border-r-0 whitespace-nowrap font-semibold text-left">
-                  Source
-                </th>
-                <th className="px-6 bg-blueGray-50 text-blueGray-500 align-middle border border-solid border-blueGray-100 py-3 text-xs uppercase border-l-0 border-r-0 whitespace-nowrap font-semibold text-left">
-                  Visitors
-                </th>
-                <th className="px-6 bg-blueGray-50 text-blueGray-500 align-middle border border-solid border-blueGray-100 py-3 text-xs uppercase border-l-0 border-r-0 whitespace-nowrap font-semibold text-left">
-                  Percentage
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {socialTraffic.length > 0 ? (
-                socialTraffic.map((source) => (
-                  <tr key={source.platform}>
-                    <th className="border-t-0 px-6 align-middle border-l-0 border-r-0 text-xs whitespace-nowrap p-4 text-left">
-                      {source.platform}
-                    </th>
-                    <td className="border-t-0 px-6 align-middle border-l-0 border-r-0 text-xs whitespace-nowrap p-4">
-                      {source.visitors}
-                    </td>
-                    <td className="border-t-0 px-6 align-middle border-l-0 border-r-0 text-xs whitespace-nowrap p-4">
-                      <div className="flex items-center">
-                        <span className="mr-2">{source.percentage}%</span>
-                        <div className="relative w-full">
-                          <div className="overflow-hidden h-2 text-xs flex rounded bg-gray-200">
-                            <div
-                              style={{ width: `${source.percentage}%` }}
-                              className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500"
-                            ></div>
+          {isLoading ? (
+            <p className="text-center text-gray-500 py-4">Loading social traffic...</p>
+          ) : error ? (
+            <p className="text-center text-red-500 py-4">{error}</p>
+          ) : (
+            <table className="items-center w-full bg-transparent border-collapse">
+              <thead>
+                <tr>
+                  <th className="px-6 bg-blueGray-50 text-blueGray-500 align-middle border border-solid border-blueGray-100 py-3 text-xs uppercase border-l-0 border-r-0 whitespace-nowrap font-semibold text-left">
+                    Source
+                  </th>
+                  <th className="px-6 bg-blueGray-50 text-blueGray-500 align-middle border border-solid border-blueGray-100 py-3 text-xs uppercase border-l-0 border-r-0 whitespace-nowrap font-semibold text-left">
+                    Visitors
+                  </th>
+                  <th className="px-6 bg-blueGray-50 text-blueGray-500 align-middle border border-solid border-blueGray-100 py-3 text-xs uppercase border-l-0 border-r-0 whitespace-nowrap font-semibold text-left min-w-[120px]"> {/* Added min-w for progress bar */}
+                    Percentage
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {socialTraffic.length > 0 ? (
+                  socialTraffic.map((source, index) => ( // Added index for key if platform isn't guaranteed unique
+                    <tr key={source.platform || index}>
+                      <th className="border-t-0 px-6 align-middle border-l-0 border-r-0 text-xs whitespace-nowrap p-4 text-left">
+                        {source.platform || 'N/A'}
+                      </th>
+                      <td className="border-t-0 px-6 align-middle border-l-0 border-r-0 text-xs whitespace-nowrap p-4">
+                        {source.visitors || 0}
+                      </td>
+                      <td className="border-t-0 px-6 align-middle border-l-0 border-r-0 text-xs whitespace-nowrap p-4">
+                        <div className="flex items-center">
+                          <span className="mr-2">{source.percentage || 0}%</span>
+                          <div className="relative w-full">
+                            <div className="overflow-hidden h-2 text-xs flex rounded bg-gray-200">
+                              <div
+                                style={{ width: `${source.percentage || 0}%` }}
+                                className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500" /* Consider a dynamic color based on source or a theme color */
+                              ></div>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan="3"
+                      className="border-t-0 px-6 align-middle border-l-0 border-r-0 text-xs whitespace-nowrap p-4 text-center text-gray-500"
+                    >
+                      No social traffic data available.
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan="3"
-                    className="border-t-0 px-6 align-middle border-l-0 border-r-0 text-xs whitespace-nowrap p-4 text-center"
-                  >
-                    No data available.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </>
   );
 }
 
-CardSocialTraffic.propTypes = {
-  apiUrl: PropTypes.string.isRequired,
-};
+// REMOVED: CardSocialTraffic.propTypes related to apiUrl

@@ -1,17 +1,15 @@
 // src/components/Navbars/AuthNavbar.js
-import React, { useContext, useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useContext } from 'react'; // Added useContext
 import Link from 'next/link';
 import PropTypes from 'prop-types';
-import { AuthContext } from '../../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { FaShoppingCart, FaSpinner } from 'react-icons/fa';
-import { CartContext } from '../../contexts/CartContext';
+import { CartContext } from '../../contexts/CartContext'; // Keep this if CartContext is still used for itemCount
 import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-toastify';
 import axios from 'axios';
-
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+import { useSession, signOut } from 'next-auth/react'; // Import from next-auth
 
 // --- Debounce Helper Function ---
 function debounce(func, delay) {
@@ -29,14 +27,20 @@ function debounce(func, delay) {
 
 
 const Navbar = ({ transparent, isBladeOpen }) => {
-  const { user, logout } = useContext(AuthContext);
+  const { data: session, status: authStatus } = useSession(); // Use next-auth session
+  const user = session?.user; // Extract user object from session
+
   const [navbarOpen, setNavbarOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const router = useRouter();
-  const { cart } = useContext(CartContext);
-  const itemCount = cart?.items
-    ? cart.items.reduce((total, item) => total + item.quantity, 0)
-    : 0;
+  const { cart } = useContext(CartContext); // Assuming CartContext is still used for cart item count
+
+  // Calculate itemCount based on Rye's cart structure
+  // This assumes your CartContext `cart` state matches Rye's structure
+  const itemCount = cart?.stores?.reduce((total, store) =>
+    total + (store.cartLines?.reduce((lineTotal, line) => lineTotal + line.quantity, 0) || 0)
+    , 0) || 0;
+
 
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [searchQueryVal, setSearchQueryVal] = useState('');
@@ -64,21 +68,13 @@ const Navbar = ({ transparent, isBladeOpen }) => {
   useEffect(() => {
     const handleRouteChange = () => {
       setNavbarOpen(false);
-      // Do not hide search suggestions on route change start,
-      // as it might be a search submission causing the route change.
-      // setShowSuggestions(false); // This was potentially closing suggestions prematurely
     };
     router.events.on('routeChangeStart', handleRouteChange);
     const handleRouteComplete = () => {
-      // Hide suggestions once navigation is complete, unless it's the search page itself.
       if (!router.pathname.startsWith('/visible/search')) {
         setShowSuggestions(false);
       }
-      if (isSearchExpanded && !router.pathname.startsWith('/visible/search')) {
-        // If search was expanded and we navigate away from search results, collapse it.
-        // This line is a bit aggressive, consider if user wants to keep it open.
-        // setIsSearchExpanded(false);
-      }
+      // Removed aggressive collapsing of search bar
     };
     router.events.on('routeChangeComplete', handleRouteComplete);
     return () => {
@@ -97,14 +93,15 @@ const Navbar = ({ transparent, isBladeOpen }) => {
         return;
       }
       setLoadingSuggestions(true);
-      setShowSuggestions(true); // Show suggestions container when fetching
+      setShowSuggestions(true);
       try {
-        const response = await axios.get(`${apiUrl}/api/search/suggestions`, {
+        // Update this to your Next.js API route for suggestions
+        const response = await axios.get(`/api/search/suggestions`, {
           params: { q: query },
-          withCredentials: true,
+          // withCredentials: true, // May not be needed if your suggestions API is public
         });
         setSuggestions(response.data || []);
-        setActiveSuggestionIndex(-1); // Reset active suggestion
+        setActiveSuggestionIndex(-1);
       } catch (error) {
         console.error("Error fetching suggestions:", error);
         setSuggestions([]);
@@ -112,7 +109,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
         setLoadingSuggestions(false);
       }
     }, 300),
-    [apiUrl] // apiUrl is stable
+    [] // apiUrl removed as it's now an internal API call
   );
 
   const handleSearchChange = (e) => {
@@ -121,7 +118,6 @@ const Navbar = ({ transparent, isBladeOpen }) => {
     debouncedFetchSuggestions(query);
   };
 
-  // Effect for hiding suggestions on outside click or Escape key
   useEffect(() => {
     const handleClickOutsideSuggestions = (event) => {
       if (
@@ -136,11 +132,6 @@ const Navbar = ({ transparent, isBladeOpen }) => {
       if (event.key === 'Escape') {
         if (showSuggestions) {
           setShowSuggestions(false);
-        } else if (isSearchExpanded) {
-          // If suggestions are already hidden but search is expanded, then collapse search.
-          // This is now handled by the new click-outside for the search bar itself.
-          // For Escape key, we might want similar behavior:
-          // toggleSearchExpansion(); // This would collapse it.
         }
       }
     };
@@ -151,29 +142,24 @@ const Navbar = ({ transparent, isBladeOpen }) => {
       document.removeEventListener('mousedown', handleClickOutsideSuggestions);
       document.removeEventListener('keydown', handleEscapeKey);
     };
-  }, [showSuggestions, isSearchExpanded]); // Re-evaluate if showSuggestions or isSearchExpanded changes
+  }, [showSuggestions, isSearchExpanded]);
 
   const handleLogout = async (e) => {
     e.preventDefault();
-    await logout();
     setNavbarOpen(false);
     setIsSearchExpanded(false);
     setShowSuggestions(false);
-    router.push('/');
+    await signOut({ redirect: true, callbackUrl: '/' }); // Use signOut from next-auth
   };
 
   const isActive = (href) => router.pathname === href;
 
-  // Memoize toggleSearchExpansion
   const toggleSearchExpansion = useCallback(() => {
     setIsSearchExpanded(prevIsSearchExpanded => {
       const nextIsSearchExpanded = !prevIsSearchExpanded;
       if (nextIsSearchExpanded) {
         setTimeout(() => searchInputRef.current?.focus(), 0);
       } else {
-        // This cleanup is now effectively handled by the useEffect watching isSearchExpanded
-        // if we call setIsSearchExpanded(false) directly from outside click.
-        // However, keeping it here ensures cleanup if toggle is called directly (e.g., by X button).
         setSearchQueryVal('');
         setShowSuggestions(false);
       }
@@ -182,38 +168,30 @@ const Navbar = ({ transparent, isBladeOpen }) => {
       }
       return nextIsSearchExpanded;
     });
-  }, [navbarOpen, /* stable setters: setIsSearchExpanded, setSearchQueryVal, setShowSuggestions, setNavbarOpen */]);
+  }, [navbarOpen]);
 
-  // NEW: Effect to handle clicks outside the search bar to collapse it (for desktop)
   useEffect(() => {
     const handleClickOutsideSearch = (event) => {
-      if (!isSearchExpanded) return; // Only run if search is expanded
-
+      if (!isSearchExpanded) return;
       const searchFormElement = searchInputRef.current?.closest('form');
-
       const clickedOutsideSearchForm = searchFormElement && !searchFormElement.contains(event.target);
       const clickedOutsideSuggestions = !suggestionsContainerRef.current || !suggestionsContainerRef.current.contains(event.target);
-
       if (clickedOutsideSearchForm && clickedOutsideSuggestions) {
-        setIsSearchExpanded(false); // Directly set to false
+        setIsSearchExpanded(false);
       }
     };
-
     if (isSearchExpanded) {
       document.addEventListener('mousedown', handleClickOutsideSearch);
     }
-
     return () => {
       document.removeEventListener('mousedown', handleClickOutsideSearch);
     };
-  }, [isSearchExpanded]); // Dependency: isSearchExpanded
+  }, [isSearchExpanded]);
 
-  // NEW: Effect to clean up search state when isSearchExpanded becomes false
   useEffect(() => {
     if (!isSearchExpanded) {
       setSearchQueryVal('');
       setShowSuggestions(false);
-      // Potentially reset activeSuggestionIndex if needed
       setActiveSuggestionIndex(-1);
     }
   }, [isSearchExpanded]);
@@ -225,10 +203,6 @@ const Navbar = ({ transparent, isBladeOpen }) => {
     if (query) {
       router.push(`/visible/search?q=${encodeURIComponent(query)}`);
       if (navbarOpen) setNavbarOpen(false);
-      // setShowSuggestions(false); // Let routeChangeComplete handle this
-      // setIsSearchExpanded(false); // Keep search expanded on search page, or let user decide.
-      // Or collapse if navigating to a non-search page.
-      // This can be handled by routeChangeComplete too.
     } else {
       toast.info("Please enter something to search.");
     }
@@ -236,37 +210,27 @@ const Navbar = ({ transparent, isBladeOpen }) => {
 
   const handleSuggestionClick = (suggestion) => {
     setSearchQueryVal(suggestion.name);
-    // setShowSuggestions(false); // Will be hidden by navigation or click-outside
     handleSearchSubmit(null, suggestion.name);
   };
 
   const handleKeyDownOnSearch = (e) => {
     if (!showSuggestions || suggestions.length === 0) {
       setActiveSuggestionIndex(-1);
-      if (e.key === 'Enter') { // Allow submitting form even if no suggestions shown/selected
-        // Form onSubmit will handle this
-        return;
-      }
+      if (e.key === 'Enter') return;
       return;
     }
-
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setActiveSuggestionIndex(prevIndex =>
-        prevIndex < suggestions.length - 1 ? prevIndex + 1 : 0
-      );
+      setActiveSuggestionIndex(prevIndex => (prevIndex < suggestions.length - 1 ? prevIndex + 1 : 0));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setActiveSuggestionIndex(prevIndex =>
-        prevIndex > 0 ? prevIndex - 1 : suggestions.length - 1
-      );
+      setActiveSuggestionIndex(prevIndex => (prevIndex > 0 ? prevIndex - 1 : suggestions.length - 1));
     } else if (e.key === 'Enter') {
       if (activeSuggestionIndex >= 0 && activeSuggestionIndex < suggestions.length) {
-        e.preventDefault(); // Prevent form submission if selecting suggestion
+        e.preventDefault();
         handleSuggestionClick(suggestions[activeSuggestionIndex]);
       } else {
-        // If Enter is pressed and no suggestion is active, let the form submit
-        setShowSuggestions(false); // Hide suggestions on explicit submit
+        setShowSuggestions(false);
       }
     } else if (e.key === 'Escape') {
       setShowSuggestions(false);
@@ -275,13 +239,12 @@ const Navbar = ({ transparent, isBladeOpen }) => {
 
   return (
     <nav
-      className={`fixed top-0 left-0 z-50 w-full 
+      className={`fixed top-0 left-0 z-50 w-full
                  transition-all duration-300 ease-in-out
                  ${(transparent && !scrolled && !navbarOpen && !isSearchExpanded) ? 'bg-transparent' : 'bg-secondary_green shadow-lg'}
                  ${isBladeOpen ? 'pr-[15rem]' : 'pr-0'}`}
     >
-      <div className="container mx-auto px-4 py-3 flex items-center"> {/* Main flex row for navbar items */}
-        {/* Logo - Stays on the left */}
+      <div className="container mx-auto px-4 py-3 flex items-center">
         <div className="flex-shrink-0">
           <Link href="/">
             <div className="leading-relaxed py-2 whitespace-nowrap cursor-pointer inter-semi-bold text-ggreen text-2xl flex items-center gap-2">
@@ -291,7 +254,6 @@ const Navbar = ({ transparent, isBladeOpen }) => {
           </Link>
         </div>
 
-        {/* Desktop Search Area */}
         <div className={`hidden lg:flex items-center mx-4 relative ${isSearchExpanded ? 'flex-grow' : 'flex-shrink-0'}`}>
           {isSearchExpanded ? (
             <form onSubmit={handleSearchSubmit} className="relative flex items-center w-full">
@@ -309,7 +271,6 @@ const Navbar = ({ transparent, isBladeOpen }) => {
               <button type="button" onClick={toggleSearchExpansion} className="absolute right-0 top-1/2 transform -translate-y-1/2 p-2 mr-1 text-gray-500 hover:text-ggreen" aria-label="Close search">
                 <XMarkIcon className="h-5 w-5" />
               </button>
-              {/* Suggestions Dropdown - Desktop */}
               {showSuggestions && isSearchExpanded && (
                 <div ref={suggestionsContainerRef} className="absolute top-full mt-1.5 w-full bg-white border border-gray-300 rounded-md shadow-lg z-20 max-h-80 overflow-y-auto">
                   {loadingSuggestions ? (
@@ -341,14 +302,15 @@ const Navbar = ({ transparent, isBladeOpen }) => {
           )}
         </div>
 
-        {/* Right Aligned Group for Desktop */}
         <div className="hidden lg:flex items-center ml-auto space-x-4">
           <ul className="flex flex-row list-none items-center space-x-1">
-            {user && (
+            {/* Check session status and if user object exists */}
+            {authStatus === "authenticated" && user && (
               <>
                 <li className="flex items-center">
                   <Link href="/visible/profile"><span className={`text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen hover:text-gyellow ${isActive('/visible/profile') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>Account</span></Link>
                 </li>
+                {/* User properties (like is_org_admin) come from session.user */}
                 {!!user.is_org_admin && (
                   <li className="flex items-center">
                     <Link href="/admin/dashboard"><span className={`text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen hover:text-gyellow ${isActive('/admin/dashboard') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>My Org Dashboard</span></Link>
@@ -364,7 +326,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
                 </li>
               </>
             )}
-            {!user && (
+            {authStatus === "unauthenticated" && (
               <>
                 <li className="flex items-center">
                   <Link href="/auth/login"><span className={`text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen hover:text-gyellow ${isActive('/auth/login') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>Login</span></Link>
@@ -373,6 +335,11 @@ const Navbar = ({ transparent, isBladeOpen }) => {
                   <Link href="/auth/register"><span className={`text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen hover:text-gyellow ${isActive('/auth/register') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>Register</span></Link>
                 </li>
               </>
+            )}
+            {authStatus === "loading" && (
+              <li className="flex items-center">
+                <span className="text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-gray-500 whitespace-nowrap">Loading...</span>
+              </li>
             )}
           </ul>
           <div>
@@ -396,7 +363,6 @@ const Navbar = ({ transparent, isBladeOpen }) => {
           </div>
         </div>
 
-        {/* Mobile Specific Controls */}
         <div className="lg:hidden flex items-center ml-auto">
           <Link href="/visible/cart" className="p-2 text-ggreen hover:text-gyellow">
             <div className="relative">
@@ -411,7 +377,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
           <button
             className="text-ggreen cursor-pointer text-xl leading-none px-3 py-1 border border-solid border-transparent rounded bg-transparent block outline-none focus:outline-none"
             type="button"
-            onClick={() => { setNavbarOpen(!navbarOpen); if (isSearchExpanded) setIsSearchExpanded(false); /* setShowSuggestions(false); This is now handled by isSearchExpanded effect */ }}
+            onClick={() => { setNavbarOpen(!navbarOpen); if (isSearchExpanded) setIsSearchExpanded(false); }}
             aria-label="Toggle navigation menu"
           >
             {navbarOpen ? <XMarkIcon className="h-6 w-6" /> : <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>}
@@ -419,10 +385,8 @@ const Navbar = ({ transparent, isBladeOpen }) => {
         </div>
       </div>
 
-      {/* Mobile Menu Dropdown */}
       {navbarOpen && (
         <div className="lg:hidden bg-secondary_green shadow-lg">
-          {/* Mobile Search Form */}
           <form onSubmit={handleSearchSubmit} className="p-4 border-b border-gray-200 relative">
             <div className="relative flex items-center">
               <input
@@ -439,8 +403,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
                 {searchQueryVal ? <XMarkIcon className="h-5 w-5" onClick={(e) => { e.stopPropagation(); setSearchQueryVal(''); setShowSuggestions(false); }} /> : <MagnifyingGlassIcon className="h-5 w-5" />}
               </button>
             </div>
-            {/* Suggestions Dropdown - Mobile */}
-            {showSuggestions && navbarOpen && ( // Only show if mobile menu is open
+            {showSuggestions && navbarOpen && (
               <div ref={suggestionsContainerRef} className="absolute left-4 right-4 mt-1.5 bg-white border border-gray-300 rounded-md shadow-lg z-20 max-h-60 overflow-y-auto">
                 {loadingSuggestions ? (
                   <div className="p-3 text-sm text-gray-500 flex items-center justify-center"><FaSpinner className="animate-spin mr-2" /> Loading...</div>
@@ -463,9 +426,8 @@ const Navbar = ({ transparent, isBladeOpen }) => {
               </div>
             )}
           </form>
-          {/* Mobile Nav Links */}
           <ul className="flex flex-col list-none py-2">
-            {user && (
+            {authStatus === "authenticated" && user && (
               <>
                 <li className="flex items-center"><Link href="/visible/profile"><span className="text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen hover:text-gyellow w-full whitespace-nowrap">Account</span></Link></li>
                 {!!user.is_org_admin && <li className="flex items-center"><Link href="/admin/dashboard"><span className="text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen hover:text-gyellow w-full whitespace-nowrap">My Org Dashboard</span></Link></li>}
@@ -473,11 +435,16 @@ const Navbar = ({ transparent, isBladeOpen }) => {
                 <li className="flex items-center"><button onClick={handleLogout} className="text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen hover:text-gyellow w-full text-left bg-transparent border-none whitespace-nowrap">Logout</button></li>
               </>
             )}
-            {!user && (
+            {authStatus === "unauthenticated" && (
               <>
                 <li className="flex items-center"><Link href="/auth/login"><span className="text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen hover:text-gyellow w-full whitespace-nowrap">Login</span></Link></li>
                 <li className="flex items-center"><Link href="/auth/register"><span className="text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen hover:text-gyellow w-full whitespace-nowrap">Register</span></Link></li>
               </>
+            )}
+            {authStatus === "loading" && (
+              <li className="flex items-center">
+                <span className="text-sm inter-regular uppercase px-4 py-3 flex items-center text-gray-500 w-full whitespace-nowrap">Loading...</span>
+              </li>
             )}
             <li className="flex items-center px-4 py-3">
               <Link href="/visible/registerdrive" className='w-full'>

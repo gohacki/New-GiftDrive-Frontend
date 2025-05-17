@@ -1,4 +1,4 @@
-// components/Blades/AddItemBlade.jsx
+// File: components/Blades/AddItemBlade.jsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 import { formatCurrency } from '@/lib/utils';
 import { XMarkIcon } from '@heroicons/react/24/solid';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+// REMOVED: const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const AddItemBlade = ({ isOpen, driveId, existingDriveItem, onSave, onClose }) => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -43,7 +43,8 @@ const AddItemBlade = ({ isOpen, driveId, existingDriveItem, onSave, onClose }) =
         setSelectedRyeVariantId('');
 
         try {
-            const response = await axios.post(`${apiUrl}/api/items/fetch-rye-variants-for-product`, {
+            // UPDATED to relative path
+            const response = await axios.post(`/api/items/fetch-rye-variants-for-product`, {
                 rye_product_id: ryeProductId,
                 marketplace: marketplace,
             }, { withCredentials: true });
@@ -72,7 +73,7 @@ const AddItemBlade = ({ isOpen, driveId, existingDriveItem, onSave, onClose }) =
         } finally {
             setIsLoadingVariants(false);
         }
-    }, [selectedBaseItem?.name, selectedBaseItem?.image_url]);
+    }, [selectedBaseItem?.name, selectedBaseItem?.image_url]); // Dependencies remain the same
 
     useEffect(() => {
         if (!isOpen) {
@@ -83,27 +84,23 @@ const AddItemBlade = ({ isOpen, driveId, existingDriveItem, onSave, onClose }) =
 
         if (existingDriveItem) {
             console.log("[AddItemBlade] Editing existing drive item:", existingDriveItem);
-
-            // Set the base item details (from your 'items' table, joined to the drive_item)
             setSelectedBaseItem({
-                item_id: existingDriveItem.item_id, // This is base_catalog_item_id
-                name: existingDriveItem.base_item_name, // Name of the base product
-                image_url: existingDriveItem.base_item_photo, // Photo of the base product
-                rye_product_id: existingDriveItem.base_rye_product_id, // Rye GID of the PARENT product
+                item_id: existingDriveItem.item_id,
+                name: existingDriveItem.base_item_name,
+                image_url: existingDriveItem.base_item_photo,
+                rye_product_id: existingDriveItem.base_rye_product_id,
                 marketplace: existingDriveItem.base_marketplace,
-                price: existingDriveItem.base_item_price // Price of the base product
+                price: existingDriveItem.base_item_price
             });
-
-            setSearchQuery(existingDriveItem.base_item_name || ''); // Display base name in search
+            setSearchQuery(existingDriveItem.base_item_name || '');
             setQuantity(existingDriveItem.needed || 1);
-            setSelectedRyeVariantId(existingDriveItem.selected_rye_variant_id || ''); // Pre-select the stored variant
+            setSelectedRyeVariantId(existingDriveItem.selected_rye_variant_id || '');
 
-            // Fetch variants for the base product to populate the dropdown
             if (existingDriveItem.base_rye_product_id && existingDriveItem.base_marketplace) {
                 fetchAndSetRyeVariants(
                     existingDriveItem.base_rye_product_id,
                     existingDriveItem.base_marketplace,
-                    existingDriveItem.selected_rye_variant_id // Pre-select this variant in the dropdown
+                    existingDriveItem.selected_rye_variant_id
                 );
             }
             initialOpenRef.current = true;
@@ -121,8 +118,8 @@ const AddItemBlade = ({ isOpen, driveId, existingDriveItem, onSave, onClose }) =
         if (!trimmedQuery) { setSearchedItems([]); return; }
         setIsLoading(true);
         try {
-            // Ensure API returns: item_id (your DB PK), name, image_url, rye_product_id, marketplace, price
-            const response = await axios.get(`${apiUrl}/api/items?search=${encodeURIComponent(trimmedQuery)}`, { withCredentials: true });
+            // UPDATED to relative path
+            const response = await axios.get(`/api/items?search=${encodeURIComponent(trimmedQuery)}`, { withCredentials: true });
             setSearchedItems(response.data || []);
             if (response.data.length === 0) toast.info("No products found in catalog.");
         } catch (error) {
@@ -132,7 +129,7 @@ const AddItemBlade = ({ isOpen, driveId, existingDriveItem, onSave, onClose }) =
         }
     };
 
-    const handleSelectBaseItem = (itemFromSearch) => { // itemFromSearch contains local DB `item_id`
+    const handleSelectBaseItem = (itemFromSearch) => {
         setSelectedBaseItem(itemFromSearch);
         setSearchedItems([]);
         setSearchQuery(itemFromSearch.name);
@@ -150,7 +147,6 @@ const AddItemBlade = ({ isOpen, driveId, existingDriveItem, onSave, onClose }) =
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         if (!selectedBaseItem || !selectedBaseItem.item_id) {
             toast.error("Please search and select a valid catalog product first.");
             return;
@@ -163,7 +159,7 @@ const AddItemBlade = ({ isOpen, driveId, existingDriveItem, onSave, onClose }) =
             base_catalog_item_id: selectedBaseItem.item_id,
             selected_rye_variant_id: null,
             selected_rye_marketplace: selectedBaseItem.marketplace,
-            variant_display_name: selectedBaseItem.name, // Default to base item name
+            variant_display_name: selectedBaseItem.name,
             variant_display_price: selectedBaseItem.price !== null && selectedBaseItem.price !== undefined ? parseFloat(selectedBaseItem.price) : null,
             variant_display_photo: selectedBaseItem.image_url
         };
@@ -181,22 +177,19 @@ const AddItemBlade = ({ isOpen, driveId, existingDriveItem, onSave, onClose }) =
                     toast.error("Please select a specific variant for this Shopify product.");
                     setIsLoading(false); return;
                 }
-                itemPayload.selected_rye_variant_id = selectedRyeVariantId; // This is the Shopify Variant GID
+                itemPayload.selected_rye_variant_id = selectedRyeVariantId;
                 const chosenVariant = availableShopifyVariants.find(v => v.id === selectedRyeVariantId);
                 if (chosenVariant) {
-                    itemPayload.variant_display_name = chosenVariant.title || itemPayload.variant_display_name; // Full variant title
+                    itemPayload.variant_display_name = chosenVariant.title || itemPayload.variant_display_name;
                     itemPayload.variant_display_price = chosenVariant.priceV2?.value != null ? (chosenVariant.priceV2.value / 100) : itemPayload.variant_display_price;
                     itemPayload.variant_display_photo = chosenVariant.image?.url || itemPayload.variant_display_photo;
                 }
             } else {
-                // No variants listed by Rye for this Shopify product. Use the base product's Rye ID.
                 itemPayload.selected_rye_variant_id = selectedBaseItem.rye_product_id;
-                // variant_display_name, price, photo remain as base item's
                 toast.info("No specific variants were reported by Rye; main product ID will be used for this Shopify item.");
             }
-        } else { // Not Shopify (e.g., Amazon)
-            itemPayload.selected_rye_variant_id = selectedBaseItem.rye_product_id; // This is the ASIN
-            // variant_display_name, price, photo remain as base item's
+        } else {
+            itemPayload.selected_rye_variant_id = selectedBaseItem.rye_product_id;
         }
 
         if (!itemPayload.selected_rye_variant_id) {
@@ -204,9 +197,10 @@ const AddItemBlade = ({ isOpen, driveId, existingDriveItem, onSave, onClose }) =
             setIsLoading(false); return;
         }
 
+        // UPDATED to relative paths
         const targetUrl = existingDriveItem?.drive_item_id
-            ? `${apiUrl}/api/drives/${driveId}/items/${existingDriveItem.drive_item_id}`
-            : `${apiUrl}/api/drives/${driveId}/items`;
+            ? `/api/drives/${driveId}/items/${existingDriveItem.drive_item_id}`
+            : `/api/drives/${driveId}/items`;
         const method = existingDriveItem?.drive_item_id ? 'put' : 'post';
 
         console.log(`[AddItemBlade] Submitting to ${method.toUpperCase()} ${targetUrl} with payload:`, itemPayload);
@@ -238,6 +232,7 @@ const AddItemBlade = ({ isOpen, driveId, existingDriveItem, onSave, onClose }) =
 
     return (
         <>
+            {/* ... (JSX for the blade remains the same) ... */}
             <div
                 className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300 ease-in-out"
                 onClick={onClose}
@@ -290,7 +285,7 @@ const AddItemBlade = ({ isOpen, driveId, existingDriveItem, onSave, onClose }) =
                         {isLoading && !searchedItems.length && <p className="text-xs text-gray-500 mt-1">Searching...</p>}
                         {searchedItems.length > 0 && (
                             <ul className="border border-gray-300 rounded-md mt-1 max-h-60 overflow-y-auto">
-                                {searchedItems.map(item => ( // Ensure 'item' here has 'item_id' from your DB
+                                {searchedItems.map(item => (
                                     <li
                                         key={item.item_id}
                                         onClick={() => handleSelectBaseItem(item)}
@@ -302,7 +297,7 @@ const AddItemBlade = ({ isOpen, driveId, existingDriveItem, onSave, onClose }) =
                                         {!item.image_url && (<div className="w-12 h-12 bg-gray-200 rounded flex-shrink-0 flex items-center justify-center text-gray-400 text-xs">No Img</div>)}
                                         <div className="flex-grow">
                                             <span className="block font-medium">{item.name} ({item.marketplace})</span>
-                                            <span className="text-xs text-gray-500 block">Catalog DB ID: {item.item_id}</span> {/* Displaying local DB item_id */}
+                                            <span className="text-xs text-gray-500 block">Catalog DB ID: {item.item_id}</span>
                                         </div>
                                     </li>
                                 ))}
@@ -378,7 +373,9 @@ const AddItemBlade = ({ isOpen, driveId, existingDriveItem, onSave, onClose }) =
     );
 };
 
+// ShopifyVariantSelector component remains the same
 const ShopifyVariantSelector = ({ baseProductName, isLoadingVariants, variants, selectedRyeVariantId, setSelectedRyeVariantId }) => {
+    // ... (this component does not make API calls, so it's unchanged) ...
     const availableVariants = variants.filter(v => v.isAvailable);
 
     if (isLoadingVariants) {
@@ -439,18 +436,14 @@ AddItemBlade.propTypes = {
     driveId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
     existingDriveItem: PropTypes.shape({
         drive_item_id: PropTypes.number,
-        item_id: PropTypes.number.isRequired, // This is the base_catalog_item_id from your 'items' table
+        item_id: PropTypes.number.isRequired,
         needed: PropTypes.number,
-        // Base item details (should be fetched by the parent component and passed in)
         base_item_name: PropTypes.string,
         base_item_photo: PropTypes.string,
-        base_rye_product_id: PropTypes.string, // Rye Product ID of the base/parent product
+        base_rye_product_id: PropTypes.string,
         base_marketplace: PropTypes.string,
         base_item_price: PropTypes.number,
-        // Stored selected variant details for this specific drive_item
-        selected_rye_variant_id: PropTypes.string, // The actual GID of the variant from Rye
-        // variant_display_name, _price, _photo are now primarily for backend to store
-        // The blade will re-fetch variants and use ryeVariantsInfo for display in the dropdown
+        selected_rye_variant_id: PropTypes.string,
     }),
     onSave: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,

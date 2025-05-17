@@ -1,42 +1,40 @@
-// components/Cards/ChildCard.js
+// File: components/Cards/ChildCard.jsx
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useModal, MODAL_TYPES } from '../../contexts/ModalContext';
 import axios from 'axios';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+// REMOVED: const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-// Validate apiUrl
-if (!apiUrl) {
-  throw new Error('NEXT_PUBLIC_API_URL is not defined');
-}
+// REMOVED: Validate apiUrl block
+// if (!apiUrl) {
+//   throw new Error('NEXT_PUBLIC_API_URL is not defined');
+// }
 
 const ChildCard = ({ child, onDelete, onUpdateChild }) => {
   const { openModal } = useModal();
-  const [loading, setLoading] = useState(false); // Optional: To handle loading state
-  const [error, setError] = useState(null); // Optional: To handle errors
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  /**
-   * Handles the edit action by fetching the latest child data and opening the modal.
-   */
   const handleEdit = async (e) => {
-    // If this function is called from the card's onClick, prevent default behavior
     if (e) {
-      e.stopPropagation(); // Prevent triggering other onClick events
+      e.stopPropagation();
     }
     setLoading(true);
     setError(null);
 
     try {
       // Fetch child details
+      // UPDATED to relative path
       const childResponse = await axios.get(
-        `${apiUrl}/api/children/${child.child_id}`,
+        `/api/children/${child.child_id}`,
         { withCredentials: true }
       );
 
       // Fetch child items
+      // UPDATED to relative path
       const itemsResponse = await axios.get(
-        `${apiUrl}/api/children/${child.child_id}/items`,
+        `/api/children/${child.child_id}/items`,
         { withCredentials: true }
       );
 
@@ -47,11 +45,11 @@ const ChildCard = ({ child, onDelete, onUpdateChild }) => {
 
       openModal(MODAL_TYPES.EDIT_CHILD, {
         child: mergedChild,
-        onUpdateChild,
+        onUpdateChild, // This prop is passed to EditChildModal
       });
     } catch (err) {
-      console.error('Error fetching child data:', err);
-      setError('Failed to load child data. Please try again.');
+      console.error('Error fetching child data for edit:', err);
+      setError('Failed to load child data for editing. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -60,7 +58,10 @@ const ChildCard = ({ child, onDelete, onUpdateChild }) => {
   return (
     <div
       className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
-      onClick={handleEdit} // Set onClick to handleEdit
+      onClick={handleEdit}
+      role="button" // Added for accessibility
+      tabIndex={0} // Added for accessibility
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleEdit(e); }} // Added for accessibility
     >
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-4">
@@ -75,17 +76,17 @@ const ChildCard = ({ child, onDelete, onUpdateChild }) => {
         </div>
         <div
           className="flex items-center space-x-2"
-          onClick={(e) => e.stopPropagation()} // Prevent triggering handleEdit
+          onClick={(e) => e.stopPropagation()} // Prevent triggering handleEdit from button clicks
         >
           <button
-            onClick={handleEdit}
+            onClick={handleEdit} // Explicitly call handleEdit here too
             className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 disabled:opacity-50"
             disabled={loading}
           >
             {loading ? 'Loading...' : 'Edit'}
           </button>
           <button
-            onClick={() => onDelete(child.child_id)}
+            onClick={() => onDelete(child.child_id)} // Assuming onDelete is passed from parent
             className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
           >
             Delete
@@ -107,22 +108,12 @@ ChildCard.propTypes = {
     child_id: PropTypes.number.isRequired,
     child_name: PropTypes.string.isRequired,
     child_photo: PropTypes.string,
-    items: PropTypes.arrayOf(
-      PropTypes.shape({
-        child_item_id: PropTypes.number,
-        child_id: PropTypes.number,
-        item_id: PropTypes.number,
-        item_name: PropTypes.string,
-        description: PropTypes.string,
-        price: PropTypes.number,
-        item_photo: PropTypes.string,
-        quantity: PropTypes.number,
-        users_with_item_in_cart: PropTypes.number,
-      })
-    ),
+    // 'items' prop is not directly used by ChildCard but fetched within handleEdit.
+    // It's good practice for the parent (ChildList) to ensure child objects passed to ChildCard
+    // have at least the IDs and names, even if detailed items are fetched on demand by the modal.
   }).isRequired,
   onDelete: PropTypes.func.isRequired,
-  onUpdateChild: PropTypes.func.isRequired,
+  onUpdateChild: PropTypes.func.isRequired, // This is passed to the EditChildModal
 };
 
 export default ChildCard;

@@ -1,87 +1,88 @@
 // pages/visible/profile.js
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react'; // Removed useContext
 import axios from 'axios';
-import { AuthContext } from '../../contexts/AuthContext';
+// import { AuthContext } from '../../contexts/AuthContext'; // REMOVE THIS LINE
+import { useSession } from 'next-auth/react'; // ADD THIS LINE
 import { useRouter } from 'next/router';
 import Navbar from '../../components/Navbars/AuthNavbar';
 import Footer from '../../components/Footers/Footer';
-import { formatCurrency } from '../../lib/utils'; // Import utility
+import { formatCurrency } from '../../lib/utils';
+import Link from 'next/link';
 
 // --- Import Modal and Detail Display ---
-import AuthModal from '../../components/auth/AuthModal'; // Adjust path
-import OrderDetailDisplay from '../../components/Orders/OrderDetailDisplay'; // Adjust path
-import StatusDisplay from '../../components/Cards/StatusDisplay'; // For loading/error feedback
+import AuthModal from '../../components/auth/AuthModal';
+import OrderDetailDisplay from '../../components/Orders/OrderDetailDisplay';
+import StatusDisplay from '../../components/Cards/StatusDisplay';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+// const apiUrl = process.env.NEXT_PUBLIC_API_URL; // Not needed for internal API calls
 
 const AccountPage = () => {
+  const { data: session, status: authStatus } = useSession(); // USE useSession hook
+  const user = session?.user; // User object from NextAuth session
+  const router = useRouter();
+
   const [orders, setOrders] = useState([]);
   const [error, setError] = useState(null);
-  const router = useRouter();
-  const { user, loading: authLoading } = useContext(AuthContext);
+  // const { loading: authLoading } = useContext(AuthContext); // REMOVE THIS LINE, use authStatus === "loading"
 
-  // --- State for Order Details ---
   const [selectedOrderDetails, setSelectedOrderDetails] = useState(null);
   const [isOrderDetailModalOpen, setIsOrderDetailModalOpen] = useState(false);
   const [isFetchingOrderDetails, setIsFetchingOrderDetails] = useState(false);
-  const [detailsError, setDetailsError] = useState(null); // Specific error for modal
+  const [detailsError, setDetailsError] = useState(null);
 
   const fetchOrderList = async () => {
-    if (!user || !user.account_id) return; // Guard against fetching without user
-    setError(null); // Clear previous list errors
+    if (!user || !user.id) return; // Guard against fetching without user.id (from NextAuth session)
+    setError(null);
     try {
       console.log("Profile: Fetching order list...");
-      // Fetches from YOUR backend's /api/orders route
-      const response = await axios.get(`${apiUrl}/api/orders`, { withCredentials: true });
+      // Calls YOUR Next.js API route for fetching the cart
+      const response = await axios.get(`/api/orders`, { withCredentials: true }); // Relative path to Next.js API
       setOrders(response.data || []);
       console.log("Profile: Order list fetched:", response.data);
     } catch (err) {
       console.error('Error fetching order list:', err.response?.data || err);
       setError('Failed to load order history.');
-      setOrders([]); // Clear orders on error
+      setOrders([]);
     }
   };
 
   useEffect(() => {
-    if (!authLoading && user) {
+    if (authStatus === "authenticated" && user) {
       fetchOrderList();
-    } else if (!authLoading && !user) {
+    } else if (authStatus === "unauthenticated") {
       // Redirect if user logs out while on the page (or arrived unauthenticated)
+      console.log("Profile page: User not authenticated, redirecting to login.");
       router.push('/auth/login');
     }
-  }, [user, authLoading, router]); // Effect runs when user or authLoading changes
+    // If authStatus is "loading", the UI will show a loading state.
+  }, [user, authStatus, router]); // Effect runs when user or authStatus changes
 
-
-  // --- Handler to Fetch and Show Order Details ---
   const handleViewOrderDetails = async (ryeOrderId) => {
     if (!ryeOrderId || isFetchingOrderDetails) return;
 
     console.log(`Profile: Fetching details for Rye Order ID: ${ryeOrderId}`);
     setIsFetchingOrderDetails(true);
-    setDetailsError(null); // Clear previous detail errors
-    setSelectedOrderDetails(null); // Clear previous details
-    setIsOrderDetailModalOpen(true); // Open modal immediately (shows loading state)
+    setDetailsError(null);
+    setSelectedOrderDetails(null);
+    setIsOrderDetailModalOpen(true);
 
     try {
-      // Calls YOUR backend's POST /api/orders/details endpoint
       const response = await axios.post(
-        `${apiUrl}/api/orders/details`,
-        { ryeOrderId }, // Send the primary Rye Order ID
+        `/api/orders/details`, // Relative path to Next.js API
+        { ryeOrderId },
         { withCredentials: true }
       );
       console.log("Profile: Order details received:", response.data);
-      setSelectedOrderDetails(response.data); // Set the details fetched from Rye
+      setSelectedOrderDetails(response.data);
     } catch (err) {
       console.error('Error fetching order details:', err.response?.data || err);
       setDetailsError(err.response?.data?.error || 'Failed to load order details.');
-      setSelectedOrderDetails(null); // Clear details on error
-      // Keep modal open to show error message within OrderDetailDisplay
+      setSelectedOrderDetails(null);
     } finally {
-      setIsFetchingOrderDetails(false); // Stop loading indicator
+      setIsFetchingOrderDetails(false);
     }
   };
 
-  // Close modal function
   const closeOrderDetailModal = () => {
     setIsOrderDetailModalOpen(false);
     setSelectedOrderDetails(null);
@@ -90,7 +91,7 @@ const AccountPage = () => {
 
   // --- Render Logic ---
 
-  if (authLoading || (!user && !authLoading)) { // Show loading or let redirect happen
+  if (authStatus === "loading") { // Show loading or let redirect happen
     return (
       <>
         <Navbar transparent />
@@ -102,8 +103,21 @@ const AccountPage = () => {
     );
   }
 
-  // Should not happen if redirect works, but as a fallback
-  if (!user) return null;
+  // If unauthenticated, the useEffect above should redirect.
+  // This is a fallback or for the brief moment before redirect.
+  if (authStatus === "unauthenticated" || !user) {
+    // router.push('/auth/login'); // Handled by useEffect, but can be here for immediate attempt
+    return ( // Or a more explicit "You need to login" message
+      <>
+        <Navbar transparent />
+        <main className="min-h-screen bg-secondary_green pt-24 flex items-center justify-center">
+          <p className="text-xl text-gray-600">Redirecting to login...</p>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
 
   return (
     <>
@@ -112,26 +126,32 @@ const AccountPage = () => {
         <section className="py-16">
           <div className="container mx-auto px-4">
             <div className="bg-white shadow-xl rounded-lg p-6">
-              {/* User Info Section (Keep as is) */}
               <div className="flex flex-col items-center mb-10">
                 <h3 className="text-4xl font-semibold mb-2 text-gray-800">
-                  {user.username || user.email} {/* Display username if available */}
+                  {user.name || user.email} {/* Use user.name from NextAuth session */}
                 </h3>
                 <div className="text-sm mb-2 text-gray-600 font-bold uppercase">
                   <i className="fas fa-envelope mr-2 text-lg text-gray-600"></i>
                   {user.email}
                 </div>
-                {/* Add Links to Profile/Password Update pages if they exist */}
-                {/* ... buttons ... */}
+                {/* Example: Add links if you have admin roles in your session.user object */}
+                {user.is_org_admin && user.org_id && (
+                  <Link href="/admin/dashboard" className="mt-2 text-blue-500 hover:underline">
+                    Go to Organization Dashboard
+                  </Link>
+                )}
+                {user.is_super_admin && (
+                  <Link href="/admin/superAdmin" className="mt-2 text-purple-500 hover:underline">
+                    Go to Super Admin Dashboard
+                  </Link>
+                )}
               </div>
 
-              {/* Order History Section */}
               <div className="mt-10 py-10 border-t border-gray-200">
                 <h2 className="text-2xl font-semibold text-gray-800 mb-4">Your Order History</h2>
-                {/* Display list loading/error status */}
-                <StatusDisplay isLoading={authLoading && !orders.length} error={error} />
+                <StatusDisplay isLoading={authStatus === "loading" && !orders.length} error={error} />
 
-                {!authLoading && !error && orders.length === 0 && (
+                {authStatus !== "loading" && !error && orders.length === 0 && (
                   <p className="text-gray-600 italic">You have no orders yet.</p>
                 )}
 
@@ -154,7 +174,6 @@ const AccountPage = () => {
                             <td className="py-2 px-4 text-sm text-gray-800 font-mono">#{order.order_id}</td>
                             <td className="py-2 px-4 text-sm text-gray-800">{new Date(order.order_date).toLocaleDateString()}</td>
                             <td className="py-2 px-4 text-sm text-gray-800 font-medium">
-                              {/* CORRECTED: Convert string to number, then to cents */}
                               {formatCurrency(
                                 order.total_amount ? parseFloat(order.total_amount) * 100 : null,
                                 order.currency
@@ -168,6 +187,7 @@ const AccountPage = () => {
                                 disabled={!order.primary_rye_order_id || isFetchingOrderDetails}
                                 className="px-3 py-1 text-xs bg-ggreen text-white rounded shadow-sm hover:bg-teal-700 disabled:opacity-50"
                               >
+                                {/* Update loading state indication to be specific to the button/action */}
                                 {isFetchingOrderDetails && selectedOrderDetails?.id === order.primary_rye_order_id ? 'Loading...' : 'View Details'}
                               </button>
                             </td>
@@ -184,15 +204,13 @@ const AccountPage = () => {
       </main>
       <Footer />
 
-      {/* Order Detail Modal */}
       <AuthModal isOpen={isOrderDetailModalOpen} onClose={closeOrderDetailModal}>
-        {/* Pass potential error to the display component */}
         {detailsError && <p className="text-red-600 text-sm mb-2 text-center">{detailsError}</p>}
         <OrderDetailDisplay
           orderDetails={selectedOrderDetails}
           isLoading={isFetchingOrderDetails}
           onClose={closeOrderDetailModal}
-        // onReturnRequest={handleRequestReturn} // Pass return handler if implemented
+        // onReturnRequest={handleRequestReturn} // Pass if you implement returns
         />
       </AuthModal>
     </>

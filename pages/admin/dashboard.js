@@ -1,51 +1,68 @@
-// pages/admin/dashboard.js
+// File: pages/admin/dashboard.js
 import React, { useState, useEffect, useContext } from "react";
 import Link from "next/link";
 import axios from "axios";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/router';
 
-// Import Chart Components
 import CardLineChart from "components/Cards/CardLineChart";
 import CardBarChart from "components/Cards/CardBarChart";
 import CardPieChart from "components/Cards/CardPieChart";
-import CardStats from "components/Cards/CardStats.js"; // Re-using CardStats
-
-// Layout
+import CardStats from "components/Cards/CardStats.js";
 import Admin from "layouts/Admin.js";
-
-// Contexts
-import { AuthContext } from "../../contexts/AuthContext";
 import { StatisticsContext } from "../../contexts/StatisticsContext";
 
 export default function Dashboard() {
+  const { data: session, status: authStatus } = useSession();
+  const user = session?.user;
+  const router = useRouter();
+
   const [localStatistics, setLocalStatistics] = useState(null);
-  const { user, loading } = useContext(AuthContext);
   const { setStatistics: setGlobalStatistics } = useContext(StatisticsContext);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
-  const [startDate, setStartDate] = useState(
-    new Date(new Date().getFullYear(), 0, 1) // Default to start of current year
-  );
-  const [endDate, setEndDate] = useState(new Date()); // Default to today
-  const [hasDrives, setHasDrives] = useState(true); // Assume true initially, will be checked
+  const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(), 0, 1));
+  const [endDate, setEndDate] = useState(new Date());
+  const [hasDrives, setHasDrives] = useState(true); // Assume true initially, verify via API
+  const [dataFetchLoading, setDataFetchLoading] = useState(true);
+  const [pageError, setPageError] = useState(null); // For displaying errors
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      if (user && user.org_id && !loading) {
+    if (authStatus === "loading") {
+      setDataFetchLoading(true);
+      return;
+    }
+
+    if (authStatus === "unauthenticated") {
+      console.log("Dashboard: User not authenticated, redirecting to login.");
+      router.push('/auth/login');
+      return;
+    }
+
+    if (user) {
+      if (!user.is_org_admin || !user.org_id) {
+        console.log("Dashboard: User is not an org admin or org_id missing.");
+        setPageError("Access Denied. This dashboard is for organization administrators.");
+        setDataFetchLoading(false);
+        // Optionally redirect: router.push('/visible/profile');
+        return;
+      }
+
+      const fetchDashboardData = async () => {
+        setDataFetchLoading(true);
+        setPageError(null);
         try {
-          // Check if any drives exist for the organization
+          // UPDATED to relative paths
           const drivesCheckResponse = await axios.get(
-            `${apiUrl}/api/drives/organization/${user.org_id}/check`, // Lightweight endpoint
+            `/api/drives/organization/${user.org_id}/check`,
             { withCredentials: true }
           );
 
           if (drivesCheckResponse.data && drivesCheckResponse.data.hasDrives) {
             setHasDrives(true);
-            // Proceed to fetch statistics
             const statsResponse = await axios.get(
-              `${apiUrl}/api/drives/organization/${user.org_id}/statistics`,
+              `/api/drives/organization/${user.org_id}/statistics`,
               {
                 params: {
                   startDate: startDate.toISOString(),
@@ -55,72 +72,102 @@ export default function Dashboard() {
               }
             );
             setLocalStatistics(statsResponse.data);
-            setGlobalStatistics(statsResponse.data); // For HeaderStats
+            setGlobalStatistics(statsResponse.data); // Update global context
           } else {
             setHasDrives(false);
-            setLocalStatistics(null); // No stats if no drives
+            setLocalStatistics(null);
             setGlobalStatistics(null);
           }
         } catch (error) {
-          console.error("Error fetching dashboard data:", error);
-          // Consider if an error means no drives or just stats fetch failed
-          // For now, assume no drives on error for safety to show the 'create drive' message
+          console.error("Error fetching dashboard data:", error.response?.data || error.message);
+          setPageError("Failed to load dashboard data. Please try again.");
           setHasDrives(false);
           setLocalStatistics(null);
           setGlobalStatistics(null);
+        } finally {
+          setDataFetchLoading(false);
         }
-      }
-    };
+      };
+      fetchDashboardData();
+    } else {
+      // Should not happen if authStatus is 'authenticated', but as a safeguard
+      setDataFetchLoading(false);
+      setPageError("User session not available.");
+    }
+  }, [user, authStatus, router, setGlobalStatistics, startDate, endDate]); // Dependencies
 
-    fetchDashboardData();
-  }, [user, loading, apiUrl, setGlobalStatistics, startDate, endDate]); // Dependencies
-
-  if (loading) {
+  if (authStatus === "loading" || dataFetchLoading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <p className="text-xl text-blueGray-600">Loading dashboard...</p>
-      </div>
+      <Admin>
+        <div className="flex justify-center items-center h-screen -mt-24">
+          <p className="text-xl text-blueGray-600">Loading dashboard...</p>
+        </div>
+      </Admin>
     );
   }
 
-  if (!user || !user.org_id) {
-    // This case should ideally be handled by auth redirection at a higher level
+  if (pageError) {
     return (
-      <div className="pt-32 p-6 text-center">
-        <p className="text-xl text-blueGray-600">User information not available. Please log in.</p>
-      </div>
-    )
+      <Admin>
+        <div className="pt-10 p-6 text-center">
+          <p className="text-xl text-red-500">{pageError}</p>
+          <Link href="/visible/profile" className="text-ggreen hover:underline mt-4 inline-block">
+            Go to Profile
+          </Link>
+        </div>
+      </Admin>
+    );
+  }
+
+  if (!user || !user.org_id || !user.is_org_admin) {
+    // This state implies user is authenticated but not an authorized org admin (already handled by pageError)
+    // Or, user data somehow became null after initial checks.
+    return (
+      <Admin>
+        <div className="pt-10 p-6 text-center">
+          <p className="text-xl text-blueGray-600">Access Denied or User Data Error.</p>
+          <Link href="/auth/login" className="text-ggreen hover:underline mt-4 inline-block">
+            Return to Login
+          </Link>
+        </div>
+      </Admin>
+    );
   }
 
   if (!hasDrives) {
     return (
-      <div className="pt-10 p-6 text-center"> {/* Adjusted padding top from original -m-24 of Admin layout */}
-        <div className="bg-white p-8 rounded-lg shadow-lg inline-block">
-          <h2 className="text-2xl font-semibold text-blueGray-700 mb-4">Welcome to Your Dashboard!</h2>
-          <p className="text-blueGray-600 mb-6">
-            You haven&apos;t set up any drives yet. Drives are how you collect items for those in need.
-          </p>
-          <Link href="/admin/currentDrives"
-            className="bg-ggreen text-white active:bg-teal-700 font-bold uppercase text-sm px-6 py-3 rounded-full shadow hover:shadow-lg outline-none focus:outline-none mr-1 mb-1 ease-linear transition-all duration-150">
-            Create Your First Drive
-          </Link>
+      <Admin> {/* Ensure Admin layout is applied */}
+        <div className="pt-10 p-6 text-center">
+          <div className="bg-white p-8 rounded-lg shadow-lg inline-block">
+            <h2 className="text-2xl font-semibold text-blueGray-700 mb-4">Welcome to Your Dashboard!</h2>
+            <p className="text-blueGray-600 mb-6">
+              You haven&apos;t set up any drives yet. Drives are how you collect items for those in need.
+            </p>
+            <Link href="/admin/currentDrives"
+              className="bg-ggreen text-white active:bg-teal-700 font-bold uppercase text-sm px-6 py-3 rounded-full shadow hover:shadow-lg outline-none focus:outline-none mr-1 mb-1 ease-linear transition-all duration-150">
+              Create Your First Drive
+            </Link>
+          </div>
         </div>
-      </div>
+      </Admin>
     );
   }
 
   if (!localStatistics) {
-    // This state means drives exist, but stats are still loading or failed to load
+    // This case would be hit if hasDrives is true, but stats API call failed or returned null
     return (
-      <div className="pt-10 p-6 text-center">
-        <p className="text-xl text-blueGray-600">Loading statistics for your drives...</p>
-        <p className="text-sm text-blueGray-500 mt-2">If this persists, ensure your drives have associated children and items, and that purchases have been made for the selected date range.</p>
-      </div>
+      <Admin>
+        <div className="pt-10 p-6 text-center">
+          <p className="text-xl text-blueGray-600">Loading statistics for your drives...</p>
+          <p className="text-sm text-blueGray-500 mt-2">If this persists, ensure your drives have associated children and items, and that purchases have been made for the selected date range.</p>
+        </div>
+      </Admin>
     );
   }
 
   // Safely get values, defaulting to 0 or empty array
   const safeGet = (obj, path, defaultValue = 0) => {
+    // ... (safeGet function remains the same) ...
     const value = path.split('.').reduce((acc, part) => acc && acc[part], obj);
     if (value === undefined || value === null) {
       return Array.isArray(defaultValue) ? [] : defaultValue;
@@ -128,6 +175,7 @@ export default function Dashboard() {
     return Array.isArray(defaultValue) ? (Array.isArray(value) ? value : defaultValue) : Number(value);
   };
 
+  // ... (Statistic variable assignments remain the same) ...
   const activeDrivesCount = safeGet(localStatistics, 'activeDrivesCount');
   const totalKidsInActiveDrives = safeGet(localStatistics, 'totalKidsInActiveDrives');
   const totalItemsPurchased = safeGet(localStatistics, 'totalItemsPurchased');
@@ -144,18 +192,13 @@ export default function Dashboard() {
   const donationsOverTime = safeGet(localStatistics, 'donationsOverTime', []);
   const topDonors = safeGet(localStatistics, 'topDonors', []);
 
-
-  const fulfillmentRate =
-    totalItemsNeeded > 0
-      ? (totalItemsPurchased / totalItemsNeeded) * 100
-      : 0;
-
+  const fulfillmentRate = totalItemsNeeded > 0 ? (totalItemsPurchased / totalItemsNeeded) * 100 : 0;
   const hasDoneesForChart = totalKidsInActiveDrives > 0;
   const hasItemsForGiftStatusChart = totalItemsNeeded > 0;
 
   return (
-    <>
-      {/* Date Pickers - Positioned above the stats cards */}
+    <> {/* Admin layout handles its own structure, so this fragment is fine */}
+      {/* Date Pickers are part of the content for this page, so they stay here */}
       <div className="flex flex-wrap justify-end p-4 mb-4 bg-blueGray-800 rounded -mt-4 md:-mt-12 -mx-4 md:-mx-10 ">
         <div className="mr-4">
           <label className="block text-xs font-bold uppercase text-blueGray-100 mb-1">Start Date</label>
@@ -177,7 +220,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Key Summary Statistics */}
+      {/* Key Summary Statistics Cards */}
+      {/* ... (CardStats components remain the same) ... */}
       <div className="flex flex-wrap">
         <div className="w-full lg:w-6/12 xl:w-3/12 px-4">
           <CardStats
@@ -248,6 +292,7 @@ export default function Dashboard() {
 
 
       {/* Charts Section */}
+      {/* ... (Chart components and their conditional rendering remain the same) ... */}
       <div className="flex flex-wrap mt-4">
         {hasDoneesForChart ? (
           <div className="w-full xl:w-6/12 mb-12 xl:mb-0 px-4">
@@ -259,7 +304,7 @@ export default function Dashboard() {
                 kidsUngifted,
               ]}
               labels={["Fully Gifted", "Partially Gifted", "Not Gifted"]}
-              colors={["#10B981", "#F59E0B", "#EF4444"]} // Emerald, Amber, Red
+              colors={["#10B981", "#F59E0B", "#EF4444"]}
             />
           </div>
         ) : (
@@ -286,7 +331,7 @@ export default function Dashboard() {
                 giftsUnpurchased,
               ]}
               labels={["Purchased", "In Carts", "Awaiting Purchase"]}
-              colors={["#3B82F6", "#6366F1", "#D1D5DB"]} // Blue, Indigo, Gray
+              colors={["#3B82F6", "#6366F1", "#D1D5DB"]}
             />
           </div>
         ) : (
@@ -309,8 +354,8 @@ export default function Dashboard() {
               subtitle="Value of items purchased over time"
               data={donationsOverTime.map(d => d.totalValue)}
               labels={donationsOverTime.map(d => new Date(d.date).toLocaleDateString())}
-              borderColor="#4c51bf" // Example: Tailwind indigo-600
-              backgroundColor="rgba(76, 81, 191, 0.1)" // Lighter version for area fill
+              borderColor="#4c51bf"
+              backgroundColor="rgba(76, 81, 191, 0.1)"
             />
           </div>
         ) : (
@@ -330,7 +375,7 @@ export default function Dashboard() {
               subtitle="By total donation value"
               data={topDonors.map((donor) => donor.amount)}
               labels={topDonors.map((donor) => donor.name)}
-              backgroundColor="#ed64a6" // Example: Tailwind pink-500
+              backgroundColor="#ed64a6"
             />
           </div>
         ) : (

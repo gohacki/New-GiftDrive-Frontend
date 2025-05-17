@@ -1,5 +1,5 @@
 // pages/visible/search.js
-import React, { useEffect, useState } from 'react'; // Added useRef
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import Navbar from 'components/Navbars/AuthNavbar.js';
@@ -8,7 +8,7 @@ import DriveListCard from 'components/Cards/DriveListCard';
 import OrganizationCard from 'components/Cards/OrganizationCard';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+// const apiUrl = process.env.NEXT_PUBLIC_API_URL; // REMOVE or use selectively for truly external APIs
 
 const driveStatusOptions = [
     { value: 'all', label: 'All Statuses' },
@@ -19,13 +19,9 @@ const driveStatusOptions = [
 
 export default function CombinedSearchPage() {
     const router = useRouter();
-    // Directly use router.query for applied filters/search term for fetching
     const { q, drive_status, org_state, org_city } = router.query;
 
-    // State for search input field ON THIS PAGE (distinct from applied URL query)
     const [pageInputTerm, setPageInputTerm] = useState('');
-
-    // State for filter dropdowns ON THIS PAGE
     const [pageDriveFilter, setPageDriveFilter] = useState('all');
     const [pageOrgStateFilter, setPageOrgStateFilter] = useState('All');
     const [pageOrgCityFilter, setPageOrgCityFilter] = useState('All');
@@ -38,22 +34,19 @@ export default function CombinedSearchPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [searchAttempted, setSearchAttempted] = useState(false);
-    // Effect 1: Initialize local input/filter states from URL when URL changes (e.g., navbar search, back/forward)
+
     useEffect(() => {
         setPageInputTerm(typeof q === 'string' ? q : '');
         setPageDriveFilter(typeof drive_status === 'string' ? drive_status : 'all');
         setPageOrgStateFilter(typeof org_state === 'string' ? org_state : 'All');
-        // City filter might depend on state, if it's in query, set it.
-        // The dependent useEffect for cities will handle populating `availableCities`
-        // and potentially resetting pageOrgCityFilter if the state changes.
         setPageOrgCityFilter(typeof org_city === 'string' ? org_city : 'All');
-    }, [q, drive_status, org_state, org_city]); // Listen to direct URL query changes
+    }, [q, drive_status, org_state, org_city]);
 
-    // Fetch available states (runs once)
     useEffect(() => {
         const fetchFilterOptions = async () => {
             try {
-                const statesResponse = await axios.get(`${apiUrl}/api/organizations/states`);
+                // UPDATED: Relative path
+                const statesResponse = await axios.get(`/api/organizations/states`);
                 setAvailableStates(statesResponse.data || []);
             } catch (err) {
                 console.error('Error fetching states:', err);
@@ -62,16 +55,15 @@ export default function CombinedSearchPage() {
         fetchFilterOptions();
     }, []);
 
-    // Fetch cities when pageOrgStateFilter changes
     useEffect(() => {
         const fetchCitiesForState = async () => {
             if (pageOrgStateFilter && pageOrgStateFilter !== 'All') {
                 try {
-                    const citiesResponse = await axios.get(`${apiUrl}/api/organizations/cities`, {
+                    // UPDATED: Relative path
+                    const citiesResponse = await axios.get(`/api/organizations/cities`, {
                         params: { state: pageOrgStateFilter },
                     });
                     setAvailableCities(citiesResponse.data || []);
-                    // If the current pageOrgCityFilter is not in the new list of available cities AND it wasn't set from the URL, reset it.
                     if (!citiesResponse.data.includes(pageOrgCityFilter) && router.query.org_city !== pageOrgCityFilter) {
                         setPageOrgCityFilter('All');
                     }
@@ -85,10 +77,8 @@ export default function CombinedSearchPage() {
             }
         };
         fetchCitiesForState();
-    }, [pageOrgStateFilter, router.query.org_city]); // Rerun if state filter changes or if city from URL changes (less likely to change independently)
+    }, [pageOrgStateFilter, router.query.org_city]);
 
-    // Effect 2: Perform search when router.query parameters (q, drive_status, etc.) change
-    // This is the primary effect for fetching data based on the URL state.
     useEffect(() => {
         const currentSearchTerm = typeof q === 'string' ? q : '';
         const currentDriveFilter = typeof drive_status === 'string' ? drive_status : 'all';
@@ -96,7 +86,6 @@ export default function CombinedSearchPage() {
         const currentOrgCity = typeof org_city === 'string' ? org_city : 'All';
 
         if (!currentSearchTerm && currentDriveFilter === 'all' && currentOrgState === 'All' && currentOrgCity === 'All') {
-            // If page loaded with no query params initially
             setDriveResults([]);
             setOrgResults([]);
             setLoading(false);
@@ -109,21 +98,21 @@ export default function CombinedSearchPage() {
             setLoading(true);
             setError(null);
             setSearchAttempted(true);
-            setDriveResults([]); // Clear previous results
+            setDriveResults([]);
             setOrgResults([]);
 
             try {
                 const driveParams = { search: currentSearchTerm, status: currentDriveFilter, limit: 12 };
                 if (currentDriveFilter === 'all') delete driveParams.status;
-
-                const driveResponse = await axios.get(`${apiUrl}/api/drives`, { params: driveParams });
+                // UPDATED: Relative path
+                const driveResponse = await axios.get(`/api/drives`, { params: driveParams });
                 setDriveResults(driveResponse.data || []);
 
-                const orgParams = { search: currentSearchTerm, limit: 12, featured: "false" };
+                const orgParams = { search: currentSearchTerm, limit: 12, featured: "false" }; // Keep featured as string
                 if (currentOrgState !== 'All') orgParams.state = currentOrgState;
                 if (currentOrgCity !== 'All' && currentOrgState !== 'All') orgParams.city = currentOrgCity;
-
-                const orgResponse = await axios.get(`${apiUrl}/api/organizations/featured`, { params: orgParams });
+                // UPDATED: Relative path
+                const orgResponse = await axios.get(`/api/organizations/featured`, { params: orgParams });
                 setOrgResults(orgResponse.data || []);
 
             } catch (err) {
@@ -134,17 +123,14 @@ export default function CombinedSearchPage() {
             }
         };
 
-        // router.isReady is important to ensure query params are available on first load
         if (router.isReady) {
             fetchData();
         }
 
-    }, [q, drive_status, org_state, org_city, router.isReady]); // Depend on router.query values
+    }, [q, drive_status, org_state, org_city, router.isReady]);
 
-    // Handler for submitting the search/filters FROM THIS PAGE
     const handleSearchAndFilterApply = (e) => {
         if (e) e.preventDefault();
-
         const queryParams = new URLSearchParams();
         const termToApply = pageInputTerm.trim();
 
@@ -153,8 +139,7 @@ export default function CombinedSearchPage() {
         if (pageOrgStateFilter !== 'All') queryParams.set('org_state', pageOrgStateFilter);
         if (pageOrgCityFilter !== 'All' && pageOrgStateFilter !== 'All') queryParams.set('org_city', pageOrgCityFilter);
 
-        // This push will update router.query, which then triggers the data fetching useEffect
-        router.push(`/visible/search?${queryParams.toString()}`, undefined, { shallow: false }); // Use shallow: false if you want getServerSideProps to re-run, or true if client-side only fetch is enough
+        router.push(`/visible/search?${queryParams.toString()}`, undefined, { shallow: false });
     };
 
     return (
@@ -168,6 +153,7 @@ export default function CombinedSearchPage() {
                     </div>
 
                     <form onSubmit={handleSearchAndFilterApply} className="bg-white p-6 rounded-lg shadow-md mb-8 sticky top-20 z-10">
+                        {/* ... (rest of the form is fine) ... */}
                         <div className="flex flex-col md:flex-row gap-4 items-end">
                             <div className="flex-grow">
                                 <label htmlFor="page-search-input" className="block text-sm font-medium text-gray-700 mb-1">
@@ -177,7 +163,7 @@ export default function CombinedSearchPage() {
                                     <input
                                         type="search"
                                         id="page-search-input"
-                                        value={pageInputTerm} // Controlled by pageInputTerm
+                                        value={pageInputTerm}
                                         onChange={(e) => setPageInputTerm(e.target.value)}
                                         placeholder="Enter keywords..."
                                         className="w-full text-sm text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm px-4 py-2.5 pr-10 focus:ring-2 focus:ring-ggreen focus:border-transparent"
@@ -205,7 +191,7 @@ export default function CombinedSearchPage() {
                                 <label htmlFor="drive-status-filter" className="block text-xs font-medium text-gray-700 mb-1">Drive Status</label>
                                 <select
                                     id="drive-status-filter"
-                                    value={pageDriveFilter} // Controlled by pageDriveFilter
+                                    value={pageDriveFilter}
                                     onChange={(e) => setPageDriveFilter(e.target.value)}
                                     className="w-full text-sm border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-1 focus:ring-ggreen focus:border-ggreen bg-white"
                                 >
@@ -216,7 +202,7 @@ export default function CombinedSearchPage() {
                                 <label htmlFor="org-state-filter" className="block text-xs font-medium text-gray-700 mb-1">Organization State</label>
                                 <select
                                     id="org-state-filter"
-                                    value={pageOrgStateFilter} // Controlled by pageOrgStateFilter
+                                    value={pageOrgStateFilter}
                                     onChange={(e) => setPageOrgStateFilter(e.target.value)}
                                     className="w-full text-sm border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-1 focus:ring-ggreen focus:border-ggreen bg-white"
                                 >
@@ -228,7 +214,7 @@ export default function CombinedSearchPage() {
                                 <label htmlFor="org-city-filter" className="block text-xs font-medium text-gray-700 mb-1">Organization City</label>
                                 <select
                                     id="org-city-filter"
-                                    value={pageOrgCityFilter} // Controlled by pageOrgCityFilter
+                                    value={pageOrgCityFilter}
                                     onChange={(e) => setPageOrgCityFilter(e.target.value)}
                                     disabled={pageOrgStateFilter === 'All' && availableCities.length === 0}
                                     className="w-full text-sm border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-1 focus:ring-ggreen focus:border-ggreen bg-white disabled:bg-gray-100"
@@ -241,6 +227,7 @@ export default function CombinedSearchPage() {
                     </form>
 
                     {/* Results Section */}
+                    {/* ... (rest of the results rendering logic is fine) ... */}
                     {loading && <p className="text-center text-gray-600 text-lg py-10">Loading results...</p>}
                     {error && <p className="text-center text-red-500 text-lg py-10">{error}</p>}
 

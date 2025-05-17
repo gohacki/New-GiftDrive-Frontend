@@ -1,26 +1,22 @@
 // src/components/Providers.js
 import React from "react";
-import { AuthProvider } from '../contexts/AuthContext';
 import { CartProvider } from '../contexts/CartContext';
 import { StatisticsProvider } from '../contexts/StatisticsContext';
-import PropTypes from 'prop-types'; // Import PropTypes
+import PropTypes from 'prop-types';
 
 const Providers = ({ children }) => {
   return (
-    // AuthProvider should be higher up the tree
-    <AuthProvider>
-      {/* CartProvider can now access AuthContext */}
-      <CartProvider>
-        <StatisticsProvider>
-          {children}
-        </StatisticsProvider>
-      </CartProvider>
-    </AuthProvider>
+    // AuthProvider is removed. SessionProvider from next-auth/react is in _app.js
+    <CartProvider>
+      <StatisticsProvider>
+        {children}
+      </StatisticsProvider>
+    </CartProvider>
   );
 };
 
 Providers.propTypes = {
-  children: PropTypes.node.isRequired, // children should be a React node and is required
+  children: PropTypes.node.isRequired,
 };
 
 export default Providers;

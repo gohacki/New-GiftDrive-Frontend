@@ -1,42 +1,43 @@
-// pages/visible/registerorg.js (or similar component for org registration)
-import React, { useState, useContext, useEffect } from 'react';
+// File: pages/visible/registerorg.js
+import React, { useState, useEffect } from 'react'; // Removed useContext
 import { useRouter } from 'next/router';
 import axios from 'axios';
-import Auth from 'layouts/Auth.js'; // Assuming you use this layout
-import { AuthContext } from 'contexts/AuthContext'; // Assuming path
+import Auth from 'layouts/Auth.js';
+// import { AuthContext } from 'contexts/AuthContext'; // REMOVE THIS LINE
+import { useSession } from 'next-auth/react'; // ADD useSession and signOut
+import { toast } from 'react-toastify'; // For user feedback
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+// REMOVED: const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const RegisterOrganization = () => {
   const router = useRouter();
-  const { user, loading: authLoading, setUser } = useContext(AuthContext); // Add setUser
+  // const { user, loading: authLoading, setUser } = useContext(AuthContext); // REMOVE THIS LINE
+  const { data: session, status: authStatus, update: updateSession } = useSession(); // USE useSession hook
+  const user = session?.user;
+  const authLoading = authStatus === "loading";
 
   const [orgData, setOrgData] = useState({
-    orgName: '',
-    orgWebsite: '',
-    orgDescription: '',
-    streetAddress: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    phone: '', // <<< NEW FIELD
+    orgName: '', orgWebsite: '', orgDescription: '',
+    streetAddress: '', city: '', state: '', zipCode: '',
+    phone: '', country: 'US', // Added country with default
     orgPhoto: null,
   });
   const [previewUrl, setPreviewUrl] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 3; // Or however many steps you have
+  const totalSteps = 3;
   const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false); // For submission loading state
 
   useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        router.push('/auth/login');
-      } else if (user && user.is_org_admin) {
-        // If already an org admin, maybe redirect to dashboard or drive creation
-        router.push('/admin/dashboard'); // Or /visible/registerdrive
-      }
+    if (authStatus === "loading") return; // Wait for session to load
+
+    if (authStatus === "unauthenticated") {
+      router.push('/auth/login?callbackUrl=/visible/registerorg'); // Redirect with callback
+    } else if (user && user.is_org_admin && user.org_id) {
+      toast.info("You are already associated with an organization.");
+      router.push('/admin/dashboard');
     }
-  }, [user, authLoading, router]);
+  }, [user, authStatus, router]);
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -48,16 +49,24 @@ const RegisterOrganization = () => {
     } else {
       setOrgData((prev) => ({ ...prev, [name]: value }));
     }
-    setFormError(''); // Clear error on change
+    setFormError('');
   };
 
   const handleSubmit = async () => {
     setFormError('');
-    if (!orgData.orgName || !orgData.phone || !orgData.streetAddress /* add other required fields */) {
-      setFormError('Please fill in all required fields, including organization name and phone.');
+    if (!orgData.orgName || !orgData.phone || !orgData.streetAddress || !orgData.city || !orgData.state || !orgData.zipCode || !orgData.country) {
+      setFormError('Please fill in all required fields: Name, Phone, and Full Address (including Country).');
+      toast.error('Please fill in all required fields.');
+      return;
+    }
+    if (!/^\+[1-9]\d{1,14}$/.test(orgData.phone.trim())) {
+      setFormError('Invalid phone number format. Please use E.164 (e.g., +12125551212).');
+      toast.error('Invalid phone number format for organization.');
       return;
     }
 
+
+    setIsSubmitting(true);
     const formData = new FormData();
     formData.append('name', orgData.orgName);
     formData.append('description', orgData.orgDescription);
@@ -66,43 +75,61 @@ const RegisterOrganization = () => {
     formData.append('state', orgData.state);
     formData.append('zip_code', orgData.zipCode);
     formData.append('website_link', orgData.orgWebsite);
-    formData.append('phone', orgData.phone); // <<< ADD PHONE TO FORMDATA
+    formData.append('phone', orgData.phone.trim());
+    formData.append('country', orgData.country.trim().toUpperCase());
     if (orgData.orgPhoto) {
       formData.append('photo', orgData.orgPhoto);
     }
 
     try {
+      // UPDATED to relative path
       const response = await axios.post(
-        `${apiUrl}/api/organizations/register`,
+        `/api/organizations/register`, // This API route will handle creating the org and updating the user
         formData,
         { withCredentials: true, headers: { 'Content-Type': 'multipart/form-data' } }
       );
-      // Update user context after successful org registration
-      if (user && response.data.org_id) {
-        setUser(prevUser => ({
-          ...prevUser,
-          is_org_admin: true,
-          org_id: response.data.org_id
-        }));
-      }
-      router.push('/visible/registerdrive'); // Or /admin/dashboard
+
+      toast.success(response.data.message || 'Organization registered successfully!');
+
+      // Crucially, update the session to reflect the new user roles/org_id
+      // This tells NextAuth to refetch the session, which will include the updated user info
+      // from your database after the /api/organizations/register call modifies the 'accounts' table.
+      await updateSession(); // This will trigger the jwt and session callbacks in [...nextauth].js
+
+      // Wait a moment for session to potentially update before redirecting,
+      // or rely on next page's auth check.
+      setTimeout(() => {
+        router.push('/visible/registerdrive'); // Or '/admin/dashboard'
+      }, 500);
+
     } catch (err) {
-      console.error('Error registering organization:', err.response?.data || err);
-      setFormError(err.response?.data?.error || 'Failed to register organization. Please try again.');
+      console.error('Error registering organization:', err.response?.data || err.message);
+      const apiError = err.response?.data?.error || 'Failed to register organization. Please try again.';
+      setFormError(apiError);
+      toast.error(apiError);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const nextStep = () => {
-    // Add validation for current step before proceeding
-    if (currentStep === 1 && (!orgData.orgName || !orgData.orgDescription || !orgData.orgWebsite)) {
-      setFormError('Please fill in Organization Name, Description, and Website.');
+    // ... (validation logic remains similar, ensure required fields for each step are checked) ...
+    setFormError(''); // Clear previous step errors
+    if (currentStep === 1 && (!orgData.orgName.trim() || !orgData.orgDescription.trim() /* || !orgData.orgWebsite.trim() */)) { // Website can be optional
+      setFormError('Please fill in Organization Name and Description.');
+      toast.error('Organization Name and Description are required for this step.');
       return;
     }
-    if (currentStep === 2 && (!orgData.streetAddress || !orgData.city || !orgData.state || !orgData.zipCode || !orgData.phone)) {
-      setFormError('Please fill in all address fields, including Phone Number.');
+    if (currentStep === 2 && (!orgData.streetAddress.trim() || !orgData.city.trim() || !orgData.state.trim() || !orgData.zipCode.trim() || !orgData.phone.trim() || !orgData.country.trim())) {
+      setFormError('Please fill in all address fields, including Phone and Country.');
+      toast.error('Full address, Phone, and Country are required for this step.');
       return;
     }
-    // No specific validation for step 3 photo upload here, handled by submit
+    if (currentStep === 2 && !/^\+[1-9]\d{1,14}$/.test(orgData.phone.trim())) {
+      setFormError('Invalid phone number format. Please use E.164 (e.g., +12125551212).');
+      toast.error('Invalid phone number format for organization.');
+      return;
+    }
 
     if (currentStep < totalSteps) {
       setCurrentStep((prev) => prev + 1);
@@ -111,14 +138,15 @@ const RegisterOrganization = () => {
     }
   };
 
-  const prevStep = () => {
+  const prevStep = () => { /* ... (remains the same) ... */
     if (currentStep > 1) {
       setCurrentStep((prev) => prev - 1);
     }
   };
 
-  // Render fields based on the current step
   const renderStep = () => {
+    // ... (renderStep switch case JSX remains largely the same) ...
+    // Just ensure field names match `orgData` state and add the country field.
     switch (currentStep) {
       case 1: // Organization Details
         return (
@@ -129,8 +157,8 @@ const RegisterOrganization = () => {
               <input type="text" name="orgName" id="orgName" value={orgData.orgName} onChange={handleChange} placeholder="e.g. The Giving Tree Foundation" required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-ggreen focus:border-ggreen sm:text-sm" />
             </div>
             <div>
-              <label htmlFor="orgWebsite" className="block text-sm font-medium text-gray-700">Organization Website <span className="text-red-500">*</span></label>
-              <input type="url" name="orgWebsite" id="orgWebsite" value={orgData.orgWebsite} onChange={handleChange} placeholder="https://example.org" required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-ggreen focus:border-ggreen sm:text-sm" />
+              <label htmlFor="orgWebsite" className="block text-sm font-medium text-gray-700">Organization Website</label>
+              <input type="url" name="orgWebsite" id="orgWebsite" value={orgData.orgWebsite} onChange={handleChange} placeholder="https://example.org" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-ggreen focus:border-ggreen sm:text-sm" />
             </div>
             <div>
               <label htmlFor="orgDescription" className="block text-sm font-medium text-gray-700">Description <span className="text-red-500">*</span></label>
@@ -161,19 +189,27 @@ const RegisterOrganization = () => {
                 <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700">ZIP/Postal Code <span className="text-red-500">*</span></label>
                 <input type="text" name="zipCode" id="zipCode" value={orgData.zipCode} onChange={handleChange} required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-ggreen focus:border-ggreen sm:text-sm" />
               </div>
-              <div> {/* <<< PHONE INPUT FIELD ADDED HERE >>> */}
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                  Phone Number <span className="text-red-500">*</span> <span className="text-xs text-gray-500">(e.g., +12125551212)</span>
-                </label>
-                <input type="tel" name="phone" id="phone" value={orgData.phone} onChange={handleChange} placeholder="+1XXXXXXXXXX" required pattern="\+[0-9]{1,3}[0-9]{9,14}" title="Enter phone in E.164 format, e.g., +12125551212" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-ggreen focus:border-ggreen sm:text-sm" />
+              <div>
+                <label htmlFor="country" className="block text-sm font-medium text-gray-700">Country <span className="text-red-500">*</span></label>
+                <select name="country" id="country" value={orgData.country} onChange={handleChange} required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-ggreen focus:border-ggreen sm:text-sm bg-white">
+                  <option value="US">United States</option>
+                  <option value="CA">Canada</option>
+                  {/* Add more countries as needed */}
+                </select>
               </div>
+            </div>
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                Phone Number <span className="text-red-500">*</span> <span className="text-xs text-gray-500">(e.g., +12125551212)</span>
+              </label>
+              <input type="tel" name="phone" id="phone" value={orgData.phone} onChange={handleChange} placeholder="+1XXXXXXXXXX" required pattern="\+[0-9]{1,3}[0-9]{9,14}" title="Enter phone in E.164 format, e.g., +12125551212" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-ggreen focus:border-ggreen sm:text-sm" />
             </div>
           </div>
         );
       case 3: // Photo Upload
         return (
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold mb-4">Step 3: Organization Photo</h2>
+            <h2 className="text-2xl font-bold mb-4">Step 3: Organization Photo (Optional)</h2>
             {previewUrl ? (
               <div className="mb-4 flex justify-center">
                 <img src={previewUrl} alt="Preview" className="max-h-48 rounded shadow-md" />
@@ -185,7 +221,7 @@ const RegisterOrganization = () => {
             )}
             <div className="flex justify-center">
               <input type="file" name="orgPhoto" onChange={handleChange} accept="image/*" className="hidden" id="orgPhotoInput" />
-              <label htmlFor="orgPhotoInput" className="cursor-pointer inline-block bg-ggreen text-white px-6 py-3 rounded-full hover:bg-teal-800 transition-colors">
+              <label htmlFor="orgPhotoInput" className="cursor-pointer inline-block bg-ggreen text-white px-6 py-3 rounded-full hover:bg-teal-700 transition-colors">
                 {orgData.orgPhoto ? "Change Photo" : "Choose Photo"}
               </label>
             </div>
@@ -198,11 +234,13 @@ const RegisterOrganization = () => {
 
   const progressPercentage = (currentStep / totalSteps) * 100;
 
-  if (authLoading || (!user && !authLoading)) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">Loading...</div>
     );
   }
+  // If user is defined but not an org admin yet, allow them to see the form.
+  // If user is already an org_admin, useEffect will redirect.
 
   return (
     <div className="container mx-auto px-4 min-h-screen flex flex-col items-center justify-center pt-10 pb-20">
@@ -215,8 +253,8 @@ const RegisterOrganization = () => {
         {renderStep()}
 
         <div className="mt-12">
-          <div className="w-full bg-gray-200 rounded-full mb-2">
-            <div style={{ width: `${Math.round(progressPercentage)}%` }} className="bg-ggreen text-xs font-medium text-blue-100 text-center p-0.5 leading-none rounded-full h-2"></div>
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+            <div style={{ width: `${Math.round(progressPercentage)}%` }} className="bg-ggreen h-2.5 rounded-full transition-all duration-300 ease-out"></div>
           </div>
           <p className="text-center text-sm text-gray-500">
             Step {currentStep} of {totalSteps}
@@ -224,15 +262,17 @@ const RegisterOrganization = () => {
         </div>
 
         <div className="mt-8 flex justify-between">
-          {currentStep > 1 && (
-            <button onClick={prevStep} className="border-2 border-ggreen text-ggreen px-8 py-3 rounded-full hover:bg-ggreen hover:text-white transition-colors">
+          {currentStep > 1 ? (
+            <button onClick={prevStep} className="border-2 border-ggreen text-ggreen px-8 py-3 rounded-full hover:bg-ggreen hover:text-white transition-colors font-semibold" disabled={isSubmitting}>
               Back
             </button>
-          )}
-          {/* Spacer to push Next/Submit button to the right if "Back" is not visible */}
-          {currentStep === 1 && <div className="w-20"></div>}
-          <button onClick={nextStep} className="border-2 border-ggreen bg-ggreen text-white px-8 py-3 rounded-full hover:bg-teal-800 transition-colors">
-            {currentStep === totalSteps ? 'Register Organization' : 'Next'}
+          ) : <div className="w-auto"></div> /* Placeholder for alignment */}
+          <button
+            onClick={nextStep}
+            className="border-2 border-ggreen bg-ggreen text-white px-8 py-3 rounded-full hover:bg-teal-700 transition-colors font-semibold disabled:opacity-50"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Submitting...' : (currentStep === totalSteps ? 'Register Organization' : 'Next')}
           </button>
         </div>
       </div>

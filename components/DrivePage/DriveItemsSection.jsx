@@ -8,47 +8,36 @@ const DriveItemsSection = ({
     cart,
     cartLoading,
     itemKeyType,
-    selectedRyeVariants,
-    availableRyeVariantsInfo,
-    isLoadingVariants,
-    itemQuantities,
+    // Removed variant-related props
     isAddingToCart,
-    isRemovingFromCart,
     onAddToCart,
-    onRemoveFromCart,
-    onFetchVariants,
-    onVariantSelect,
-    onQuantityChange,
-    isThisSpecificNeedInCart, // Pass the helper function
+    isThisSpecificNeedInCart,
 }) => {
     if (!items || items.length === 0) {
-        return null; // Or a message like "No specific drive items listed."
+        return null;
     }
 
     return (
         <section>
-            <h2 className="text-2xl font-semibold text-ggreen mb-4">
+            {/* Title can be removed if not needed, as per screenshot it's implicitly "Items" */}
+            {/* <h2 className="text-2xl font-semibold text-ggreen mb-4">
                 Items Needed for the Drive
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            </h2> */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6"> {/* Adjusted gap for potentially more items */}
                 {items.map((itemNeed) => (
                     <DriveItemCard
                         key={itemNeed[itemKeyType]}
                         itemNeed={itemNeed}
                         itemKeyType={itemKeyType}
                         isInCart={isThisSpecificNeedInCart(itemNeed, cart, itemKeyType)}
-                        currentQuantity={itemQuantities[itemNeed[itemKeyType]] || 1}
-                        isLoadingVariantsForItem={isLoadingVariants[itemNeed[itemKeyType]]}
+                        // currentQuantity might not be needed if no qty input on card
+                        // currentQuantity={itemQuantities[itemNeed[itemKeyType]] || 1} 
                         isAddingToCartForItem={isAddingToCart[itemNeed[itemKeyType]]}
-                        isRemovingFromCartForItem={isRemovingFromCart[itemNeed[itemKeyType]]}
+                        // isRemovingFromCartForItem={isRemovingFromCart[itemNeed[itemKeyType]]} // Not used by simplified card
                         cartLoading={cartLoading}
-                        availableVariantInfoForItem={availableRyeVariantsInfo[itemNeed[itemKeyType]]}
-                        selectedVariantForItem={selectedRyeVariants[itemNeed[itemKeyType]]}
                         onAddToCart={onAddToCart}
-                        onRemoveFromCart={onRemoveFromCart}
-                        onFetchVariants={onFetchVariants}
-                        onVariantSelect={onVariantSelect}
-                        onQuantityChange={onQuantityChange}
+                    // onRemoveFromCart is not directly callable from the simplified card
+                    // onQuantityChange is not used by simplified card
                     />
                 ))}
             </div>
@@ -61,17 +50,12 @@ DriveItemsSection.propTypes = {
     cart: PropTypes.object,
     cartLoading: PropTypes.bool,
     itemKeyType: PropTypes.string.isRequired,
-    selectedRyeVariants: PropTypes.object.isRequired,
-    availableRyeVariantsInfo: PropTypes.object.isRequired,
-    isLoadingVariants: PropTypes.object.isRequired,
-    itemQuantities: PropTypes.object.isRequired,
+    itemQuantities: PropTypes.object.isRequired, // If quantity input remains on card
     isAddingToCart: PropTypes.object.isRequired,
-    isRemovingFromCart: PropTypes.object.isRequired,
+    isRemovingFromCart: PropTypes.object.isRequired, // Still needed if removal is managed centrally
     onAddToCart: PropTypes.func.isRequired,
-    onRemoveFromCart: PropTypes.func.isRequired,
-    onFetchVariants: PropTypes.func.isRequired,
-    onVariantSelect: PropTypes.func.isRequired,
-    onQuantityChange: PropTypes.func.isRequired,
+    onRemoveFromCart: PropTypes.func.isRequired, // Still needed if removal is managed centrally
+    onQuantityChange: PropTypes.func.isRequired, // If quantity input remains on card
     isThisSpecificNeedInCart: PropTypes.func.isRequired,
 };
 

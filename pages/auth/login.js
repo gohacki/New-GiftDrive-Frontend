@@ -1,59 +1,95 @@
 // GiftDrive-Frontend/pages/auth/login.js
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import Auth from 'layouts/Auth.js';
-import { AuthContext } from '../../contexts/AuthContext'; // Path should be correct
+import Auth from 'layouts/Auth.js'; // Your existing layout
+import { signIn, useSession } from 'next-auth/react'; // Import signIn and useSession from next-auth
 
-// const apiUrl = process.env.NEXT_PUBLIC_API_URL; // Not directly used here if AuthContext handles API calls
+// const apiUrl = process.env.NEXT_PUBLIC_API_URL; // For social logins if they point to your backend initially
 
 export default function Login() {
-  // ***** CORRECTED: Destructure loading and rename it to authLoading *****
-  const { user, login, loading: authLoading } = useContext(AuthContext);
+  const { data: session, status: authStatus } = useSession(); // Get session status
   const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState('');
-
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL; // Needed for social logins
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleGoogleLogin = () => {
-    window.location.href = `${apiUrl}/api/auth/google`;
+    setIsSubmitting(true);
+    // Provide a relative path from the root of your site.
+    // NextAuth will prepend NEXTAUTH_URL.
+    const callbackUrlAfterLogin = router.query.callbackUrl || '/visible/profile';
+    signIn('google', { callbackUrl: callbackUrlAfterLogin });
   };
 
   const handleFacebookLogin = () => {
-    window.location.href = `${apiUrl}/api/auth/facebook`;
+    setIsSubmitting(true); // Show loading state
+    signIn('facebook', { callbackUrl: router.query.callbackUrl || '../visible/profile' });
   };
 
   useEffect(() => {
-    // Redirect if user is already logged in and AuthContext is not loading
-    if (!authLoading && user && user.account_id) {
-      console.log("Login page: User already authenticated, redirecting to profile.");
-      router.push('../visible/profile');
+    // Redirect if user is already authenticated
+    if (authStatus === "authenticated" && session?.user) {
+      console.log("Login page: User already authenticated, redirecting...");
+      const callbackUrl = router.query.callbackUrl || '../visible/profile';
+      router.push(typeof callbackUrl === 'string' ? callbackUrl : '../visible/profile');
     }
-  }, [user, authLoading, router]); // Add authLoading as a dependency
+    // If NextAuth.js returns an error in the URL query (e.g., ?error=CredentialsSignin)
+    if (router.query.error && !localError) { // Check !localError to avoid setting it multiple times
+      // You can map specific NextAuth errors to more user-friendly messages
+      // For now, just display the error code or a generic message.
+      let errorMessage = "Login failed. Please check your credentials or try again.";
+      if (router.query.error === "CredentialsSignin") {
+        errorMessage = "Invalid email or password.";
+      } else if (router.query.error === "OAuthAccountNotLinked") {
+        errorMessage = "This email is already associated with another account. Please sign in using the original method.";
+      } else if (router.query.error) {
+        errorMessage = `Login error: ${router.query.error}. Please try again.`;
+      }
+      setLocalError(errorMessage);
+    }
+
+  }, [session, authStatus, router, localError]); // Added localError to dependencies
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLocalError('');
+    setIsSubmitting(true);
 
-    try {
-      await login({ email, password });
-      // Successful login will trigger the useEffect above for redirection
-    } catch (err) {
-      console.error('Login failed on frontend:', err);
-      setLocalError(err.response?.data?.message || err.message || 'An error occurred during login.');
+    // Use signIn from next-auth for credentials
+    const result = await signIn('credentials', {
+      redirect: false, // We handle redirect/error manually based on result
+      email: email,
+      password: password,
+      // callbackUrl: router.query.callbackUrl || '../visible/profile' // Can specify callback here too
+    });
+
+    setIsSubmitting(false);
+
+    if (result?.error) {
+      // NextAuth sets result.error for common errors like "CredentialsSignin"
+      // The useEffect above can also catch errors passed in URL by NextAuth if not handled here
+      setLocalError(result.error === "CredentialsSignin" ? "Invalid email or password." : result.error);
+      console.error('Login failed via credentials:', result.error);
+    } else if (result?.ok && !result.error) {
+      // Successful sign-in, the useEffect will handle redirection when session status updates
+      console.log("Credentials sign-in successful, waiting for session update and redirect...");
+      // router.push(router.query.callbackUrl || '../visible/profile'); // Or redirect explicitly
+    } else if (!result?.ok) {
+      setLocalError("Login attempt failed. Please try again.");
     }
   };
 
-  // If AuthContext is still loading, you might want to show a loading state for the whole form
-  // or disable the button specifically as you've done.
-  if (authLoading && !user) { // Show loading only if not yet authenticated
+  // If authStatus is loading and no session yet, show loading for the whole page
+  if (authStatus === "loading" && !session) {
     return (
-      <div className="min-h-screen bg-secondary_green flex items-center justify-center px-4">
-        <p className="text-gray-700 text-lg">Loading...</p>
-      </div>
+      <Auth> {/* Ensure layout is applied for consistency */}
+        <div className="min-h-screen bg-secondary_green flex items-center justify-center px-4">
+          <p className="text-gray-700 text-lg">Loading session...</p>
+        </div>
+      </Auth>
     );
   }
 
@@ -78,7 +114,7 @@ export default function Login() {
                 className="bg-ggreen text-white font-semibold px-6 py-3 rounded-full shadow hover:shadow-lg transition-all duration-150 inline-flex items-center"
                 type="button"
                 onClick={handleFacebookLogin}
-                disabled={authLoading} // Disable social logins too if auth is processing
+                disabled={isSubmitting || authStatus === "loading"}
               >
                 <img alt="Facebook Logo" className="w-5 mr-2" src="https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg" />
                 Facebook
@@ -87,7 +123,7 @@ export default function Login() {
                 className="bg-ggreen text-white font-semibold px-6 py-3 rounded-full shadow hover:shadow-lg transition-all duration-150 inline-flex items-center"
                 type="button"
                 onClick={handleGoogleLogin}
-                disabled={authLoading}
+                disabled={isSubmitting || authStatus === "loading"}
               >
                 <img alt="Google Logo" className="w-5 mr-2" src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" />
                 Google
@@ -122,9 +158,9 @@ export default function Login() {
                 <button
                   className="bg-ggreen text-white font-semibold uppercase px-6 py-3 rounded-full shadow hover:shadow-lg transition-all duration-150 w-full"
                   type="submit"
-                  disabled={authLoading} // Use authLoading from context
+                  disabled={isSubmitting || authStatus === "loading"}
                 >
-                  {authLoading ? 'Logging in...' : 'Sign In'}
+                  {isSubmitting ? 'Signing In...' : 'Sign In'}
                 </button>
               </div>
             </form>
@@ -132,6 +168,7 @@ export default function Login() {
         </div>
         <div className="flex flex-wrap mt-6 relative">
           <div className="w-1/2">
+            {/* TODO: Implement password reset flow if needed */}
             <a href="#forgot-password" onClick={(e) => e.preventDefault()} className="text-gray-800"><small>Forgot password?</small></a>
           </div>
           <div className="w-1/2 text-right">
@@ -143,4 +180,4 @@ export default function Login() {
   );
 }
 
-Login.layout = Auth;
+Login.layout = Auth; // Apply the Auth layout

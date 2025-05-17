@@ -1,0 +1,18 @@
+// config/database.js
+import dotenv from 'dotenv';
+dotenv.config();
+
+import { createPool } from 'mysql2/promise';
+
+const pool = createPool(process.env.DB_CONNECTION_STRING, {
+  connectionLimit: 30,
+  waitForConnections: true,
+  queueLimit: 0,
+  multipleStatements: false,
+});
+
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle database connection:', err);
+});
+
+export default pool;

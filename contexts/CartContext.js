@@ -1,145 +1,139 @@
 // contexts/CartContext.js
-import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from 'react'; // Removed useContext as AuthContext is no longer directly used here
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { AuthContext } from './AuthContext'; // Import AuthContext to check login status
-import { useRouter } from 'next/router'; // <<<< IMPORT useRouter
+import { useRouter } from 'next/router';
+import { useSession } from 'next-auth/react'; // Import useSession from next-auth
 
 export const CartContext = createContext();
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+// const apiUrl = process.env.NEXT_PUBLIC_API_URL; // This will be for your Next.js API routes
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState(null); // Will hold the Rye cart object or null
-  const [loading, setLoading] = useState(true);
-  const { user, loading: authLoading } = useContext(AuthContext); // Get user status
-  const router = useRouter(); // <<<< GET ROUTER INSTANCE
+  const [loading, setLoading] = useState(true); // Cart-specific loading
+  const { data: session, status: authStatus } = useSession(); // Get session data and status from next-auth
+  const router = useRouter();
 
-  // Define fetchCart using useCallback to stabilize its identity
   const fetchCart = useCallback(async () => {
-    if (!user || authLoading) {
-      // Don't fetch if not logged in or auth is still loading
+    // Only fetch if user is authenticated and session is not loading
+    if (authStatus === "authenticated" && session?.user) {
+      console.log("CartContext: Fetching cart from backend API route...");
+      setLoading(true);
+      try {
+        // Calls YOUR Next.js API route for fetching the cart
+        // Example: /api/cart (assuming it's a GET request)
+        const response = await axios.get(`/api/cart`, { withCredentials: true }); // Relative path to Next.js API
+        if (response.data === null || response.data === '') {
+          setCart(null);
+        } else {
+          console.log("CartContext: Received cart data from backend:", response.data);
+          setCart(response.data);
+        }
+      } catch (error) {
+        console.error('CartContext: Error fetching cart:', error.response?.data || error.message);
+        setCart(null);
+      } finally {
+        setLoading(false);
+      }
+    } else if (authStatus === "unauthenticated") {
+      // If not authenticated, clear cart and stop loading
       setCart(null);
       setLoading(false);
-      return;
     }
-    console.log("CartContext: Fetching cart from backend...");
-    setLoading(true);
-    try {
-      // Calls YOUR backend's GET /api/cart endpoint
-      const response = await axios.get(`${apiUrl}/api/cart`, { withCredentials: true });
-      if (response.data === null || response.data === '') {
-        setCart(null);
-      } else {
-        console.log("CartContext: Received cart data from backend:", response.data);
-        setCart(response.data); // Set the Rye cart object
-      }
-    } catch (error) {
-      console.error('CartContext: Error fetching cart:', error.response?.data || error.message);
-      // Avoid persistent error toasts on initial load unless critical
-      // toast.error('Failed to load cart.');
-      setCart(null); // Clear cart on error
-    } finally {
-      setLoading(false);
-    }
-  }, [user, authLoading]); // Depend on user and authLoading
+    // If authStatus is "loading", do nothing yet, wait for it to resolve.
+    // The useEffect below will re-trigger fetchCart when authStatus changes.
+  }, [session, authStatus]); // Depend on session and authStatus
 
-  // Fetch cart initially and when user logs in/out
   useEffect(() => {
     fetchCart();
   }, [fetchCart]); // useEffect depends on the stable fetchCart
 
-  const resetCart = () => {
+  const resetCart = useCallback(() => { // useCallback for resetCart if passed as prop
     console.log("CartContext: Resetting cart state.");
     setCart(null);
-  };
+  }, []);
 
-  /**
-   * Adds an item to the cart via YOUR backend.
-   * Passes the INTERNAL GiftDrive item ID.
-   */
-  const addToCart = async (payload) => { // <<<< CHANGED SIGNATURE
-    // payload = { ryeIdToAdd, marketplaceForItem, quantity, originalNeedRefId, originalNeedRefType }
-    if (!user) {
+  const addToCart = async (payload) => {
+    if (authStatus !== "authenticated" || !session?.user) {
       toast.error("Please log in to add items to your cart.");
-      router.push('/auth/login'); // Redirect to login if not authenticated
+      router.push('/auth/login'); // Redirect to login
       return;
     }
-    console.log(`CartContext: Adding item via detailed payload:`, payload);
+    console.log(`CartContext: Adding item via detailed payload to backend API:`, payload);
     try {
+      // Calls YOUR Next.js API route for adding to cart
       const response = await axios.post(
-        `${apiUrl}/api/cart/add`,
-        payload, // Send the detailed payload
+        `/api/cart/add`, // Relative path to Next.js API
+        payload,
         { withCredentials: true }
       );
-      setCart(response.data);
+      setCart(response.data); // Update with the cart returned from your API
       toast.success('Item added to cart!');
-      router.push('/visible/cart'); // Redirect to cart page
+      // router.push('/visible/cart'); // Optional: redirect to cart page
     } catch (error) {
       console.error('CartContext: Error adding to cart:', error.response?.data || error.message);
       toast.error(error.response?.data?.error || 'Failed to add item to cart.');
+      // Optionally re-fetch cart on error to ensure consistency if your API doesn't return the cart on error
+      // await fetchCart();
     }
   };
 
-  /**
-   * Removes an item from the Rye cart via YOUR backend.
-   * Requires the Rye Product/Variant ID and Marketplace.
-   */
   const removeFromCart = async (ryeItemId, marketplace) => {
-    if (!user) return; // Should not happen if called from cart page
-    console.log(`CartContext: Removing Rye Item ID ${ryeItemId} (${marketplace})`);
+    if (authStatus !== "authenticated" || !session?.user) return;
+    console.log(`CartContext: Removing Rye Item ID ${ryeItemId} (${marketplace}) via backend API`);
     try {
-      // Calls YOUR backend's POST /api/cart/remove endpoint
+      // Calls YOUR Next.js API route for removing from cart
       const response = await axios.post(
-        `${apiUrl}/api/cart/remove`,
-        { itemId: ryeItemId, marketplace }, // Send Rye identifiers
+        `/api/cart/remove`, // Relative path to Next.js API
+        { itemId: ryeItemId, marketplace },
         { withCredentials: true }
       );
       const updatedCart = response.data;
-      // Check if the cart is now empty
       const isEmpty = !updatedCart?.stores || updatedCart.stores.every(s => !s.cartLines || s.cartLines.length === 0);
-      setCart(isEmpty ? null : updatedCart); // Set to null if empty, otherwise update
-
+      setCart(isEmpty ? null : updatedCart);
       toast.success('Item removed from cart.');
     } catch (error) {
       console.error('CartContext: Error removing from cart:', error.response?.data || error.message);
       toast.error(error.response?.data?.error || 'Failed to remove item from cart.');
-      fetchCart(); // Refetch cart on error to ensure consistency
+      await fetchCart(); // Refetch cart on error to ensure consistency
     }
   };
 
-  /**
-   * Updates item quantity in the Rye cart via YOUR backend.
-   * Requires the Rye Product/Variant ID, Marketplace, and new quantity.
-   */
   const updateCartItemQuantity = async (ryeItemId, marketplace, quantity) => {
-    if (!user) return;
+    if (authStatus !== "authenticated" || !session?.user) return;
     if (quantity <= 0) {
-      // If quantity is 0 or less, treat as removal
       removeFromCart(ryeItemId, marketplace);
       return;
     }
-    console.log(`CartContext: Updating Rye Item ID ${ryeItemId} (${marketplace}) to Qty: ${quantity}`);
+    console.log(`CartContext: Updating Rye Item ID ${ryeItemId} (${marketplace}) to Qty: ${quantity} via backend API`);
     try {
-      // Calls YOUR backend's POST /api/cart/update endpoint
+      // Calls YOUR Next.js API route for updating cart item quantity
       const response = await axios.post(
-        `${apiUrl}/api/cart/update`,
-        { itemId: ryeItemId, marketplace, quantity }, // Send Rye identifiers
+        `/api/cart/update`, // Relative path to Next.js API
+        { itemId: ryeItemId, marketplace, quantity },
         { withCredentials: true }
       );
-      setCart(response.data); // Update state with the new Rye cart object
-      // Optional: Success toast? Might be too noisy for quantity changes.
-      // toast.success('Cart updated.');
+      setCart(response.data);
     } catch (error) {
       console.error('CartContext: Error updating quantity:', error.response?.data || error.message);
       toast.error(error.response?.data?.error || 'Failed to update item quantity.');
-      fetchCart(); // Refetch cart on error
+      await fetchCart();
     }
   };
 
   return (
-    <CartContext.Provider value={{ cart, setCart, addToCart, removeFromCart, updateCartItemQuantity, loading, fetchCart, resetCart }}>
+    <CartContext.Provider value={{
+      cart,
+      setCart, // Expose setCart if needed for direct manipulation (e.g., after order completion)
+      addToCart,
+      removeFromCart,
+      updateCartItemQuantity,
+      loading, // Cart-specific loading state
+      fetchCart, // Expose fetchCart if manual refresh is needed from components
+      resetCart   // Expose resetCart
+    }}>
       {children}
     </CartContext.Provider>
   );

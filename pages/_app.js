@@ -5,6 +5,7 @@ import Head from "next/head";
 import Router from "next/router";
 import NProgress from 'nprogress';
 import 'nprogress/nprogress.css';
+import { SessionProvider } from "next-auth/react";
 import Providers from 'components/Providers';
 import ErrorBoundary from 'components/ErrorBoundary';
 import { ModalProvider } from '../contexts/ModalContext';
@@ -33,7 +34,7 @@ Router.events.on('routeChangeError', () => {
   NProgress.done();
 });
 
-const MyApp = ({ Component, pageProps }) => {
+const MyApp = ({ Component, pageProps: { session, ...pageProps } }) => {
   const Layout = Component.layout || (({ children }) => <>{children}</>);
 
   return (
@@ -59,19 +60,21 @@ const MyApp = ({ Component, pageProps }) => {
         <meta name="theme-color" content="#ffffff" />
         <title>GiftDrive.org</title>
       </Head>
-      <Providers>
-        <ErrorBoundary>
-          <Layout>
-            <Suspense fallback={<div className="flex justify-center items-center min-h-screen">Loading...</div>}>
-              <ModalProvider>
-                <Component {...pageProps} />
-                <ToastContainer />
-                <ModalRenderer />
-              </ModalProvider>
-            </Suspense>
-          </Layout>
-        </ErrorBoundary>
-      </Providers>
+      <SessionProvider session={session}>
+        <Providers>
+          <ErrorBoundary>
+            <Layout>
+              <Suspense fallback={<div className="flex justify-center items-center min-h-screen">Loading...</div>}>
+                <ModalProvider>
+                  <Component {...pageProps} />
+                  <ToastContainer />
+                  <ModalRenderer />
+                </ModalProvider>
+              </Suspense>
+            </Layout>
+          </ErrorBoundary>
+        </Providers>
+      </SessionProvider>
     </>
   );
 };

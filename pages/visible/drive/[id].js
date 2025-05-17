@@ -5,6 +5,8 @@ import PropTypes from 'prop-types';
 import { useRouter } from 'next/router';
 import { toast } from 'react-toastify';
 import { FaArrowLeft } from 'react-icons/fa';
+import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 import Navbar from 'components/Navbars/AuthNavbar.js';
 import Footer from 'components/Footers/Footer.js';
@@ -13,32 +15,42 @@ import ChildModal from 'components/Modals/ChildModal';
 import CartBlade from '@/components/Blades/CartBlade';
 import ShareButton from '@/components/Share/ShareButton';
 import { CartContext } from 'contexts/CartContext';
-import { AuthContext } from 'contexts/AuthContext';
-
-// Import your new components
-import DriveHeaderDetails from '@/components/DrivePage/DriveHeaderDetails';
 import DriveItemsSection from '@/components/DrivePage/DriveItemsSection';
-import SupportedChildrenSection from '@/components/DrivePage/SupportedChildrenSection';
-import DriveOrganizationAside from '@/components/DrivePage/DriveOrganizationAside';
+import DriveHeaderDetails from '@/components/DrivePage/DriveHeaderDetails'; // Assuming you might use this
+import DriveOrganizationAside from '@/components/DrivePage/DriveOrganizationAside'; // Assuming you might use this
+import SupportedChildrenSection from '@/components/DrivePage/SupportedChildrenSection'; // Assuming this is used
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+// REMOVED: const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-function isThisSpecificNeedInCart(itemNeed, cartFromContext, itemNeedKeyType) {
+// Helper functions (isThisSpecificNeedInCart, calculateDaysRemaining) remain the same
+function isThisSpecificNeedInCart(itemNeed, cartFromContext, itemKeyType) {
   if (!cartFromContext || !cartFromContext.stores || !itemNeed) return false;
-  const sourceIdToCheck = itemNeed[itemNeedKeyType];
-  const sourceFieldInCart = itemNeedKeyType === 'drive_item_id' ? 'giftdrive_source_drive_item_id' : 'giftdrive_source_child_item_id';
+  const sourceIdToCheck = itemNeed[itemKeyType];
+  const sourceFieldInCart = itemKeyType === 'drive_item_id' ? 'giftdrive_source_drive_item_id' : 'giftdrive_source_child_item_id';
   return cartFromContext.stores.some(store =>
     store.cartLines?.some(line => line[sourceFieldInCart] != null && line[sourceFieldInCart] === sourceIdToCheck)
   );
 }
+const calculateDaysRemaining = (endDateString) => {
+  if (!endDateString) return 0;
+  const now = new Date();
+  const end = new Date(endDateString);
+  if (isNaN(end.getTime())) return 0;
+  const diffTime = Math.max(0, end.getTime() - now.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+};
 
-const DrivePage = ({ drive: initialDriveData }) => {
+
+const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
   const router = useRouter();
-  const { cart, loading: cartLoading, addToCart, removeFromCart } = useContext(CartContext);
-  const { user } = useContext(AuthContext);
+  const { cart, loading: cartLoading, addToCart } = useContext(CartContext); // removeFromCart might not be used on this page directly
+  const { data: session, status: authStatus } = useSession();
+  const user = session?.user;
 
   const [drive, setDrive] = useState(initialDriveData);
   const [pageUrl, setPageUrl] = useState('');
+  const [pageError, setPageError] = useState(initialError || null);
 
   const [isBladeDismissed, setIsBladeDismissed] = useState(false);
   const cartHasItems = cart?.stores?.some(store => store.cartLines?.length > 0);
@@ -47,83 +59,90 @@ const DrivePage = ({ drive: initialDriveData }) => {
   const [selectedChildIdForModal, setSelectedChildIdForModal] = useState(null);
   const [isChildModalOpen, setIsChildModalOpen] = useState(false);
 
-  const [selectedRyeVariants, setSelectedRyeVariants] = useState({});
-  const [availableRyeVariantsInfo, setAvailableRyeVariantsInfo] = useState({});
-  const [isLoadingVariants, setIsLoadingVariants] = useState({});
   const [itemQuantities, setItemQuantities] = useState({});
   const [isAddingToCart, setIsAddingToCart] = useState({});
-  const [isRemovingFromCart, setIsRemovingFromCart] = useState({});
+  // const [isRemovingFromCart, setIsRemovingFromCart] = useState({}); // Not typically used on drive display page
 
   useEffect(() => {
-    if (typeof window !== 'undefined') setPageUrl(window.location.href);
+    if (typeof window !== 'undefined') {
+      setPageUrl(window.location.href);
+    }
   }, [router.asPath]);
 
   useEffect(() => {
     if (cartHasItems) setIsBladeDismissed(false);
   }, [cartHasItems]);
 
+  // Initialize itemQuantities when drive data (especially items/children) changes
   useEffect(() => {
-    const initialDriveItemQuantities = {};
-    drive?.items?.forEach(itemNeed => {
-      initialDriveItemQuantities[itemNeed.drive_item_id] = 1;
-    });
-    drive?.children?.forEach(child => {
-      child.items?.forEach(itemNeed => {
-        initialDriveItemQuantities[itemNeed.child_item_id] = 1;
+    const initialQuantities = {};
+    const processItems = (items, keyPrefix) => {
+      (items || []).forEach(itemNeed => {
+        const itemKey = itemNeed[`${keyPrefix}_item_id`]; // e.g., drive_item_id or child_item_id
+        if (itemKey) initialQuantities[itemKey] = 1;
       });
-    });
-    setItemQuantities(initialDriveItemQuantities);
-  }, [drive?.items, drive?.children]);
+    };
+    if (drive) {
+      processItems(drive.items, 'drive');
+      (drive.children || []).forEach(child => {
+        processItems(child.items, 'child');
+      });
+    }
+    setItemQuantities(initialQuantities);
+  }, [drive]);
+
 
   const fetchDriveDataAfterCartAction = async () => {
+    if (!drive || !drive.drive_id) return;
     try {
-      const updatedDriveResponse = await axios.get(`${apiUrl}/api/drives/${drive.drive_id}`);
-      const updatedItemsResponse = await axios.get(`${apiUrl}/api/drives/${drive.drive_id}/items`);
-      const aggregateResponse = await axios.get(`${apiUrl}/api/drives/${drive.drive_id}/aggregate`);
+      // UPDATED to relative paths for API calls
+      const updatedDriveResponse = await axios.get(`/api/drives/${drive.drive_id}`);
+      const aggregateResponse = await axios.get(`/api/drives/${drive.drive_id}/aggregate`);
+
+      // Refetch children with updated item counts
+      const childrenWithItemCounts = await Promise.all(
+        (updatedDriveResponse.data.children || []).map(async (child) => {
+          const childItemsResp = await axios.get(`/api/children/${child.child_id}/items`);
+          const processedChildItems = (childItemsResp.data || []).map(item => ({
+            ...item,
+            selected_rye_variant_id: item.selected_rye_variant_id || null,
+            selected_rye_marketplace: item.selected_rye_marketplace || null,
+          }));
+          return {
+            ...child,
+            items: processedChildItems,
+            items_needed_count: processedChildItems.filter(item => item.remaining > 0).length || 0,
+          };
+        })
+      );
+
+      // Fetch top-level drive items separately
+      const driveItemsResponse = await axios.get(`/api/drives/${drive.drive_id}/items`);
+      const processedDriveItems = (driveItemsResponse.data || []).map(item => ({
+        ...item,
+        selected_rye_variant_id: item.selected_rye_variant_id || null,
+        selected_rye_marketplace: item.selected_rye_marketplace || null,
+      }));
+
+
       setDrive({
         ...updatedDriveResponse.data,
-        items: updatedItemsResponse.data,
-        children: updatedDriveResponse.data.children || [],
+        items: processedDriveItems, // Use newly fetched drive items
+        children: childrenWithItemCounts,
         totalNeeded: Number(aggregateResponse.data.totalNeeded) || 0,
         totalPurchased: Number(aggregateResponse.data.totalPurchased) || 0,
+        donorsCount: Number(aggregateResponse.data.donorsCount) || 0,
       });
+      setPageError(null);
     } catch (error) {
-      console.error("Failed to refetch drive data:", error);
+      console.error("Failed to refetch drive data:", error.response?.data || error.message);
       toast.error("Could not refresh drive details.");
+      setPageError("Could not refresh drive details after action.");
     }
-  };
-
-  const fetchVariantsForNeed = async (itemNeed, itemKey) => {
-    if (!itemNeed.allow_donor_variant_choice || !itemNeed.base_rye_product_id || availableRyeVariantsInfo[itemKey]) {
-      return;
-    }
-    setIsLoadingVariants(prev => ({ ...prev, [itemKey]: true }));
-    try {
-      const response = await axios.post(`${apiUrl}/api/items/fetch-rye-variants-for-product`, {
-        rye_product_id: itemNeed.base_rye_product_id,
-        marketplace: itemNeed.base_marketplace,
-      });
-      setAvailableRyeVariantsInfo(prev => ({ ...prev, [itemKey]: response.data }));
-      if (response.data?.variants?.length > 0) {
-        const firstAvailable = response.data.variants.find(v => v.isAvailable);
-        if (firstAvailable) {
-          setSelectedRyeVariants(prev => ({ ...prev, [itemKey]: firstAvailable.id }));
-        }
-      }
-    } catch (error) {
-      console.error(`Failed to fetch variants for item key ${itemKey}:`, error);
-      toast.error(`Could not load options.`);
-      setAvailableRyeVariantsInfo(prev => ({ ...prev, [itemKey]: { variants: [] } }));
-    } finally {
-      setIsLoadingVariants(prev => ({ ...prev, [itemKey]: false }));
-    }
-  };
-
-  const handleVariantSelectionChange = (itemKey, ryeVariantId) => {
-    setSelectedRyeVariants(prev => ({ ...prev, [itemKey]: ryeVariantId }));
   };
 
   const handleQuantityChange = (itemKey, value, maxRemaining) => {
+    // ... (quantity change logic remains same) ...
     const numericValue = Number(value);
     if (isNaN(numericValue)) return;
     const newQuantity = Math.max(1, Math.min(numericValue, maxRemaining > 0 ? maxRemaining : 1));
@@ -131,30 +150,29 @@ const DrivePage = ({ drive: initialDriveData }) => {
   };
 
   const handleAddToCart = async (itemNeed, itemKeyType) => {
-    if (!user) {
+    if (authStatus === "unauthenticated" || !user) {
       toast.error("Please log in to add items.");
-      router.push('/auth/login'); return;
+      router.push('/auth/login?callbackUrl=' + encodeURIComponent(router.asPath));
+      return;
     }
-    const itemKey = itemNeed[itemKeyType];
+
+    const itemKey = itemNeed[itemKeyType]; // e.g., itemNeed.drive_item_id or itemNeed.child_item_id
+    if (!itemKey) {
+      toast.error("Item identifier is missing.");
+      return;
+    }
     setIsAddingToCart(prev => ({ ...prev, [itemKey]: true }));
 
-    let ryeIdForCartApi = itemNeed.selected_rye_variant_id;
-    let marketplaceForCartApi = itemNeed.selected_rye_marketplace;
-    let itemNameForToast = itemNeed.variant_display_name || itemNeed.base_item_name || "Item";
-
-    if (itemNeed.allow_donor_variant_choice && selectedRyeVariants[itemKey]) {
-      ryeIdForCartApi = selectedRyeVariants[itemKey];
-      marketplaceForCartApi = itemNeed.base_marketplace;
-      const variantInfo = availableRyeVariantsInfo[itemKey]?.variants?.find(v => v.id === ryeIdForCartApi);
-      if (variantInfo) itemNameForToast = variantInfo.title;
-    }
+    const ryeIdForCartApi = itemNeed.selected_rye_variant_id;
+    const marketplaceForCartApi = itemNeed.selected_rye_marketplace;
+    const itemNameForToast = itemNeed.variant_display_name || itemNeed.base_item_name || "Item";
 
     if (!ryeIdForCartApi || !marketplaceForCartApi) {
       toast.error(`Cannot add ${itemNameForToast} to cart: Product identifier or marketplace missing.`);
       setIsAddingToCart(prev => ({ ...prev, [itemKey]: false })); return;
     }
     if (!itemNeed.is_rye_linked) {
-      toast.warn('This item variation cannot be purchased online at this time.');
+      toast.warn('This item cannot be purchased online at this time.');
       setIsAddingToCart(prev => ({ ...prev, [itemKey]: false })); return;
     }
 
@@ -164,42 +182,18 @@ const DrivePage = ({ drive: initialDriveData }) => {
       marketplaceForItem: marketplaceForCartApi,
       quantity: quantity,
       originalNeedRefId: itemKey,
-      originalNeedRefType: itemKeyType === 'drive_item_id' ? 'drive_item' : 'child_item'
+      originalNeedRefType: itemKeyType // This should now be 'drive_item_id' or 'child_item_id' directly
     };
 
     try {
-      await addToCart(payloadForContext); // Context handles API call, cart update, and redirect
-      await fetchDriveDataAfterCartAction(); // Refetch drive data after cart action
+      await addToCart(payloadForContext); // This calls the CartContext function
+      // fetchCart(); // CartContext addToCart should update the cart state
+      await fetchDriveDataAfterCartAction(); // Refetch drive data to update remaining counts
     } catch (err) {
       console.error('Error in DrivePage calling CartContext.addToCart:', err);
+      // Error already handled by addToCart in context typically
     } finally {
       setIsAddingToCart(prev => ({ ...prev, [itemKey]: false }));
-    }
-  };
-
-  const handleRemoveFromCart = async (itemNeed, itemKeyType) => {
-    if (!user) {
-      toast.error("Please log in to manage your cart.");
-      router.push('/auth/login'); return;
-    }
-    const itemKey = itemNeed[itemKeyType];
-    setIsRemovingFromCart(prev => ({ ...prev, [itemKey]: true }));
-
-    let ryeIdForRemoval = itemNeed.selected_rye_variant_id;
-    let marketplaceForRemoval = itemNeed.selected_rye_marketplace;
-
-    if (!ryeIdForRemoval || !marketplaceForRemoval) {
-      toast.error(`Cannot remove item: Critical item identifiers missing.`);
-      setIsRemovingFromCart(prev => ({ ...prev, [itemKey]: false })); return;
-    }
-
-    try {
-      await removeFromCart(ryeIdForRemoval, marketplaceForRemoval); // Context handles API call and cart update
-      await fetchDriveDataAfterCartAction(); // Refetch drive data
-    } catch (err) {
-      console.error('Error removing item from cart (DrivePage):', err);
-    } finally {
-      setIsRemovingFromCart(prev => ({ ...prev, [itemKey]: false }));
     }
   };
 
@@ -210,104 +204,144 @@ const DrivePage = ({ drive: initialDriveData }) => {
   const closeChildModal = () => {
     setSelectedChildIdForModal(null);
     setIsChildModalOpen(false);
-    fetchDriveDataAfterCartAction(); // Refetch drive data if modal actions could change counts
+    fetchDriveDataAfterCartAction();
   };
   const handleBladeClose = () => setIsBladeDismissed(true);
 
-  if (!drive) {
+  if (router.isFallback || (!drive && !pageError && authStatus === "loading")) { // Check pageError here
     return (
       <>
-        <Navbar />
+        <Navbar isBladeOpen={isCartBladeEffectivelyOpen} />
         <main className="min-h-screen flex items-center justify-center bg-secondary_green text-gray-800">
-          <p className="text-gray-600 text-lg">Drive not found.</p>
+          <p className="text-gray-600 text-lg">Loading drive information...</p>
         </main>
-        <Footer />
+        <Footer isBladeOpen={isCartBladeEffectivelyOpen} />
       </>
     );
   }
 
-  const totalNeeded = Number(drive.totalNeeded) || 0;
-  const totalPurchased = Number(drive.totalPurchased) || 0;
+  if (pageError) { // Display error if GSSP or client-side fetch fails
+    return (
+      <>
+        <Navbar isBladeOpen={isCartBladeEffectivelyOpen} />
+        <main className="min-h-screen flex flex-col items-center justify-center bg-secondary_green text-gray-800 px-4 text-center">
+          <p className="text-red-600 text-lg font-semibold">{pageError}</p>
+          <Link href="/visible/orglist" className="mt-4 px-4 py-2 bg-ggreen text-white rounded hover:bg-teal-700">
+            Browse Other Drives
+          </Link>
+        </main>
+        <Footer isBladeOpen={isCartBladeEffectivelyOpen} />
+      </>
+    );
+  }
+  if (!drive) { // Final fallback if drive is null after loading and no specific error
+    return (
+      <>
+        <Navbar isBladeOpen={isCartBladeEffectivelyOpen} />
+        <main className="min-h-screen flex items-center justify-center bg-secondary_green text-gray-800">
+          <p className="text-gray-600 text-lg">Drive not found.</p>
+        </main>
+        <Footer isBladeOpen={isCartBladeEffectivelyOpen} />
+      </>
+    );
+  }
+
+  const { name, description, photo, totalNeeded, org_city, org_state, totalPurchased, organization_name, org_id, end_date, children: driveChildren, items: driveItemsOnly } = drive;
   const progressPercentage = totalNeeded > 0 ? Math.min(100, (totalPurchased / totalNeeded) * 100) : 0;
+  const daysRemaining = calculateDaysRemaining(end_date);
+
 
   return (
     <>
-      <Navbar transparent isBladeOpen={isCartBladeEffectivelyOpen} />
-      <main className={`min-h-screen bg-secondary_green text-gray-800 relative pt-24 pb-16 ${isCartBladeEffectivelyOpen ? 'mr-[15rem]' : 'mr-0'} transition-margin duration-300 ease-in-out`}>
+      <Navbar isBladeOpen={isCartBladeEffectivelyOpen} />
+      <main className={`min-h-screen bg-secondary_green text-gray-800 relative pt-10 pb-16 ${isCartBladeEffectivelyOpen ? 'mr-[15rem]' : 'mr-0'} transition-all duration-300 ease-in-out`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Breadcrumbs
             links={[
               { href: '/', label: 'Home' },
               { href: '/visible/orglist', label: 'Organizations' },
-              { href: `/visible/organization/${drive.org_id || 'org'}`, label: drive.organization_name || 'Organization' },
-              { href: `/visible/drive/${drive.drive_id}`, label: drive.name },
+              { href: `/visible/organization/${org_id || 'org'}`, label: organization_name || 'Organization' },
+              { href: `/visible/drive/${drive.drive_id}`, label: name },
             ]}
           />
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center my-6">
             <button
               onClick={() => router.back()}
               className="flex items-center px-4 py-2 bg-ggreen text-white rounded-md hover:bg-teal-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ggreen"
               aria-label="Go back to previous page"
             >
-              <FaArrowLeft className="mr-2" />
-              Back
+              <FaArrowLeft className="mr-2" /> Back
             </button>
             {pageUrl && drive && <ShareButton pageType="drive" pageData={drive} pageUrl={pageUrl} />}
           </div>
 
           <DriveHeaderDetails
-            name={drive.name}
-            description={drive.description}
-            photo={drive.photo}
+            name={name}
+            description={description}
+            photo={photo}
             totalNeeded={totalNeeded}
-            orgCity={drive.org_city}
-            orgState={drive.org_state}
+            orgCity={org_city}
+            orgState={org_state}
             totalPurchased={totalPurchased}
             progressPercentage={progressPercentage}
           />
 
-          <div className="flex flex-col md:flex-row gap-8 mt-8">
-            <div className="md:w-2/3 space-y-8">
-              <DriveItemsSection
-                items={drive.items || []}
-                cart={cart}
-                cartLoading={cartLoading}
-                itemKeyType="drive_item_id"
-                selectedRyeVariants={selectedRyeVariants}
-                availableRyeVariantsInfo={availableRyeVariantsInfo}
-                isLoadingVariants={isLoadingVariants}
-                itemQuantities={itemQuantities}
-                isAddingToCart={isAddingToCart}
-                isRemovingFromCart={isRemovingFromCart}
-                onAddToCart={handleAddToCart}
-                onRemoveFromCart={handleRemoveFromCart}
-                onFetchVariants={fetchVariantsForNeed}
-                onVariantSelect={handleVariantSelectionChange}
-                onQuantityChange={handleQuantityChange}
-                isThisSpecificNeedInCart={isThisSpecificNeedInCart}
-              />
-
-              <SupportedChildrenSection
-                childDataList={drive.children || []} // Changed prop name from 'children' to 'childDataList'
-                driveName={drive.name}
-                onOpenChildModal={openChildModal}
-              />
-              {(!drive.items || drive.items.length === 0) && (!drive.children || drive.children.length === 0) && (
-                <p className="text-gray-600 italic text-center py-6">This drive currently has no specific items or children listed.</p>
-              )}
-            </div>
-
-            <aside className="md:w-1/3 space-y-6">
+          <div className="mt-8 flex flex-col lg:flex-row gap-8">
+            <aside className="w-full lg:w-80 xl:w-96 space-y-6 lg:sticky lg:top-24 self-start flex-shrink-0">
               <DriveOrganizationAside
-                orgId={drive.org_id}
-                organizationName={drive.organization_name}
-                organizationPhoto={drive.organization_photo}
+                orgId={org_id}
+                organizationName={organization_name}
+                organizationPhoto={drive.organization_photo} // Assuming this comes from drive data
                 donorsCount={drive.donorsCount}
               />
+              {/* Optional: Days Remaining Card - You can create a new component or inline it */}
+              <div className="border-2 border-ggreen shadow rounded-lg p-6 bg-white">
+                <h2 className="text-xl font-semibold text-ggreen mb-2">Drive Ends In</h2>
+                <p className="text-3xl font-bold text-gray-800">{daysRemaining}</p>
+                <p className="text-sm text-gray-600">days</p>
+              </div>
             </aside>
+
+            <div className="w-full lg:flex-1 space-y-12">
+              {driveItemsOnly && driveItemsOnly.length > 0 && (
+                <DriveItemsSection
+                  items={driveItemsOnly}
+                  cart={cart}
+                  cartLoading={cartLoading}
+                  itemKeyType="drive_item_id"
+                  itemQuantities={itemQuantities}
+                  isAddingToCart={isAddingToCart}
+                  // isRemovingFromCart={isRemovingFromCart} // Not used here directly
+                  onAddToCart={handleAddToCart}
+                  // onRemoveFromCart={handleRemoveFromCart} // Not used here directly
+                  onQuantityChange={handleQuantityChange}
+                  isThisSpecificNeedInCart={isThisSpecificNeedInCart}
+                />
+              )}
+
+              {driveChildren && driveChildren.length > 0 && (
+                <SupportedChildrenSection
+                  childDataList={driveChildren}
+                  driveName={name}
+                  onOpenChildModal={openChildModal}
+                />
+              )}
+
+              {(!driveItemsOnly || driveItemsOnly.length === 0) && (!driveChildren || driveChildren.length === 0) && (
+                <div className="bg-white p-8 rounded-lg shadow-md text-center">
+                  <p className="text-gray-600 italic">This drive currently has no specific items or children listed for direct donation.</p>
+                  <p className="text-gray-600 mt-2">You can still support the organization directly or check back later!</p>
+                  {org_id && (
+                    <Link href={`/visible/organization/${org_id}`} className="mt-4 inline-block px-4 py-2 bg-ggreen text-white text-sm font-medium rounded-md hover:bg-teal-700">
+                      View Organization
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </main >
+      </main>
       <ChildModal isOpen={isChildModalOpen} onClose={closeChildModal} childId={selectedChildIdForModal} />
       <CartBlade isOpen={isCartBladeEffectivelyOpen} onClose={handleBladeClose} />
       <Footer isBladeOpen={isCartBladeEffectivelyOpen} />
@@ -315,47 +349,75 @@ const DrivePage = ({ drive: initialDriveData }) => {
   );
 };
 
+// getServerSideProps remains largely the same but uses relative paths for internal API calls
 export async function getServerSideProps(context) {
   const { id } = context.params;
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const baseApiUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
+
   try {
-    const driveResponse = await axios.get(`${apiUrl}/api/drives/${id}`);
-    const driveData = driveResponse.data;
+    const driveResponse = await axios.get(`${baseApiUrl}/api/drives/${id}`);
+    let driveData = driveResponse.data;
     if (!driveData || !driveData.drive_id) return { notFound: true };
 
-    const driveItemsResponse = await axios.get(`${apiUrl}/api/drives/${id}/items`);
+    // Fetch aggregate separately as it's a dedicated endpoint
+    const aggregateResponse = await axios.get(`${baseApiUrl}/api/drives/${id}/aggregate`);
+    const aggregate = aggregateResponse.data || { totalNeeded: 0, totalPurchased: 0, donorsCount: 0 };
+
+    // Fetch top-level drive items
+    const driveItemsResponse = await axios.get(`${baseApiUrl}/api/drives/${id}/items`);
+    const processedDriveItems = (driveItemsResponse.data || []).map(item => ({
+      ...item,
+      selected_rye_variant_id: item.selected_rye_variant_id || null,
+      selected_rye_marketplace: item.selected_rye_marketplace || null,
+    }));
+
+    // Fetch children and their items
     const childrenWithItemCounts = await Promise.all(
       (driveData.children || []).map(async (child) => {
-        const childItemsResp = await axios.get(`${apiUrl}/api/children/${child.child_id}/items`);
-        return { ...child, items_needed_count: childItemsResp.data?.filter(item => item.remaining > 0).length || 0 };
+        const childItemsResp = await axios.get(`${baseApiUrl}/api/children/${child.child_id}/items`);
+        const processedChildItems = (childItemsResp.data || []).map(item => ({
+          ...item,
+          selected_rye_variant_id: item.selected_rye_variant_id || null,
+          selected_rye_marketplace: item.selected_rye_marketplace || null,
+        }));
+        return {
+          ...child,
+          items: processedChildItems,
+          items_needed_count: processedChildItems.filter(item => item.remaining > 0).length || 0,
+        };
       })
     );
-    const aggregateResponse = await axios.get(`${apiUrl}/api/drives/${id}/aggregate`);
-    const aggregate = aggregateResponse.data;
+
     const finalDriveData = {
       ...driveData,
-      items: driveItemsResponse.data || [],
+      items: processedDriveItems, // Assign fetched drive-specific items
       children: childrenWithItemCounts,
       totalNeeded: Number(aggregate.totalNeeded) || 0,
       totalPurchased: Number(aggregate.totalPurchased) || 0,
-      id: driveData.drive_id.toString(),
-      organization_photo: driveData.organization_photo || null,
+      donorsCount: Number(aggregate.donorsCount) || 0,
+      id: driveData.drive_id.toString(), // For ShareButton
+      // Ensure organization_photo is available if needed by DriveOrganizationAside
+      organization_photo: driveData.organization_photo || (driveData.organization?.photo || null),
     };
-    return { props: { drive: finalDriveData } };
+
+    return { props: { drive: finalDriveData, error: null } };
   } catch (error) {
-    console.error(`Error fetching data for drive ${id}:`, error.response?.data || error.message);
-    return { props: { drive: null } };
+    console.error(`Error fetching data for drive ${id} in GSSP:`, error.response?.data || error.message || error);
+    if (error.response?.status === 404) return { notFound: true };
+    return { props: { drive: null, error: 'Failed to load drive data. Please try refreshing.' } };
   }
 }
 
 DrivePage.propTypes = {
   drive: PropTypes.shape({
-    drive_id: PropTypes.number.isRequired,
-    id: PropTypes.string.isRequired,
+    drive_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    id: PropTypes.string, // Added for ShareButton consistency
     org_id: PropTypes.number,
     name: PropTypes.string.isRequired,
     description: PropTypes.string,
     photo: PropTypes.string,
+    start_date: PropTypes.string,
+    end_date: PropTypes.string,
     organization_name: PropTypes.string,
     organization_photo: PropTypes.string,
     org_city: PropTypes.string,
@@ -368,28 +430,20 @@ DrivePage.propTypes = {
       child_name: PropTypes.string.isRequired,
       child_photo: PropTypes.string,
       items_needed_count: PropTypes.number,
+      items: PropTypes.array, // Array of child item needs
     })),
-    items: PropTypes.arrayOf(PropTypes.shape({
+    items: PropTypes.arrayOf(PropTypes.shape({ // Drive-specific items
       drive_item_id: PropTypes.number.isRequired,
-      item_id: PropTypes.number,
+      // ... other item properties consistent with DriveItemCard expectations ...
       base_item_name: PropTypes.string,
-      base_item_photo: PropTypes.string,
-      base_item_price: PropTypes.number,
-      base_item_description: PropTypes.string,
-      base_rye_product_id: PropTypes.string,
-      base_marketplace: PropTypes.string,
+      variant_display_name: PropTypes.string,
       is_rye_linked: PropTypes.bool,
-      needed: PropTypes.number,
-      purchased: PropTypes.number,
       remaining: PropTypes.number,
-      allow_donor_variant_choice: PropTypes.bool,
       selected_rye_variant_id: PropTypes.string,
       selected_rye_marketplace: PropTypes.string,
-      variant_display_name: PropTypes.string,
-      variant_display_photo: PropTypes.string,
-      variant_display_price: PropTypes.number,
     })),
   }),
+  error: PropTypes.string,
 };
 
 export default DrivePage;
