@@ -1,122 +1,139 @@
-import React, { useState, useEffect } from 'react'; // Removed useContext
+// File: pages/visible/registerdrive.js
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
-import Auth from 'layouts/Auth.js';
-// import { AuthContext } from 'contexts/AuthContext'; // REMOVE THIS LINE
-import { useSession } from 'next-auth/react'; // ADD THIS LINE
+import Auth from 'layouts/Auth.js'; // Assuming this layout includes Navbar and Footer
+import { useSession } from 'next-auth/react';
+import { toast } from 'react-toastify'; // For user feedback
+
+// REMOVED: const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const NewDriveWizard = () => {
   const router = useRouter();
-  const { data: session, status: authStatus } = useSession(); // USE useSession hook
-  const user = session?.user; // User object from NextAuth session
-  // const { loading } = useContext(AuthContext); // REMOVE THIS LINE, use authStatus
+  const { data: session, status: authStatus } = useSession();
+  const user = session?.user;
+  const authLoading = authStatus === "loading";
 
-  // Redirect if the user is not logged in or not an org admin
-  useEffect(() => {
-    if (authStatus === "loading") { // If auth is still loading, do nothing yet
-      return;
-    }
-    if (!user) {
-      router.push('/auth/login');
-    } else if (!user.is_org_admin) {
-      // If user is authenticated but not an org admin, redirect them
-      // (e.g., to register org or to their profile)
-      router.push('/visible/registerorg'); // Or a different page like '/visible/profile'
-    }
-  }, [user, authStatus, router]); // Depend on authStatus as well
-
-  // State for drive data
   const [driveData, setDriveData] = useState({
     startDate: '',
     endDate: '',
     driveTitle: '',
     driveDescription: '',
-    drivePhoto: null,
+    drivePhoto: null, // Will store the File object
   });
-  const [isSubmitting, setIsSubmitting] = useState(false); // Add submitting state
-
-  // Track current step (3 steps)
+  const [previewUrl, setPreviewUrl] = useState(null); // For image preview
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [formError, setFormError] = useState(''); // For step-specific validation errors
   const totalSteps = 3;
 
-  const handleChange = (e) => {
-    const { name, value, type, checked, files } = e.target;
-    if (type === 'file') {
-      setDriveData((prev) => ({
-        ...prev,
-        [name]: files[0],
-      }));
-    } else {
-      setDriveData((prev) => ({
-        ...prev,
-        [name]: type === 'checkbox' ? checked : value,
-      }));
+  useEffect(() => {
+    if (authStatus === "loading") return;
+
+    if (authStatus === "unauthenticated") {
+      router.push('/auth/login?callbackUrl=/visible/registerdrive');
+    } else if (user && !user.is_org_admin) {
+      toast.error("You must be an organization administrator to create a drive.");
+      router.push('/visible/registerorg'); // Or '/visible/profile'
+    } else if (user && user.is_org_admin && !user.org_id) {
+      // This case should ideally not happen if org registration sets org_id correctly
+      toast.error("Your account is not fully configured for an organization. Please contact support.");
+      router.push('/visible/profile');
     }
+    // If user is org_admin and has org_id, they can stay on the page.
+  }, [user, authStatus, router]);
+
+  const handleChange = (e) => {
+    const { name, value, type, files } = e.target;
+    if (type === 'file') {
+      const file = files[0];
+      setDriveData((prev) => ({ ...prev, [name]: file }));
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(file ? URL.createObjectURL(file) : null);
+    } else {
+      setDriveData((prev) => ({ ...prev, [name]: value }));
+    }
+    setFormError(''); // Clear step-specific error on change
   };
 
   const handleSubmit = async () => {
-    setIsSubmitting(true); // Set submitting state
-    // Create a FormData instance to include the file
+    setFormError('');
+    if (!driveData.driveTitle.trim() || !driveData.driveDescription.trim() || !driveData.startDate || !driveData.endDate) {
+      setFormError("Please ensure all required fields (Title, Description, Start Date, End Date) are filled.");
+      toast.error("Please ensure all required fields are filled before submitting.");
+      return;
+    }
+    if (new Date(driveData.endDate) < new Date(driveData.startDate)) {
+      setFormError("End date cannot be before the start date.");
+      toast.error("End date cannot be before the start date.");
+      return;
+    }
+
+    setIsSubmitting(true);
     const formData = new FormData();
-    formData.append('name', driveData.driveTitle);
-    formData.append('description', driveData.driveDescription);
+    formData.append('name', driveData.driveTitle.trim());
+    formData.append('description', driveData.driveDescription.trim());
     formData.append('start_date', driveData.startDate);
     formData.append('end_date', driveData.endDate);
-    if (driveData.drivePhoto) { // Only append if a photo is selected
+    if (driveData.drivePhoto) {
       formData.append('photo', driveData.drivePhoto);
     }
 
-
     try {
-      // UPDATED: Relative path for internal API call
-      await axios.post(`/api/drives`, formData, { // Use relative path
-        withCredentials: true, // Keep for session cookie
+      // UPDATED to relative path
+      await axios.post(`/api/drives`, formData, {
+        withCredentials: true,
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      router.push('../admin/currentDrives'); // Redirect to a relevant page after success
+      toast.success('Drive created successfully!');
+      router.push('/admin/currentDrives');
     } catch (err) {
       console.error('Error creating new drive:', err.response?.data || err.message);
-      alert(err.response?.data?.error || 'Failed to create drive. Please check your input and try again.');
+      const apiError = err.response?.data?.error || 'Failed to create drive. Please check your input and try again.';
+      setFormError(apiError); // Display API error globally for the form
+      toast.error(apiError);
     } finally {
-      setIsSubmitting(false); // Reset submitting state
+      setIsSubmitting(false);
     }
   };
 
-  // Navigation handlers
   const nextStep = () => {
+    setFormError(''); // Clear previous step errors
+    let isValidForStep = true;
+    if (currentStep === 1 && (!driveData.driveTitle.trim() || !driveData.driveDescription.trim())) {
+      setFormError('Drive Title and Description are required for this step.');
+      isValidForStep = false;
+    } else if (currentStep === 2 && (!driveData.startDate || !driveData.endDate)) {
+      setFormError('Start Date and End Date are required for this step.');
+      isValidForStep = false;
+    } else if (currentStep === 2 && driveData.startDate && driveData.endDate && new Date(driveData.endDate) < new Date(driveData.startDate)) {
+      setFormError('End date cannot be before the start date.');
+      isValidForStep = false;
+    }
+    // Step 3 (photo) is optional, so no specific validation here unless photo becomes mandatory.
+
+    if (!isValidForStep) {
+      toast.error(formError || "Please complete the current step correctly.");
+      return;
+    }
+
     if (currentStep < totalSteps) {
       setCurrentStep((prev) => prev + 1);
     } else {
-      handleSubmit();
+      handleSubmit(); // This is the final step, so submit
     }
   };
 
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep((prev) => prev - 1);
+      setFormError(''); // Clear error when going back
     }
   };
 
-  // Validate current step's fields
-  let isStepValid = false;
-  if (currentStep === 1) {
-    isStepValid = driveData.driveTitle.trim() !== '' && driveData.driveDescription.trim() !== '';
-  } else if (currentStep === 2) {
-    isStepValid = driveData.startDate.trim() !== '' && driveData.endDate.trim() !== '';
-    // Optional: Add date validation (e.g., end date after start date)
-    if (isStepValid && new Date(driveData.endDate) < new Date(driveData.startDate)) {
-      isStepValid = false; // Or show an error message
-      // You might want to display a specific error for this to the user
-    }
-  } else if (currentStep === 3) {
-    // Photo is optional for drive creation based on your API logic.
-    // If it's required, then: isStepValid = driveData.drivePhoto !== null;
-    // If optional, it's always valid to proceed from this step.
-    isStepValid = true; // Assuming photo is optional. Change if required.
-  }
-
-  // Render fields based on the current step
   const renderStep = () => {
+    // ... (renderStep JSX remains largely the same) ...
+    // Make sure `name` attributes match the keys in `driveData` state.
     switch (currentStep) {
       case 1:
         return (
@@ -125,26 +142,17 @@ const NewDriveWizard = () => {
             <div>
               <label htmlFor="driveTitle" className="block text-sm font-medium text-gray-700 mb-1">Drive Title <span className="text-red-500">*</span></label>
               <input
-                type="text"
-                name="driveTitle"
-                id="driveTitle"
-                value={driveData.driveTitle}
-                onChange={handleChange}
-                placeholder="e.g. Holiday Toy Drive 2024"
-                required
+                type="text" name="driveTitle" id="driveTitle" value={driveData.driveTitle}
+                onChange={handleChange} placeholder="e.g. Holiday Toy Drive 2024" required
                 className="border px-3 py-2 w-full rounded-md shadow-sm focus:ring-ggreen focus:border-ggreen"
               />
             </div>
             <div>
               <label htmlFor="driveDescription" className="block text-sm font-medium text-gray-700 mb-1">Drive Description <span className="text-red-500">*</span></label>
               <textarea
-                name="driveDescription"
-                id="driveDescription"
-                value={driveData.driveDescription}
-                onChange={handleChange}
-                placeholder="Describe the purpose and goals of your drive..."
-                required
-                rows="4"
+                name="driveDescription" id="driveDescription" value={driveData.driveDescription}
+                onChange={handleChange} placeholder="Describe the purpose and goals of your drive..."
+                required rows="4"
                 className="border px-3 py-2 w-full rounded-md shadow-sm focus:ring-ggreen focus:border-ggreen"
               />
             </div>
@@ -158,25 +166,16 @@ const NewDriveWizard = () => {
               <div className="sm:w-1/2">
                 <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">Start Date <span className="text-red-500">*</span></label>
                 <input
-                  type="date"
-                  name="startDate"
-                  id="startDate"
-                  value={driveData.startDate}
-                  onChange={handleChange}
-                  required
+                  type="date" name="startDate" id="startDate" value={driveData.startDate}
+                  onChange={handleChange} required
                   className="border px-3 py-2 w-full rounded-md shadow-sm focus:ring-ggreen focus:border-ggreen"
                 />
               </div>
               <div className="sm:w-1/2">
                 <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">End Date <span className="text-red-500">*</span></label>
                 <input
-                  type="date"
-                  name="endDate"
-                  id="endDate"
-                  value={driveData.endDate}
-                  onChange={handleChange}
-                  required
-                  min={driveData.startDate} // Basic validation: end date can't be before start date
+                  type="date" name="endDate" id="endDate" value={driveData.endDate}
+                  onChange={handleChange} required min={driveData.startDate}
                   className="border px-3 py-2 w-full rounded-md shadow-sm focus:ring-ggreen focus:border-ggreen"
                 />
               </div>
@@ -187,21 +186,18 @@ const NewDriveWizard = () => {
         return (
           <div className="space-y-4">
             <h2 className="text-2xl font-bold mb-4">Upload a Photo For Your Drive (Optional)</h2>
-            <div className="mb-4 border-2 border-dashed border-gray-300 p-6 rounded text-center">
-              {driveData.drivePhoto ? (
-                <p className="text-gray-700">Selected: {driveData.drivePhoto.name}</p>
-              ) : (
+            {previewUrl ? (
+              <div className="mb-4 flex justify-center">
+                <img src={previewUrl} alt="Drive Photo Preview" className="max-h-48 rounded shadow-md" />
+              </div>
+            ) : (
+              <div className="mb-4 border-2 border-dashed border-gray-300 p-6 rounded text-center">
                 <p className="text-gray-500">No image selected. Click below to upload.</p>
-              )}
-            </div>
+              </div>
+            )}
             <input
-              type="file"
-              name="drivePhoto"
-              onChange={handleChange}
-              accept="image/*"
-              // required // Make optional if drivePhoto can be null
-              className="hidden"
-              id="drivePhotoInput"
+              type="file" name="drivePhoto" onChange={handleChange} accept="image/*"
+              className="hidden" id="drivePhotoInput"
             />
             <div className="text-center">
               <label
@@ -220,10 +216,26 @@ const NewDriveWizard = () => {
 
   const progressPercentage = (currentStep / totalSteps) * 100;
 
-  if (authStatus === "loading") {
+  if (authLoading) {
     return (
       <div className="container mx-auto px-4 min-h-screen flex flex-col items-center justify-center">
-        <p className="text-xl">Loading...</p>
+        <p className="text-xl text-gray-700">Loading...</p>
+      </div>
+    );
+  }
+  if (authStatus === "unauthenticated" || (user && !user.is_org_admin)) {
+    // This state will typically be handled by the redirect in useEffect,
+    // but this provides a fallback display.
+    return (
+      <div className="container mx-auto px-4 min-h-screen flex flex-col items-center justify-center text-center">
+        <p className="text-xl text-red-600 mb-4">Access Denied</p>
+        <p className="text-gray-700">You must be logged in as an organization administrator to create a drive.</p>
+        <button
+          onClick={() => router.push(user ? '/visible/registerorg' : '/auth/login')}
+          className="mt-6 px-6 py-2 bg-ggreen text-white rounded hover:bg-teal-700"
+        >
+          {user ? 'Register Your Organization' : 'Login'}
+        </button>
       </div>
     );
   }
@@ -232,6 +244,11 @@ const NewDriveWizard = () => {
   return (
     <div className="container mx-auto px-4 min-h-screen flex flex-col justify-center items-center pt-10 pb-20 md:pt-20">
       <div className="w-full max-w-2xl bg-white p-6 md:p-8 rounded-lg shadow-xl">
+        {formError && (
+          <div className="mb-6 p-3 bg-red-100 text-red-700 border border-red-300 rounded text-sm">
+            {formError}
+          </div>
+        )}
         <div className="flex-1 mb-8">
           {renderStep()}
         </div>
@@ -253,15 +270,15 @@ const NewDriveWizard = () => {
             <button
               onClick={prevStep}
               className="w-full sm:w-auto border-2 border-ggreen text-ggreen px-8 py-3 rounded-full hover:bg-ggreen hover:text-white transition-colors font-semibold"
+              disabled={isSubmitting}
             >
               Back
             </button>
-          ) : <div className="w-full sm:w-auto"></div> /* Placeholder for alignment */}
+          ) : <div className="w-full sm:w-auto"></div>}
           <button
             onClick={nextStep}
-            disabled={!isStepValid || isSubmitting} // Disable if not valid or submitting
-            className={`w-full sm:w-auto border-2 border-ggreen bg-ggreen text-white px-8 py-3 rounded-full hover:bg-teal-700 transition-colors font-semibold ${(!isStepValid || isSubmitting) ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
+            disabled={isSubmitting}
+            className={`w-full sm:w-auto border-2 border-ggreen bg-ggreen text-white px-8 py-3 rounded-full hover:bg-teal-700 transition-colors font-semibold ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {isSubmitting ? 'Submitting...' : (currentStep === totalSteps ? 'Create Drive' : 'Next')}
           </button>

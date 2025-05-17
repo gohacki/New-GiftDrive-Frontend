@@ -1,12 +1,13 @@
 // File: pages/api/drives/[driveId]/items/[driveItemId].js
 import { validationResult, body, param } from 'express-validator';
 import { runMiddleware } from '../../../../../lib/runMiddleware'; // Adjust path
-import pool from '../../../../../config/database'; // Adjust path
+import pool from '@/config/database';
+
 // getSessionAndVerifyDriveOwnership helper from above or imported
 
 // --- Re-define getSessionAndVerifyDriveOwnership here or import from a shared utils ---
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../../../auth/[...nextauth]"; // Adjust path
+import { authOptions } from "@/pages/api/auth/[...nextauth]";
 
 async function getSessionAndVerifyDriveOwnership(req, res, driveIdFromParams) {
     // ... (implementation from above)

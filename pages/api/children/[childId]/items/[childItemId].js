@@ -1,7 +1,7 @@
 // File: pages/api/children/[childId]/items/[childItemId].js
 import { validationResult, body, param } from 'express-validator';
-import { runMiddleware } from '../../../../lib/runMiddleware'; // Adjust path
-import pool from '../../../../config/database';
+import { runMiddleware } from '@/lib/runMiddleware'; // Adjust path
+import pool from '@/config/database';
 // getSessionAndVerifyChildOwnership helper from above or imported
 
 // --- Re-define getSessionAndVerifyChildOwnership here or import from a shared utils ---
