@@ -1,47 +1,39 @@
+// tailwind.config.js
 const plugin = require("tailwindcss/plugin");
-const colors = require("tailwindcss/colors");
 
 module.exports = {
-  mode: 'jit',
-  purge: {
-    enabled: true,
-    content: [
-      // Components: All JS/JSX/TS/TSX files in the components directory and its subdirectories
-      "./components/**/*.{js,jsx,ts,tsx}",
-  
-      // Contexts: All JS/JSX/TS/TSX files in the contexts directory and its subdirectories
-      "./contexts/**/*.{js,jsx,ts,tsx}",
-  
-      // Layouts: All JS/JSX/TS/TSX files in the layouts directory and its subdirectories
-      "./layouts/**/*.{js,jsx,ts,tsx}",
-  
-      // Pages: All JS/JSX/TS/TSX files in the pages directory and its subdirectories
-      "./pages/**/*.{js,jsx,ts,tsx}",
-  
-      // Public: Any HTML files in the public directory (if you have any)
-      "./public/**/*.html",
-  
-      // Styles: All CSS and SCSS files in the styles directory
-      "./styles/**/*.{css,scss}",
-  
-      // Utils: All JS/JSX/TS/TSX files in the utils directory and its subdirectories
-      "./utils/**/*.{js,jsx,ts,tsx}",
-  
-      // Add any other directories or file types as needed
-    ],
-    options: {
-      safelist: [],
-    },
-  },
+  content: [
+    // Components: All JS/JSX/TS/TSX files in the components directory and its subdirectories
+    "./components/**/*.{js,jsx,ts,tsx}",
+    // Contexts: All JS/JSX/TS/TSX files in the contexts directory and its subdirectories
+    "./contexts/**/*.{js,jsx,ts,tsx}",
+    // Layouts: All JS/JSX/TS/TSX files in the layouts directory and its subdirectories
+    "./layouts/**/*.{js,jsx,ts,tsx}",
+    // Pages: All JS/JSX/TS/TSX files in the pages directory and its subdirectories
+    "./pages/**/*.{js,jsx,ts,tsx}",
+    // Public: Any HTML files in the public directory (if you have any)
+    "./public/**/*.html",
+    // Styles: All CSS and SCSS files in the styles directory
+    "./styles/**/*.{css,scss}",
+    // Utils: All JS/JSX/TS/TSX files in the utils directory and its subdirectories
+    "./utils/**/*.{js,jsx,ts,tsx}",
+    // Add any other directories or file types as needed
+  ],
   theme: {
     extend: {
       colors: {
-        ...colors,
+        // No need to spread colors anymore, Tailwind v3 includes them by default.
+        // You can still define custom colors or override existing ones.
+        // Keep your custom colors:
         background: "var(--background)",
         foreground: "var(--foreground)",
         'ggreen': '#11393B',
-        'gyellow': 'rgb(0, 190, 29)',
-        'secondary_green':'#F6F3EE'
+        'gyellow': 'rgb(0, 190, 29)', // Note: this is a green, not yellow
+        'secondary_green': '#F6F3EE',
+        // Updated color names (if you were using them directly, Tailwind's default palette already has them)
+        // e.g., if you had custom 'blueGray', you'd now use 'slate' from the default palette
+        // or define your own 'blueGray' if it was truly custom.
+        // For now, assuming you'll use Tailwind's default 'slate', 'sky', etc.
       },
       fontFamily: {
         georgia: ['Georgia Pro', 'serif'],
@@ -104,20 +96,6 @@ module.exports = {
       },
     },
   },
-  variants: [
-    "responsive",
-    "group-hover",
-    "focus-within",
-    "first",
-    "last",
-    "odd",
-    "even",
-    "hover",
-    "focus",
-    "active",
-    "visited",
-    "disabled",
-  ],
   plugins: [
     require("@tailwindcss/forms"),
     plugin(function ({ addComponents, theme }) {

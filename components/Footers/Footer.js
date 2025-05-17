@@ -9,8 +9,8 @@ import Link from 'next/link'; // Import Link from Next.js
 export default function Footer({ isBladeOpen }) { // Add isBladeOpen prop
   return (
     <footer
-      className={`bg-ggreen text-white px-6 py-8 
-                 ${isBladeOpen ? 'mr-[15rem]' : 'mr-0'} 
+      className={`bg-ggreen text-white px-6 py-8
+                 ${isBladeOpen ? 'mr-[15rem]' : 'mr-0'}
                  transition-all duration-300 ease-in-out`} // Added transition
     >
       <div className="max-w-7xl mx-auto">
@@ -21,13 +21,13 @@ export default function Footer({ isBladeOpen }) { // Add isBladeOpen prop
             <ul className="space-y-1 text-sm">
               <li>
                 <Link href="/visible/drivelist">
-                  <span className="cursor-pointer hover:text-blueGray-300">Find a Drive</span>
+                  <span className="cursor-pointer hover:text-slate-300">Find a Drive</span>
                 </Link>
               </li>
               <li>
                 {/* Assuming Testimonials might be a page or section */}
                 <Link href="/visible/testimonials">
-                  <span className="cursor-pointer hover:text-blueGray-300">Testimonials</span>
+                  <span className="cursor-pointer hover:text-slate-300">Testimonials</span>
                 </Link>
               </li>
             </ul>
@@ -37,13 +37,13 @@ export default function Footer({ isBladeOpen }) { // Add isBladeOpen prop
             <ul className="space-y-1 text-sm">
               <li>
                 <Link href="/auth/login">
-                  <span className="cursor-pointer hover:text-blueGray-300">Login</span>
+                  <span className="cursor-pointer hover:text-slate-300">Login</span>
                 </Link>
               </li>
               <li>
                 {/* Assuming this links to a user's dashboard or profile */}
                 <Link href="/visible/profile">
-                  <span className="cursor-pointer hover:text-blueGray-300">Dashboard</span>
+                  <span className="cursor-pointer hover:text-slate-300">Dashboard</span>
                 </Link>
               </li>
             </ul>
@@ -54,12 +54,12 @@ export default function Footer({ isBladeOpen }) { // Add isBladeOpen prop
               <li>
                 {/* Assuming Resources might be a page or section */}
                 <Link href="/visible/resources">
-                  <span className="cursor-pointer hover:text-blueGray-300">Resources</span>
+                  <span className="cursor-pointer hover:text-slate-300">Resources</span>
                 </Link>
               </li>
               <li>
                 <Link href="/visible/contact">
-                  <span className="cursor-pointer hover:text-blueGray-300">Contact Us</span>
+                  <span className="cursor-pointer hover:text-slate-300">Contact Us</span>
                 </Link>
               </li>
             </ul>
@@ -69,17 +69,17 @@ export default function Footer({ isBladeOpen }) { // Add isBladeOpen prop
             <ul className="space-y-1 text-sm">
               <li>
                 <Link href="/visible/privacy"> {/* Assuming a privacy page */}
-                  <span className="cursor-pointer hover:text-blueGray-300">Privacy Policy</span>
+                  <span className="cursor-pointer hover:text-slate-300">Privacy Policy</span>
                 </Link>
               </li>
               <li>
                 <Link href="/visible/terms"> {/* Assuming a terms page */}
-                  <span className="cursor-pointer hover:text-blueGray-300">Terms of Service</span>
+                  <span className="cursor-pointer hover:text-slate-300">Terms of Service</span>
                 </Link>
               </li>
               <li>
                 <Link href="/visible/about">
-                  <span className="cursor-pointer hover:text-blueGray-300">About Us</span>
+                  <span className="cursor-pointer hover:text-slate-300">About Us</span>
                 </Link>
               </li>
             </ul>
@@ -97,15 +97,15 @@ export default function Footer({ isBladeOpen }) { // Add isBladeOpen prop
           <div className="flex items-center space-x-6">
             {/* Social Icons (remain <a> tags as they are external) */}
             <div className="flex space-x-4">
-              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="hover:text-blueGray-300">
+              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="hover:text-slate-300">
                 {/* <FaFacebookF /> */}
                 FB
               </a>
-              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="hover:text-blueGray-300">
+              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="hover:text-slate-300">
                 {/* <FaInstagram /> */}
                 IG
               </a>
-              <a href="https://x.com" target="_blank" rel="noopener noreferrer" aria-label="X" className="hover:text-blueGray-300">
+              <a href="https://x.com" target="_blank" rel="noopener noreferrer" aria-label="X" className="hover:text-slate-300">
                 {/* <FaTwitter /> or another X icon */}
                 X
               </a>

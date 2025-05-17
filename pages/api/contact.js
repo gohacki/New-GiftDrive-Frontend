@@ -62,7 +62,7 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: 'Message could not be sent due to a server configuration issue.' });
         }
 
-        const transporter = nodemailer.createTransport({
+        const transporterOptions = {
             host: process.env.EMAIL_HOST,
             port: parseInt(process.env.EMAIL_PORT, 10),
             secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
@@ -70,10 +70,20 @@ export default async function handler(req, res) {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS,
             },
-            // tls: {
-            //   rejectUnauthorized: process.env.NODE_ENV === 'production'
-            // }
-        });
+            // You can add debug options to Nodemailer for more verbose logging
+            // logger: true, // uncomment for simple logging
+            // debug: true, // uncomment for detailed SMTP command logging
+        };
+
+        // For local development with self-signed certificates (e.g., local SMTP server like MailHog/MailCatcher)
+        // Be cautious with this in production.
+        if (process.env.NODE_ENV !== 'production' && (process.env.EMAIL_HOST?.includes('localhost') || process.env.EMAIL_HOST?.includes('127.0.0.1'))) {
+            transporterOptions.tls = { rejectUnauthorized: false };
+            console.log("Contact API: Using insecure TLS for local development SMTP.");
+        }
+
+
+        const transporter = nodemailer.createTransport(transporterOptions);
 
         // Mail Options
         const mailOptions = {
@@ -97,21 +107,32 @@ export default async function handler(req, res) {
             `,
         };
 
-        console.log('Attempting to send contact email...');
+        console.log('Attempting to send contact email with options:', mailOptions);
         const info = await transporter.sendMail(mailOptions);
         console.log('Message sent: %s', info.messageId);
+        console.log('Nodemailer response:', info.response); // Log full response for more info
 
         return res.status(200).json({ message: 'Your message has been sent successfully!' });
 
     } catch (error) {
-        console.error('Error sending contact email:', error);
+        console.error('Error sending contact email:', error); // Log the full error object
+        console.error('Nodemailer error code:', error.code);
+        console.error('Nodemailer error responseCode:', error.responseCode);
+        console.error('Nodemailer error command:', error.command);
+
+
+        if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.message.toLowerCase().includes('socket close') || error.message.toLowerCase().includes('connection timed out')) {
+            return res.status(503).json({ error: 'Email server connection issue. Please try again later.' }); // Service Unavailable
+        }
         if (error.code === 'EENVELOPE' || error.code === 'ESOCKET' || error.responseCode === 550 || error.responseCode === 554) {
-            return res.status(502).json({ error: 'There was an issue delivering the email. Please check the recipient address or try again later.' });
+            // 550/554 are often recipient issues (mailbox full, doesn't exist, policy rejection)
+            return res.status(502).json({ error: 'There was an issue delivering the email. Please check the recipient address or try again later.' }); // Bad Gateway (upstream issue)
         }
         if (error.code === 'EAUTH') {
             console.error("Nodemailer authentication failed. Check EMAIL_USER and EMAIL_PASS.");
             return res.status(500).json({ error: 'Server authentication error with the email service.' });
         }
+        // Generic fallback
         return res.status(500).json({ error: 'Failed to send message. Please try again later.' });
     }
 }

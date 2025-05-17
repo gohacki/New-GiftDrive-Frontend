@@ -30,7 +30,7 @@ export default function HeaderStats() {
       { subtitle: "Not Gifted", icon: "fas fa-times-circle", color: "bg-red-500" },
     ];
     return (
-      <div className="relative bg-blueGray-800 md:pt-32 pb-32 pt-12">
+      <div className="relative bg-slate-800 md:pt-32 pb-32 pt-12">
         <div className="px-4 md:px-10 mx-auto w-full">
           <div className="flex flex-wrap">
             {placeholderStats.map((stat, index) => (
@@ -40,7 +40,7 @@ export default function HeaderStats() {
                   statTitle="Loading..."
                   statArrow="up"
                   statPercent="0.00"
-                  statPercentColor="text-blueGray-400"
+                  statPercentColor="text-slate-400"
                   statDescripiron="Fetching data..."
                   statIconName={stat.icon}
                   statIconColor={stat.color}
@@ -87,7 +87,7 @@ export default function HeaderStats() {
   return (
     <>
       {/* Header */}
-      <div className="relative bg-blueGray-800 md:pt-32 pb-32 pt-12">
+      <div className="relative bg-slate-800 md:pt-32 pb-32 pt-12">
         <div className="px-4 md:px-10 mx-auto w-full">
           <div>
             <div className="flex flex-wrap">
