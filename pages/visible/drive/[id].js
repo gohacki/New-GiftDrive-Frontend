@@ -4,20 +4,17 @@ import axios from 'axios';
 import PropTypes from 'prop-types';
 import { useRouter } from 'next/router';
 import { toast } from 'react-toastify';
-// Removed GiftSolidIcon as it's being replaced
-import { MapPinIcon, BuildingLibraryIcon, ShareIcon as ShareOutlineIcon } from '@heroicons/react/24/outline'; // Using ShareOutlineIcon for consistency if preferred
-// Or keep ShareIcon from solid if that's the style for the button
-// import { ShareIcon } from '@heroicons/react/24/solid';
+import { MapPinIcon, BuildingLibraryIcon, ShareIcon as ShareOutlineIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import Image from 'next/image'; // Ensure Image from next/image is imported
+import Image from 'next/image';
 
 import Navbar from 'components/Navbars/AuthNavbar.js';
 import Footer from 'components/Footers/Footer.js';
 import ChildModal from 'components/Modals/ChildModal';
 import CartBlade from '@/components/Blades/CartBlade';
 import { CartContext } from 'contexts/CartContext';
-import DriveItemsSection from '@/components/DrivePage/DriveItemsSection';
+import DriveItemsSection from '@/components/DrivePage/DriveItemsSection'; // Ensure this path is correct
 
 // Helper function to check if an item is in the cart
 function isThisSpecificNeedInCart(itemNeed, cartFromContext, itemKeyType) {
@@ -34,8 +31,8 @@ const calculateDaysRemaining = (endDateString) => {
   if (!endDateString) return 0;
   const now = new Date();
   const end = new Date(endDateString);
-  if (isNaN(end.getTime())) return 0; // Invalid date string
-  const diffTime = Math.max(0, end.getTime() - now.getTime()); // Ensure non-negative
+  if (isNaN(end.getTime())) return 0;
+  const diffTime = Math.max(0, end.getTime() - now.getTime());
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   return diffDays;
 };
@@ -49,7 +46,7 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
 
   const [drive, setDrive] = useState(initialDriveData);
   // eslint-disable-next-line no-unused-vars
-  const [pageUrl, setPageUrl] = useState(''); // Used for share functionality
+  const [pageUrl, setPageUrl] = useState('');
   const [pageError, setPageError] = useState(initialError || null);
 
   const [isBladeDismissed, setIsBladeDismissed] = useState(false);
@@ -62,18 +59,9 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
   const [itemQuantities, setItemQuantities] = useState({});
   const [isAddingToCart, setIsAddingToCart] = useState({});
 
-  // Placeholder data for Top Donors and Recent Donations (as in your original code)
-  const topDonorsData = [
-    { name: 'Maggie Whitman', items: 7, avatar: '/img/team-1-800x800.jpg', badge: '🥇' },
-    { name: 'Jacob Medici', items: 4, avatar: '/img/team-2-800x800.jpg', badge: '🥈' },
-    { name: 'Paula Leblanc', items: 3, avatar: '/img/team-3-800x800.jpg', badge: '🥉' },
-  ];
-  const recentDonationsData = [
-    { donorName: 'John Powers', itemName: 'Kids Toothbrush', time: '3hrs ago', avatar: '/img/team-4-470x470.png' },
-    { donorName: 'Paula Leblanc', itemName: 'Legos', time: '20hrs ago', avatar: '/img/team-3-800x800.jpg', badge: '🥉' },
-    { donorName: 'Paula Leblanc', itemName: 'Bed Set', time: '1 day ago', avatar: '/img/team-3-800x800.jpg', badge: '🥉' },
-  ];
-
+  // State for dynamic data from API - initialized from GSSP
+  const [topDonors, setTopDonors] = useState(initialDriveData?.topDonors || []);
+  const [recentDonations, setRecentDonations] = useState(initialDriveData?.recentDonations || []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -89,15 +77,18 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
     const initialQuantities = {};
     const processItems = (items, keyPrefix) => {
       (items || []).forEach(itemNeed => {
-        const itemKey = itemNeed[`${keyPrefix}_item_id`];
+        const itemKey = itemNeed[`${keyPrefix}_item_id`]; // Use the correct key like 'drive_item_id'
         if (itemKey) initialQuantities[itemKey] = 1;
       });
     };
     if (drive) {
-      processItems(drive.items, 'drive');
+      processItems(drive.items, 'drive'); // For general drive items
       (drive.children || []).forEach(child => {
-        processItems(child.items, 'child');
+        processItems(child.items, 'child'); // For items associated with children
       });
+      // Update local state if drive data changes (e.g., after refetch)
+      setTopDonors(drive.topDonors || []);
+      setRecentDonations(drive.recentDonations || []);
     }
     setItemQuantities(initialQuantities);
   }, [drive]);
@@ -106,11 +97,27 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
   const fetchDriveDataAfterCartAction = async () => {
     if (!drive || !drive.drive_id) return;
     try {
-      const updatedDriveResponse = await axios.get(`/api/drives/${drive.drive_id}`);
-      const aggregateResponse = await axios.get(`/api/drives/${drive.drive_id}/aggregate`);
+      const baseApiUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
+      const driveId = drive.drive_id;
+
+      // Fetch all necessary data in parallel
+      const [
+        updatedDriveResponse,
+        aggregateResponse,
+        driveItemsResponse,
+        topDonorsRes,
+        recentDonationsRes
+      ] = await Promise.all([
+        axios.get(`${baseApiUrl}/api/drives/${driveId}`),
+        axios.get(`${baseApiUrl}/api/drives/${driveId}/aggregate`),
+        axios.get(`${baseApiUrl}/api/drives/${driveId}/items`),
+        axios.get(`${baseApiUrl}/api/drives/${driveId}/top-donors`),
+        axios.get(`${baseApiUrl}/api/drives/${driveId}/recent-donations`)
+      ]);
+
       const childrenWithItemCounts = await Promise.all(
         (updatedDriveResponse.data.children || []).map(async (child) => {
-          const childItemsResp = await axios.get(`/api/children/${child.child_id}/items`);
+          const childItemsResp = await axios.get(`${baseApiUrl}/api/children/${child.child_id}/items`);
           const processedChildItems = (childItemsResp.data || []).map(item => ({
             ...item,
             selected_rye_variant_id: item.selected_rye_variant_id || null,
@@ -123,12 +130,13 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
           };
         })
       );
-      const driveItemsResponse = await axios.get(`/api/drives/${drive.drive_id}/items`);
+
       const processedDriveItems = (driveItemsResponse.data || []).map(item => ({
         ...item,
         selected_rye_variant_id: item.selected_rye_variant_id || null,
         selected_rye_marketplace: item.selected_rye_marketplace || null,
       }));
+
       setDrive({
         ...updatedDriveResponse.data,
         items: processedDriveItems,
@@ -136,6 +144,8 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
         totalNeeded: Number(aggregateResponse.data.totalNeeded) || 0,
         totalPurchased: Number(aggregateResponse.data.totalPurchased) || 0,
         donorsCount: Number(aggregateResponse.data.donorsCount) || 0,
+        topDonors: topDonorsRes.data || [],
+        recentDonations: recentDonationsRes.data || []
       });
       setPageError(null);
     } catch (error) {
@@ -158,41 +168,68 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
       router.push('/auth/login?callbackUrl=' + encodeURIComponent(router.asPath));
       return;
     }
+
     const itemKey = itemNeed[itemKeyType];
     if (!itemKey) {
       toast.error("Item identifier is missing.");
       return;
     }
+
     setIsAddingToCart(prev => ({ ...prev, [itemKey]: true }));
+
     const ryeIdForCartApi = itemNeed.selected_rye_variant_id;
     const marketplaceForCartApi = itemNeed.selected_rye_marketplace;
-    const itemNameForToast = itemNeed.variant_display_name || itemNeed.base_item_name || "Item";
+    const itemNameForToast = itemNeed.base_item_name || "Item";
+
     if (!ryeIdForCartApi || !marketplaceForCartApi) {
       toast.error(`Cannot add ${itemNameForToast} to cart: Product identifier or marketplace missing.`);
-      setIsAddingToCart(prev => ({ ...prev, [itemKey]: false })); return;
+      setIsAddingToCart(prev => ({ ...prev, [itemKey]: false }));
+      return;
     }
+
     if (!itemNeed.is_rye_linked) {
       toast.warn('This item cannot be purchased online at this time.');
-      setIsAddingToCart(prev => ({ ...prev, [itemKey]: false })); return;
+      setIsAddingToCart(prev => ({ ...prev, [itemKey]: false }));
+      return;
     }
+
     const quantity = itemQuantities[itemKey] || 1;
+
+    let backendRefType = '';
+    if (itemKeyType === 'drive_item_id') {
+      backendRefType = 'drive_item';
+    } else if (itemKeyType === 'child_item_id') {
+      backendRefType = 'child_item';
+    } else {
+      toast.error("Internal error: Unknown item key type for cart.");
+      setIsAddingToCart(prev => ({ ...prev, [itemKey]: false }));
+      return;
+    }
+
     const payloadForContext = {
       ryeIdToAdd: ryeIdForCartApi,
       marketplaceForItem: marketplaceForCartApi,
       quantity: quantity,
       originalNeedRefId: itemKey,
-      originalNeedRefType: itemKeyType
+      originalNeedRefType: backendRefType
     };
+
     try {
-      await addToCart(payloadForContext);
-      await fetchDriveDataAfterCartAction();
+      console.log("DrivePage: Payload for addToCart context:", payloadForContext);
+      await addToCart(payloadForContext); // This will now re-throw on error
+      await fetchDriveDataAfterCartAction(); // Only called if addToCart succeeds
     } catch (err) {
-      console.error('Error in DrivePage calling CartContext.addToCart:', err);
+      // Error is already toasted by CartContext, or could be toasted here if not.
+      console.error('Error in DrivePage during cart operation:', err);
     } finally {
       setIsAddingToCart(prev => ({ ...prev, [itemKey]: false }));
     }
   };
 
+  const openChildModal = (childId) => {
+    setSelectedChildIdForModal(childId);
+    setIsChildModalOpen(true);
+  };
   const closeChildModal = () => {
     setSelectedChildIdForModal(null);
     setIsChildModalOpen(false);
@@ -238,7 +275,18 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
     );
   }
 
-  const { name, totalNeeded, org_city, org_state, totalPurchased, organization_name, end_date, items: driveItemsOnly } = drive;
+  const {
+    name,
+    totalNeeded = 0,
+    org_city,
+    org_state,
+    totalPurchased = 0,
+    organization_name,
+    end_date,
+    items: driveItemsOnly = [], // Ensure items is always an array
+    children: driveChildren = [] // Ensure children is always an array
+  } = drive || {}; // Fallback to empty object if drive is null/undefined
+
   const progressPercentage = totalNeeded > 0 ? Math.min(100, (totalPurchased / totalNeeded) * 100) : 0;
   const daysRemaining = calculateDaysRemaining(end_date);
   const donationsToGo = Math.max(0, totalNeeded - totalPurchased);
@@ -250,12 +298,10 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-3xl lg:text-4xl font-bold text-ggreen mb-3 mt-6 text-center md:text-left">{name}</h1>
 
-          {/* Drive Metadata Row */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-600 mb-8 justify-center md:justify-start">
             <div className="flex items-center">
-              {/* MODIFICATION 1: Site Logo for "Items Needed" */}
               <Image src="/img/brand/favicon.svg" alt="Items Needed" width={20} height={20} className="mr-1.5" />
-              <span>{totalNeeded || 0} Item{totalNeeded !== 1 ? 's' : ''} Needed</span>
+              <span>{totalNeeded} Item{totalNeeded !== 1 ? 's' : ''} Needed</span>
             </div>
             {(org_city && org_state) && (
               <div className="flex items-center">
@@ -274,7 +320,6 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
             {/* Left Column */}
             <div className="md:col-span-4 space-y-6">
-              {/* Drive Progress Card */}
               <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
                 <h2 className="text-xl font-semibold text-ggreen mb-3">Drive Progress</h2>
                 {daysRemaining > 0 ? (
@@ -282,130 +327,157 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
                 ) : (
                   <p className="text-sm text-red-500 mb-3 font-medium">This drive has ended.</p>
                 )}
-
-                {/* MODIFICATION 2: Progress Bar with Custom Icon */}
-                <div className="relative w-full" style={{ marginBottom: '0.5rem', height: '4rem' }}> {/* Increased parent height for thicker bar + icon */}
-                  {/* Progress bar TRACK (thicker, inset shadow for 3D) */}
-                  <div className="absolute bottom-0 w-full rounded-full h-7 shadow-inner ring-1 ring-ggreen"> {/* Thicker: h-5, darker bg, shadow-inner, subtle ring */}
-                    {/* Progress bar FILL (thicker, gradient, raised shadow for 3D) */}
+                <div className="relative w-full" style={{ marginBottom: '0.5rem', height: '4rem' }}>
+                  <div className="absolute bottom-0 w-full rounded-full h-7 shadow-inner ring-1 ring-ggreen">
                     <div
-                      className="bg-gradient-to-b from-teal-400 to-ggreen h-7 rounded-full shadow-lg transition-all duration-500 ease-out" // Thicker: h-5, gradient, shadow, subtle outer ring
+                      className="bg-gradient-to-b from-teal-400 to-ggreen h-7 rounded-full shadow-lg transition-all duration-500 ease-out"
                       style={{ width: `${progressPercentage}%` }}
                     ></div>
                   </div>
-
-                  {/* Custom Icon with Pointer - adjust 'bottom' based on new bar height (h-5 = 1.25rem) */}
                   <div
-                    className="absolute transform -translate-x-1/2" // Center the icon package horizontally
-                    style={{
-                      left: `${progressPercentage}%`,
-                      bottom: 'calc(2rem + 2px)', // Icon base 2px above the new h-5 bar (1.25rem = 20px)
-                    }}
+                    className="absolute transform -translate-x-1/2"
+                    style={{ left: `${progressPercentage}%`, bottom: 'calc(2rem + 2px)' }}
                   >
-                    <div className="flex flex-col items-center"> {/* Stack icon and arrow */}
-                      <Image
-                        src="/img/brand/favicon.svg" // YOUR CUSTOM ICON PATH
-                        alt="Progress Marker"
-                        width={20}
-                        height={20}
-                      />
-                      {/* Small triangle pointer below the icon */}
-                      <div
-                        style={{
-                          width: 0,
-                          height: 0,
-                          borderLeft: '6px solid transparent', // Slightly larger arrow
-                          borderRight: '6px solid transparent',
-                          borderTop: `6px solid #11393B`, // Arrow color: ggreen
-                          marginTop: '2px' // Slight overlap
-                        }}
-                      ></div>
+                    <div className="flex flex-col items-center">
+                      <Image src="/img/brand/favicon.svg" alt="Progress Marker" width={20} height={20} />
+                      <div style={{ width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: `6px solid #11393B`, marginTop: '2px' }}></div>
                     </div>
                   </div>
                 </div>
-
                 <p className="text-sm text-slate-700 font-medium mb-5">
                   {donationsToGo > 0 ? `${donationsToGo} Donation${donationsToGo !== 1 ? 's' : ''} to go!` : "Goal Reached!"}
                 </p>
-                {/* End of MODIFICATION 2 */}
-
                 <button
-                  onClick={() => {
-                    // Replace with your ShareModal logic if available
-                    // For example, if you have a ShareButton component:
-                    // openShareModal(); // Assuming you have a function to control ShareModal visibility
-                    toast.info("Share functionality can be integrated here.");
-                  }}
+                  onClick={() => toast.info("Share functionality coming soon!")}
                   className="w-full flex items-center justify-center px-4 py-3 bg-ggreen text-white font-semibold rounded-full hover:bg-teal-700 transition-colors text-sm shadow"
                 >
                   <ShareOutlineIcon className="h-5 w-5 mr-2" /> Share Drive!
                 </button>
               </div>
 
-              {/* Top Donors Card */}
-              <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold text-ggreen">Top Donors</h2>
-                  <span className="text-xs text-slate-500">{topDonorsData.reduce((acc, donor) => acc + donor.items, 0)} total donations</span>
+              {topDonors && topDonors.length > 0 ? (
+                <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold text-ggreen">Top Donors</h2>
+                  </div>
+                  <ul className="space-y-3">
+                    {topDonors.map((donor, index) => (
+                      <li key={donor.name + '-' + index} className="flex items-center"> {/* Improved key */}
+                        <Image
+                          src={donor.avatar || '/img/default-avatar.png'}
+                          alt={donor.name || 'Donor'}
+                          width={40} height={40}
+                          className="rounded-full mr-3 object-cover"
+                          onError={(e) => e.currentTarget.src = '/img/default-avatar.png'}
+                        />
+                        <div className="flex-grow">
+                          <p className="text-sm font-medium text-slate-800">{donor.name || 'Anonymous Donor'} {donor.badge && <span className="text-xs">{donor.badge}</span>}</p>
+                          <p className="text-xs text-slate-500">{donor.items} Item{donor.items !== 1 ? 's' : ''}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <ul className="space-y-3">
-                  {topDonorsData.map((donor, index) => (
-                    <li key={index} className="flex items-center">
-                      <Image src={donor.avatar} alt={donor.name} width={40} height={40} className="rounded-full mr-3" />
-                      <div className="flex-grow">
-                        <p className="text-sm font-medium text-slate-800">{donor.name} <span className="text-xs">{donor.badge}</span></p>
-                        <p className="text-xs text-slate-500">{donor.items} Item{donor.items !== 1 ? 's' : ''}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              ) : (
+                <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200 text-center text-slate-500 text-sm">
+                  Be the first to donate to appear on the leaderboard!
+                </div>
+              )}
 
-              {/* Recent Donations Card */}
-              <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
-                <h2 className="text-xl font-semibold text-ggreen mb-4">Recent Donations</h2>
-                <ul className="space-y-4">
-                  {recentDonationsData.map((donation, index) => (
-                    <li key={index} className="flex items-center">
-                      <Image src={donation.avatar} alt={donation.donorName} width={40} height={40} className="rounded-full mr-3" />
-                      <div className="flex-grow">
-                        <p className="text-sm">
-                          <span className="font-medium text-slate-800">{donation.donorName}</span>
-                          {donation.badge && <span className="text-xs ml-1">{donation.badge}</span>}
-                        </p>
-                        <p className="text-sm text-slate-600">{donation.itemName}</p>
-                      </div>
-                      <span className="text-xs text-slate-400 flex-shrink-0">{donation.time}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              {recentDonations && recentDonations.length > 0 ? (
+                <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                  <h2 className="text-xl font-semibold text-ggreen mb-4">Recent Donations</h2>
+                  <ul className="space-y-4">
+                    {recentDonations.map((donation, index) => (
+                      <li key={donation.itemName + '-' + donation.time + '-' + index} className="flex items-center"> {/* Improved key */}
+                        <Image
+                          src={donation.avatar || '/img/default-avatar.png'}
+                          alt={donation.donorName || 'Donor'}
+                          width={40} height={40}
+                          className="rounded-full mr-3 object-cover"
+                          onError={(e) => e.currentTarget.src = '/img/default-avatar.png'}
+                        />
+                        <div className="flex-grow">
+                          <p className="text-sm">
+                            <span className="font-medium text-slate-800">{donation.donorName || 'Anonymous Donor'}</span>
+                            {donation.badge && <span className="text-xs ml-1">{donation.badge}</span>}
+                          </p>
+                          <p className="text-sm text-slate-600">{donation.itemName || 'An item'}</p>
+                        </div>
+                        <span className="text-xs text-slate-400 flex-shrink-0">{donation.time}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200 text-center text-slate-500 text-sm">
+                  No recent donations yet. Your donation could be the first!
+                </div>
+              )}
             </div>
 
             {/* Right Column - Items Grid */}
             <div className="md:col-span-8">
-              {driveItemsOnly && driveItemsOnly.length > 0 ? (
-                <DriveItemsSection
-                  items={driveItemsOnly}
-                  cart={cart}
-                  cartLoading={cartLoading}
-                  itemKeyType="drive_item_id"
-                  itemQuantities={itemQuantities}
-                  isAddingToCart={isAddingToCart}
-                  onAddToCart={handleAddToCart}
-                  onQuantityChange={handleQuantityChange}
-                  isThisSpecificNeedInCart={isThisSpecificNeedInCart}
-                />
-              ) : (
+              {driveItemsOnly && driveItemsOnly.length > 0 && (
+                <div className="mb-12">
+                  <h2 className="text-2xl font-semibold text-ggreen mb-4">General Drive Needs</h2>
+                  <DriveItemsSection
+                    items={driveItemsOnly}
+                    cart={cart}
+                    cartLoading={cartLoading}
+                    itemKeyType="drive_item_id"
+                    itemQuantities={itemQuantities}
+                    isAddingToCart={isAddingToCart}
+                    onAddToCart={handleAddToCart}
+                    onQuantityChange={handleQuantityChange}
+                    isThisSpecificNeedInCart={isThisSpecificNeedInCart}
+                  />
+                </div>
+              )}
+
+              {driveChildren && driveChildren.length > 0 && (
+                <section>
+                  <h2 className="text-2xl font-semibold text-ggreen mb-4">
+                    Children Supported by {name}
+                  </h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {driveChildren.map((child) => (
+                      <div
+                        key={child.child_id}
+                        onClick={() => openChildModal(child.child_id)}
+                        className="cursor-pointer block border-2 border-ggreen bg-white shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-shadow p-4 text-center"
+                      >
+                        {child.child_photo && (
+                          <div className="flex justify-center mb-3 h-20 relative">
+                            <Image
+                              src={child.child_photo || '/img/default-child.png'}
+                              alt={child.child_name}
+                              width={80} height={80}
+                              className="object-contain rounded-full"
+                              onError={(e) => e.currentTarget.src = '/img/default-child.png'}
+                            />
+                          </div>
+                        )}
+                        <h3 className="text-md font-semibold text-ggreen mb-1">
+                          {child.child_name}
+                        </h3>
+                        <p className="text-xs text-gray-500">{child.items_needed_count || 0} items needed</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {(!driveItemsOnly || driveItemsOnly.length === 0) && (!driveChildren || driveChildren.length === 0) && (
                 <div className="bg-white p-8 rounded-lg shadow-md text-center border border-gray-200">
-                  <p className="text-slate-600 italic">This drive currently has no specific items listed.</p>
+                  <p className="text-slate-600 italic">This drive currently has no specific items or children listed.</p>
                   <p className="text-slate-600 mt-2">Check back later or support the organization directly!</p>
                 </div>
               )}
             </div>
           </div>
         </div>
-      </main >
+      </main>
       <ChildModal isOpen={isChildModalOpen} onClose={closeChildModal} childId={selectedChildIdForModal} />
       <CartBlade isOpen={isCartBladeEffectivelyOpen} onClose={handleBladeClose} />
       <Footer isBladeOpen={isCartBladeEffectivelyOpen} />
@@ -413,7 +485,6 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
   );
 };
 
-// getServerSideProps remains the same
 export async function getServerSideProps(context) {
   const { id } = context.params;
   const baseApiUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
@@ -421,14 +492,17 @@ export async function getServerSideProps(context) {
     const driveResponse = await axios.get(`${baseApiUrl}/api/drives/${id}`);
     let driveData = driveResponse.data;
     if (!driveData || !driveData.drive_id) return { notFound: true };
+
     const aggregateResponse = await axios.get(`${baseApiUrl}/api/drives/${id}/aggregate`);
     const aggregate = aggregateResponse.data || { totalNeeded: 0, totalPurchased: 0, donorsCount: 0 };
+
     const driveItemsResponse = await axios.get(`${baseApiUrl}/api/drives/${id}/items`);
     const processedDriveItems = (driveItemsResponse.data || []).map(item => ({
       ...item,
       selected_rye_variant_id: item.selected_rye_variant_id || null,
       selected_rye_marketplace: item.selected_rye_marketplace || null,
     }));
+
     const childrenWithItemCounts = await Promise.all(
       (driveData.children || []).map(async (child) => {
         const childItemsResp = await axios.get(`${baseApiUrl}/api/children/${child.child_id}/items`);
@@ -444,6 +518,22 @@ export async function getServerSideProps(context) {
         };
       })
     );
+
+    let topDonors = [];
+    let recentDonations = [];
+    try {
+      const topDonorsRes = await axios.get(`${baseApiUrl}/api/drives/${id}/top-donors`);
+      topDonors = topDonorsRes.data || [];
+    } catch (e) {
+      console.warn(`Could not fetch top donors for drive ${id}:`, e.message);
+    }
+    try {
+      const recentDonationsRes = await axios.get(`${baseApiUrl}/api/drives/${id}/recent-donations`);
+      recentDonations = recentDonationsRes.data || [];
+    } catch (e) {
+      console.warn(`Could not fetch recent donations for drive ${id}:`, e.message);
+    }
+
     const finalDriveData = {
       ...driveData,
       items: processedDriveItems,
@@ -453,12 +543,14 @@ export async function getServerSideProps(context) {
       donorsCount: Number(aggregate.donorsCount) || 0,
       id: driveData.drive_id.toString(),
       organization_photo: driveData.organization_photo || (driveData.organization?.photo || null),
+      topDonors,
+      recentDonations
     };
     return { props: { drive: finalDriveData, error: null } };
   } catch (error) {
     console.error(`Error fetching data for drive ${id} in GSSP:`, error.response?.data || error.message || error);
     if (error.response?.status === 404) return { notFound: true };
-    return { props: { drive: null, error: 'Failed to load drive data. Please try refreshing.' } };
+    return { props: { drive: null, error: 'Failed to load drive data. Please try refreshing.', topDonors: [], recentDonations: [] } };
   }
 }
 
@@ -467,7 +559,7 @@ DrivePage.propTypes = {
     drive_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
     id: PropTypes.string,
     org_id: PropTypes.number,
-    name: PropTypes.string.isRequired,
+    name: PropTypes.string,
     description: PropTypes.string,
     photo: PropTypes.string,
     start_date: PropTypes.string,
@@ -495,8 +587,22 @@ DrivePage.propTypes = {
       selected_rye_variant_id: PropTypes.string,
       selected_rye_marketplace: PropTypes.string,
     })),
+    topDonors: PropTypes.arrayOf(PropTypes.shape({
+      name: PropTypes.string,
+      items: PropTypes.number,
+      avatar: PropTypes.string,
+      badge: PropTypes.string,
+    })),
+    recentDonations: PropTypes.arrayOf(PropTypes.shape({
+      donorName: PropTypes.string,
+      itemName: PropTypes.string,
+      time: PropTypes.string,
+      avatar: PropTypes.string,
+      badge: PropTypes.string,
+    })),
   }),
   error: PropTypes.string,
 };
+
 
 export default DrivePage;

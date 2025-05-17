@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import Chart from "chart.js";
+import Chart from 'chart.js/auto';
 import PropTypes from "prop-types";
 
 const ChartWrapper = ({

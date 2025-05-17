@@ -6,51 +6,72 @@ import { formatCurrency } from '@/lib/utils';
 
 const DriveItemCard = ({
     itemNeed,
-    itemKeyType,
+    itemKeyType, // Used to uniquely identify the item source (drive_item_id or child_item_id)
     isInCart,
     isAddingToCartForItem,
     cartLoading,
     onAddToCart,
-    // Removed onQuantityChange as it's not in the new design
 }) => {
     const isCompletelyFulfilled = itemNeed.remaining <= 0;
 
-    const displayName = itemNeed.variant_display_name || itemNeed.base_item_name || "Item";
+    // --- MODIFIED: Logic for display name and photo ---
+    const baseName = itemNeed.base_item_name || "Item";
+    const variantName = itemNeed.variant_display_name;
+
+    // Main display name is always the base product name
+    const displayName = baseName;
+
+    // Variant subline is shown only if variantName exists and is different from baseName
+    const variantSubline = (variantName && variantName !== baseName) ? variantName : null;
+
+    // Photo: Prioritize variant-specific, then base, then placeholder
     const displayPhoto = itemNeed.variant_display_photo || itemNeed.base_item_photo || '/img/default-item.png';
+
+    // Price: Prioritize variant-specific, then base
     const displayPrice = itemNeed.variant_display_price !== null ? itemNeed.variant_display_price : itemNeed.base_item_price;
+    // --- END MODIFIED ---
 
     const canAddToCartOnline = !isCompletelyFulfilled && !isInCart && itemNeed.is_rye_linked;
     const actionButtonLoading = isAddingToCartForItem || cartLoading;
 
     return (
         <div className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col h-full border border-gray-200">
-            <div className="relative w-full h-48 bg-slate-100"> {/* Changed background for better contrast if image is transparent */}
+            <div className="relative w-full h-48 bg-slate-100">
                 <Image
                     src={displayPhoto}
-                    alt={displayName}
+                    alt={displayName} // Use base name for alt text
                     fill
                     style={{ objectFit: "contain" }}
-                    className="p-2" // Added padding around image within its container
+                    className="p-2"
                     sizes="(max-width: 640px) 90vw, (max-width: 1024px) 40vw, 30vw"
                     onError={(e) => { e.currentTarget.src = '/img/default-item.png'; e.currentTarget.alt = 'Image load error'; }}
                 />
             </div>
 
             <div className="p-4 flex flex-col flex-grow">
-                <h3 className="text-slate-900 text-center font-semibold text-base mb-1 line-clamp-2" title={displayName}>
+                {/* MODIFIED: Display Name and Subline */}
+                <h3 className="text-slate-900 text-center font-semibold text-base mb-0.5 line-clamp-2" title={displayName}>
                     {displayName}
                 </h3>
+                {variantSubline && (
+                    <p className="text-slate-600 text-center text-xs mb-1 line-clamp-1" title={variantSubline}>
+                        ({variantSubline})
+                    </p>
+                )}
+                {/* END MODIFIED */}
+
 
                 {displayPrice !== null && (
-                    <p className="text-xl text-center font-bold text-slate-800 mb-2"> {/* Price styled to be prominent */}
+                    <p className="text-xl text-center font-bold text-slate-800 mb-2">
                         {formatCurrency(displayPrice * 100, 'USD')}
                     </p>
                 )}
 
-                <div className="mt-auto pt-2 space-y-2.5"> {/* Added space-y for button and link */}
+                <div className="mt-auto pt-2 space-y-2.5">
                     {itemNeed.is_rye_linked ? (
                         <button
                             onClick={() => {
+                                // Ensure itemKeyType is correctly passed and used by onAddToCart
                                 onAddToCart(itemNeed, itemKeyType);
                             }}
                             disabled={!canAddToCartOnline || actionButtonLoading || isCompletelyFulfilled}
@@ -93,7 +114,7 @@ DriveItemCard.propTypes = {
         selected_rye_variant_id: PropTypes.string,
         selected_rye_marketplace: PropTypes.string,
     }).isRequired,
-    itemKeyType: PropTypes.string.isRequired,
+    itemKeyType: PropTypes.string.isRequired, // e.g., 'drive_item_id' or 'child_item_id'
     isInCart: PropTypes.bool.isRequired,
     isAddingToCartForItem: PropTypes.bool,
     cartLoading: PropTypes.bool,

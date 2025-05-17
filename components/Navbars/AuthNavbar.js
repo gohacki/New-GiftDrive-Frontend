@@ -241,7 +241,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
     <nav
       className={`fixed top-0 left-0 z-50 w-full
                  transition-all duration-300 ease-in-out
-                 ${(transparent && !scrolled && !navbarOpen && !isSearchExpanded) ? 'bg-transparent' : 'bg-secondary_green shadow-lg'}
+                 ${(transparent && !scrolled && !navbarOpen && !isSearchExpanded) ? 'bg-transparent' : 'bg-white shadow-lg'}
                  ${isBladeOpen ? 'pr-[15rem]' : 'pr-0'}`}
     >
       <div className="container mx-auto px-4 py-3 flex items-center">
