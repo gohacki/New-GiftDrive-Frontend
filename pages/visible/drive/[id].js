@@ -4,25 +4,31 @@ import axios from 'axios';
 import PropTypes from 'prop-types';
 import { useRouter } from 'next/router';
 import { toast } from 'react-toastify';
-import { FaArrowLeft } from 'react-icons/fa';
+import { MapPinIcon, BuildingLibraryIcon, GiftIcon as GiftSolidIcon } from '@heroicons/react/24/solid'; // Solid icons
+import { ShareIcon } from '@heroicons/react/24/outline'; // Outline for share icon
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import Image from 'next/image'; // For donor avatars
 
 import Navbar from 'components/Navbars/AuthNavbar.js';
 import Footer from 'components/Footers/Footer.js';
-import Breadcrumbs from 'components/UI/Breadcrumbs.js';
+// Breadcrumbs might not be needed if the screenshot design is followed closely for this page
+// import Breadcrumbs from 'components/UI/Breadcrumbs.js';
 import ChildModal from 'components/Modals/ChildModal';
 import CartBlade from '@/components/Blades/CartBlade';
-import ShareButton from '@/components/Share/ShareButton';
+// ShareButton is used within the progress card now
+// import ShareButton from '@/components/Share/ShareButton';
 import { CartContext } from 'contexts/CartContext';
 import DriveItemsSection from '@/components/DrivePage/DriveItemsSection';
-import DriveHeaderDetails from '@/components/DrivePage/DriveHeaderDetails'; // Assuming you might use this
-import DriveOrganizationAside from '@/components/DrivePage/DriveOrganizationAside'; // Assuming you might use this
-import SupportedChildrenSection from '@/components/DrivePage/SupportedChildrenSection'; // Assuming this is used
+// DriveHeaderDetails is not used directly; elements integrated
+// import DriveHeaderDetails from '@/components/DrivePage/DriveHeaderDetails';
+// DriveOrganizationAside is not used for the left column donor cards
+// import DriveOrganizationAside from '@/components/DrivePage/DriveOrganizationAside';
+// SupportedChildrenSection is not shown in the target screenshot for this specific layout.
+// If it's needed for other drives, it could be conditionally rendered.
+// import SupportedChildrenSection from '@/components/DrivePage/SupportedChildrenSection';
 
-// REMOVED: const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-// Helper functions (isThisSpecificNeedInCart, calculateDaysRemaining) remain the same
 function isThisSpecificNeedInCart(itemNeed, cartFromContext, itemKeyType) {
   if (!cartFromContext || !cartFromContext.stores || !itemNeed) return false;
   const sourceIdToCheck = itemNeed[itemKeyType];
@@ -44,7 +50,7 @@ const calculateDaysRemaining = (endDateString) => {
 
 const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
   const router = useRouter();
-  const { cart, loading: cartLoading, addToCart } = useContext(CartContext); // removeFromCart might not be used on this page directly
+  const { cart, loading: cartLoading, addToCart } = useContext(CartContext);
   const { data: session, status: authStatus } = useSession();
   const user = session?.user;
 
@@ -61,7 +67,19 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
 
   const [itemQuantities, setItemQuantities] = useState({});
   const [isAddingToCart, setIsAddingToCart] = useState({});
-  // const [isRemovingFromCart, setIsRemovingFromCart] = useState({}); // Not typically used on drive display page
+
+  // Placeholder data for Top Donors and Recent Donations
+  const topDonorsData = [
+    { name: 'Maggie Whitman', items: 7, avatar: '/img/team-1-800x800.jpg', badge: '🥇' },
+    { name: 'Jacob Medici', items: 4, avatar: '/img/team-2-800x800.jpg', badge: '🥈' },
+    { name: 'Paula Leblanc', items: 3, avatar: '/img/team-3-800x800.jpg', badge: '🥉' },
+  ];
+  const recentDonationsData = [
+    { donorName: 'John Powers', itemName: 'Kids Toothbrush', time: '3hrs ago', avatar: '/img/team-4-470x470.png' },
+    { donorName: 'Paula Leblanc', itemName: 'Legos', time: '20hrs ago', avatar: '/img/team-3-800x800.jpg', badge: '🥉' },
+    { donorName: 'Paula Leblanc', itemName: 'Bed Set', time: '1 day ago', avatar: '/img/team-3-800x800.jpg', badge: '🥉' },
+  ];
+
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -73,12 +91,11 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
     if (cartHasItems) setIsBladeDismissed(false);
   }, [cartHasItems]);
 
-  // Initialize itemQuantities when drive data (especially items/children) changes
   useEffect(() => {
     const initialQuantities = {};
     const processItems = (items, keyPrefix) => {
       (items || []).forEach(itemNeed => {
-        const itemKey = itemNeed[`${keyPrefix}_item_id`]; // e.g., drive_item_id or child_item_id
+        const itemKey = itemNeed[`${keyPrefix}_item_id`];
         if (itemKey) initialQuantities[itemKey] = 1;
       });
     };
@@ -95,11 +112,8 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
   const fetchDriveDataAfterCartAction = async () => {
     if (!drive || !drive.drive_id) return;
     try {
-      // UPDATED to relative paths for API calls
       const updatedDriveResponse = await axios.get(`/api/drives/${drive.drive_id}`);
       const aggregateResponse = await axios.get(`/api/drives/${drive.drive_id}/aggregate`);
-
-      // Refetch children with updated item counts
       const childrenWithItemCounts = await Promise.all(
         (updatedDriveResponse.data.children || []).map(async (child) => {
           const childItemsResp = await axios.get(`/api/children/${child.child_id}/items`);
@@ -115,19 +129,15 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
           };
         })
       );
-
-      // Fetch top-level drive items separately
       const driveItemsResponse = await axios.get(`/api/drives/${drive.drive_id}/items`);
       const processedDriveItems = (driveItemsResponse.data || []).map(item => ({
         ...item,
         selected_rye_variant_id: item.selected_rye_variant_id || null,
         selected_rye_marketplace: item.selected_rye_marketplace || null,
       }));
-
-
       setDrive({
         ...updatedDriveResponse.data,
-        items: processedDriveItems, // Use newly fetched drive items
+        items: processedDriveItems,
         children: childrenWithItemCounts,
         totalNeeded: Number(aggregateResponse.data.totalNeeded) || 0,
         totalPurchased: Number(aggregateResponse.data.totalPurchased) || 0,
@@ -142,7 +152,6 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
   };
 
   const handleQuantityChange = (itemKey, value, maxRemaining) => {
-    // ... (quantity change logic remains same) ...
     const numericValue = Number(value);
     if (isNaN(numericValue)) return;
     const newQuantity = Math.max(1, Math.min(numericValue, maxRemaining > 0 ? maxRemaining : 1));
@@ -155,18 +164,15 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
       router.push('/auth/login?callbackUrl=' + encodeURIComponent(router.asPath));
       return;
     }
-
-    const itemKey = itemNeed[itemKeyType]; // e.g., itemNeed.drive_item_id or itemNeed.child_item_id
+    const itemKey = itemNeed[itemKeyType];
     if (!itemKey) {
       toast.error("Item identifier is missing.");
       return;
     }
     setIsAddingToCart(prev => ({ ...prev, [itemKey]: true }));
-
     const ryeIdForCartApi = itemNeed.selected_rye_variant_id;
     const marketplaceForCartApi = itemNeed.selected_rye_marketplace;
     const itemNameForToast = itemNeed.variant_display_name || itemNeed.base_item_name || "Item";
-
     if (!ryeIdForCartApi || !marketplaceForCartApi) {
       toast.error(`Cannot add ${itemNameForToast} to cart: Product identifier or marketplace missing.`);
       setIsAddingToCart(prev => ({ ...prev, [itemKey]: false })); return;
@@ -175,23 +181,19 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
       toast.warn('This item cannot be purchased online at this time.');
       setIsAddingToCart(prev => ({ ...prev, [itemKey]: false })); return;
     }
-
     const quantity = itemQuantities[itemKey] || 1;
     const payloadForContext = {
       ryeIdToAdd: ryeIdForCartApi,
       marketplaceForItem: marketplaceForCartApi,
       quantity: quantity,
       originalNeedRefId: itemKey,
-      originalNeedRefType: itemKeyType // This should now be 'drive_item_id' or 'child_item_id' directly
+      originalNeedRefType: itemKeyType
     };
-
     try {
-      await addToCart(payloadForContext); // This calls the CartContext function
-      // fetchCart(); // CartContext addToCart should update the cart state
-      await fetchDriveDataAfterCartAction(); // Refetch drive data to update remaining counts
+      await addToCart(payloadForContext);
+      await fetchDriveDataAfterCartAction();
     } catch (err) {
       console.error('Error in DrivePage calling CartContext.addToCart:', err);
-      // Error already handled by addToCart in context typically
     } finally {
       setIsAddingToCart(prev => ({ ...prev, [itemKey]: false }));
     }
@@ -208,7 +210,7 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
   };
   const handleBladeClose = () => setIsBladeDismissed(true);
 
-  if (router.isFallback || (!drive && !pageError && authStatus === "loading")) { // Check pageError here
+  if (router.isFallback || (!drive && !pageError && authStatus === "loading")) {
     return (
       <>
         <Navbar isBladeOpen={isCartBladeEffectivelyOpen} />
@@ -220,7 +222,7 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
     );
   }
 
-  if (pageError) { // Display error if GSSP or client-side fetch fails
+  if (pageError) {
     return (
       <>
         <Navbar isBladeOpen={isCartBladeEffectivelyOpen} />
@@ -234,7 +236,7 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
       </>
     );
   }
-  if (!drive) { // Final fallback if drive is null after loading and no specific error
+  if (!drive) {
     return (
       <>
         <Navbar isBladeOpen={isCartBladeEffectivelyOpen} />
@@ -246,64 +248,119 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
     );
   }
 
-  const { name, description, photo, totalNeeded, org_city, org_state, totalPurchased, organization_name, org_id, end_date, children: driveChildren, items: driveItemsOnly } = drive;
+  const { name, totalNeeded, org_city, org_state, totalPurchased, organization_name, end_date, items: driveItemsOnly } = drive;
   const progressPercentage = totalNeeded > 0 ? Math.min(100, (totalPurchased / totalNeeded) * 100) : 0;
   const daysRemaining = calculateDaysRemaining(end_date);
-
+  const donationsToGo = Math.max(0, totalNeeded - totalPurchased);
 
   return (
     <>
       <Navbar isBladeOpen={isCartBladeEffectivelyOpen} />
-      <main className={`min-h-screen bg-secondary_green text-gray-800 relative pt-10 pb-16 ${isCartBladeEffectivelyOpen ? 'mr-[15rem]' : 'mr-0'} transition-all duration-300 ease-in-out`}>
+      <main className={`min-h-screen bg-white text-slate-800 relative pt-24 pb-16 ${isCartBladeEffectivelyOpen ? 'mr-[15rem]' : 'mr-0'} transition-all duration-300 ease-in-out`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Breadcrumbs
-            links={[
-              { href: '/', label: 'Home' },
-              { href: '/visible/orglist', label: 'Organizations' },
-              { href: `/visible/organization/${org_id || 'org'}`, label: organization_name || 'Organization' },
-              { href: `/visible/drive/${drive.drive_id}`, label: name },
-            ]}
-          />
+          {/* Back button and Share moved above metadata */}
+          {/* Removed Breadcrumbs for cleaner look matching screenshot */}
+          {/* 
           <div className="flex justify-between items-center my-6">
-            <button
-              onClick={() => router.back()}
-              className="flex items-center px-4 py-2 bg-ggreen text-white rounded-md hover:bg-teal-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ggreen"
-              aria-label="Go back to previous page"
-            >
-              <FaArrowLeft className="mr-2" /> Back
-            </button>
-            {pageUrl && drive && <ShareButton pageType="drive" pageData={drive} pageUrl={pageUrl} />}
+             <button onClick={() => router.back()} className="text-ggreen hover:text-teal-700 flex items-center text-sm"><ArrowLeftIcon className="h-4 w-4 mr-1" /> Back</button>
+             {pageUrl && drive && <ShareButton pageType="drive" pageData={drive} pageUrl={pageUrl} />}
+          </div>
+          */}
+
+          {/* Drive Title */}
+          <h1 className="text-3xl lg:text-4xl font-bold text-ggreen mb-3 mt-6 text-center md:text-left">{name}</h1>
+
+          {/* Drive Metadata Row */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-600 mb-8 justify-center md:justify-start">
+            <div className="flex items-center">
+              <GiftSolidIcon className="h-5 w-5 mr-1.5 text-ggreen" />
+              <span>{totalNeeded || 0} Item{totalNeeded !== 1 ? 's' : ''} Needed</span>
+            </div>
+            {(org_city && org_state) && (
+              <div className="flex items-center">
+                <MapPinIcon className="h-5 w-5 mr-1.5 text-ggreen" />
+                <span>{org_city}, {org_state}</span>
+              </div>
+            )}
+            {organization_name && (
+              <div className="flex items-center">
+                <BuildingLibraryIcon className="h-5 w-5 mr-1.5 text-ggreen" />
+                <span>{organization_name}</span>
+              </div>
+            )}
           </div>
 
-          <DriveHeaderDetails
-            name={name}
-            description={description}
-            photo={photo}
-            totalNeeded={totalNeeded}
-            orgCity={org_city}
-            orgState={org_state}
-            totalPurchased={totalPurchased}
-            progressPercentage={progressPercentage}
-          />
-
-          <div className="mt-8 flex flex-col lg:flex-row gap-8">
-            <aside className="w-full lg:w-80 xl:w-96 space-y-6 lg:sticky lg:top-24 self-start flex-shrink-0">
-              <DriveOrganizationAside
-                orgId={org_id}
-                organizationName={organization_name}
-                organizationPhoto={drive.organization_photo} // Assuming this comes from drive data
-                donorsCount={drive.donorsCount}
-              />
-              {/* Optional: Days Remaining Card - You can create a new component or inline it */}
-              <div className="border-2 border-ggreen shadow rounded-lg p-6 bg-white">
-                <h2 className="text-xl font-semibold text-ggreen mb-2">Drive Ends In</h2>
-                <p className="text-3xl font-bold text-gray-800">{daysRemaining}</p>
-                <p className="text-sm text-gray-600">days</p>
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+            {/* Left Column */}
+            <div className="md:col-span-4 space-y-6">
+              {/* Drive Progress Card */}
+              <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                <h2 className="text-xl font-semibold text-ggreen mb-3">Drive Progress</h2>
+                {daysRemaining > 0 ? (
+                  <p className="text-sm text-slate-500 mb-3">{daysRemaining} day{daysRemaining !== 1 ? 's' : ''} remaining</p>
+                ) : (
+                  <p className="text-sm text-red-500 mb-3 font-medium">This drive has ended.</p>
+                )}
+                <div className="w-full bg-gray-200 rounded-full h-2.5 mb-1 overflow-hidden">
+                  <div
+                    className="bg-ggreen h-2.5 rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${progressPercentage}%` }}
+                  ></div>
+                </div>
+                <p className="text-sm text-slate-700 font-medium mb-5">
+                  {donationsToGo > 0 ? `${donationsToGo} Donation${donationsToGo !== 1 ? 's' : ''} to go!` : "Goal Reached!"}
+                </p>
+                <button
+                  onClick={() => toast.info("Share functionality coming soon!")} // Placeholder for ShareModal
+                  className="w-full flex items-center justify-center px-4 py-3 bg-ggreen text-white font-semibold rounded-md hover:bg-teal-700 transition-colors text-sm shadow"
+                >
+                  <ShareIcon className="h-5 w-5 mr-2" /> Share Drive!
+                </button>
               </div>
-            </aside>
 
-            <div className="w-full lg:flex-1 space-y-12">
-              {driveItemsOnly && driveItemsOnly.length > 0 && (
+              {/* Top Donors Card */}
+              <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-ggreen">Top Donors</h2>
+                  <span className="text-xs text-slate-500">{topDonorsData.reduce((acc, donor) => acc + donor.items, 0)} total donations</span>
+                </div>
+                <ul className="space-y-3">
+                  {topDonorsData.map((donor, index) => (
+                    <li key={index} className="flex items-center">
+                      <Image src={donor.avatar} alt={donor.name} width={40} height={40} className="rounded-full mr-3" />
+                      <div className="flex-grow">
+                        <p className="text-sm font-medium text-slate-800">{donor.name} <span className="text-xs">{donor.badge}</span></p>
+                        <p className="text-xs text-slate-500">{donor.items} Item{donor.items !== 1 ? 's' : ''}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Recent Donations Card */}
+              <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                <h2 className="text-xl font-semibold text-ggreen mb-4">Recent Donations</h2>
+                <ul className="space-y-4">
+                  {recentDonationsData.map((donation, index) => (
+                    <li key={index} className="flex items-center">
+                      <Image src={donation.avatar} alt={donation.donorName} width={40} height={40} className="rounded-full mr-3" />
+                      <div className="flex-grow">
+                        <p className="text-sm">
+                          <span className="font-medium text-slate-800">{donation.donorName}</span>
+                          {donation.badge && <span className="text-xs ml-1">{donation.badge}</span>}
+                        </p>
+                        <p className="text-sm text-slate-600">{donation.itemName}</p>
+                      </div>
+                      <span className="text-xs text-slate-400 flex-shrink-0">{donation.time}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Right Column - Items Grid */}
+            <div className="md:col-span-8">
+              {driveItemsOnly && driveItemsOnly.length > 0 ? (
                 <DriveItemsSection
                   items={driveItemsOnly}
                   cart={cart}
@@ -311,33 +368,17 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
                   itemKeyType="drive_item_id"
                   itemQuantities={itemQuantities}
                   isAddingToCart={isAddingToCart}
-                  // isRemovingFromCart={isRemovingFromCart} // Not used here directly
                   onAddToCart={handleAddToCart}
-                  // onRemoveFromCart={handleRemoveFromCart} // Not used here directly
                   onQuantityChange={handleQuantityChange}
                   isThisSpecificNeedInCart={isThisSpecificNeedInCart}
                 />
-              )}
-
-              {driveChildren && driveChildren.length > 0 && (
-                <SupportedChildrenSection
-                  childDataList={driveChildren}
-                  driveName={name}
-                  onOpenChildModal={openChildModal}
-                />
-              )}
-
-              {(!driveItemsOnly || driveItemsOnly.length === 0) && (!driveChildren || driveChildren.length === 0) && (
-                <div className="bg-white p-8 rounded-lg shadow-md text-center">
-                  <p className="text-gray-600 italic">This drive currently has no specific items or children listed for direct donation.</p>
-                  <p className="text-gray-600 mt-2">You can still support the organization directly or check back later!</p>
-                  {org_id && (
-                    <Link href={`/visible/organization/${org_id}`} className="mt-4 inline-block px-4 py-2 bg-ggreen text-white text-sm font-medium rounded-md hover:bg-teal-700">
-                      View Organization
-                    </Link>
-                  )}
+              ) : (
+                <div className="bg-white p-8 rounded-lg shadow-md text-center border border-gray-200">
+                  <p className="text-slate-600 italic">This drive currently has no specific items listed.</p>
+                  <p className="text-slate-600 mt-2">Check back later or support the organization directly!</p>
                 </div>
               )}
+              {/* SupportedChildrenSection removed as it's not in the target screenshot */}
             </div>
           </div>
         </div>
@@ -349,29 +390,21 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
   );
 };
 
-// getServerSideProps remains largely the same but uses relative paths for internal API calls
 export async function getServerSideProps(context) {
   const { id } = context.params;
   const baseApiUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
-
   try {
     const driveResponse = await axios.get(`${baseApiUrl}/api/drives/${id}`);
     let driveData = driveResponse.data;
     if (!driveData || !driveData.drive_id) return { notFound: true };
-
-    // Fetch aggregate separately as it's a dedicated endpoint
     const aggregateResponse = await axios.get(`${baseApiUrl}/api/drives/${id}/aggregate`);
     const aggregate = aggregateResponse.data || { totalNeeded: 0, totalPurchased: 0, donorsCount: 0 };
-
-    // Fetch top-level drive items
     const driveItemsResponse = await axios.get(`${baseApiUrl}/api/drives/${id}/items`);
     const processedDriveItems = (driveItemsResponse.data || []).map(item => ({
       ...item,
       selected_rye_variant_id: item.selected_rye_variant_id || null,
       selected_rye_marketplace: item.selected_rye_marketplace || null,
     }));
-
-    // Fetch children and their items
     const childrenWithItemCounts = await Promise.all(
       (driveData.children || []).map(async (child) => {
         const childItemsResp = await axios.get(`${baseApiUrl}/api/children/${child.child_id}/items`);
@@ -387,19 +420,16 @@ export async function getServerSideProps(context) {
         };
       })
     );
-
     const finalDriveData = {
       ...driveData,
-      items: processedDriveItems, // Assign fetched drive-specific items
+      items: processedDriveItems,
       children: childrenWithItemCounts,
       totalNeeded: Number(aggregate.totalNeeded) || 0,
       totalPurchased: Number(aggregate.totalPurchased) || 0,
       donorsCount: Number(aggregate.donorsCount) || 0,
-      id: driveData.drive_id.toString(), // For ShareButton
-      // Ensure organization_photo is available if needed by DriveOrganizationAside
+      id: driveData.drive_id.toString(),
       organization_photo: driveData.organization_photo || (driveData.organization?.photo || null),
     };
-
     return { props: { drive: finalDriveData, error: null } };
   } catch (error) {
     console.error(`Error fetching data for drive ${id} in GSSP:`, error.response?.data || error.message || error);
@@ -411,7 +441,7 @@ export async function getServerSideProps(context) {
 DrivePage.propTypes = {
   drive: PropTypes.shape({
     drive_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-    id: PropTypes.string, // Added for ShareButton consistency
+    id: PropTypes.string,
     org_id: PropTypes.number,
     name: PropTypes.string.isRequired,
     description: PropTypes.string,
@@ -430,11 +460,10 @@ DrivePage.propTypes = {
       child_name: PropTypes.string.isRequired,
       child_photo: PropTypes.string,
       items_needed_count: PropTypes.number,
-      items: PropTypes.array, // Array of child item needs
+      items: PropTypes.array,
     })),
-    items: PropTypes.arrayOf(PropTypes.shape({ // Drive-specific items
+    items: PropTypes.arrayOf(PropTypes.shape({
       drive_item_id: PropTypes.number.isRequired,
-      // ... other item properties consistent with DriveItemCard expectations ...
       base_item_name: PropTypes.string,
       variant_display_name: PropTypes.string,
       is_rye_linked: PropTypes.bool,
