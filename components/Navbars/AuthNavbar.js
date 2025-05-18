@@ -1,15 +1,15 @@
 // src/components/Navbars/AuthNavbar.js
-import React, { useState, useEffect, useRef, useCallback, useContext } from 'react'; // Added useContext
+import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import Link from 'next/link';
 import PropTypes from 'prop-types';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { FaShoppingCart, FaSpinner } from 'react-icons/fa';
-import { CartContext } from '../../contexts/CartContext'; // Keep this if CartContext is still used for itemCount
+import { CartContext } from '../../contexts/CartContext';
 import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-toastify';
 import axios from 'axios';
-import { useSession, signOut } from 'next-auth/react'; // Import from next-auth
+import { useSession, signOut } from 'next-auth/react';
 
 // --- Debounce Helper Function ---
 function debounce(func, delay) {
@@ -27,16 +27,14 @@ function debounce(func, delay) {
 
 
 const Navbar = ({ transparent, isBladeOpen }) => {
-  const { data: session, status: authStatus } = useSession(); // Use next-auth session
-  const user = session?.user; // Extract user object from session
+  const { data: session, status: authStatus } = useSession();
+  const user = session?.user;
 
   const [navbarOpen, setNavbarOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const router = useRouter();
-  const { cart } = useContext(CartContext); // Assuming CartContext is still used for cart item count
+  const { cart } = useContext(CartContext);
 
-  // Calculate itemCount based on Rye's cart structure
-  // This assumes your CartContext `cart` state matches Rye's structure
   const itemCount = cart?.stores?.reduce((total, store) =>
     total + (store.cartLines?.reduce((lineTotal, line) => lineTotal + line.quantity, 0) || 0)
     , 0) || 0;
@@ -74,7 +72,6 @@ const Navbar = ({ transparent, isBladeOpen }) => {
       if (!router.pathname.startsWith('/visible/search')) {
         setShowSuggestions(false);
       }
-      // Removed aggressive collapsing of search bar
     };
     router.events.on('routeChangeComplete', handleRouteComplete);
     return () => {
@@ -95,10 +92,8 @@ const Navbar = ({ transparent, isBladeOpen }) => {
       setLoadingSuggestions(true);
       setShowSuggestions(true);
       try {
-        // Update this to your Next.js API route for suggestions
         const response = await axios.get(`/api/search/suggestions`, {
           params: { q: query },
-          // withCredentials: true, // May not be needed if your suggestions API is public
         });
         setSuggestions(response.data || []);
         setActiveSuggestionIndex(-1);
@@ -109,7 +104,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
         setLoadingSuggestions(false);
       }
     }, 300),
-    [] // apiUrl removed as it's now an internal API call
+    []
   );
 
   const handleSearchChange = (e) => {
@@ -149,7 +144,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
     setNavbarOpen(false);
     setIsSearchExpanded(false);
     setShowSuggestions(false);
-    await signOut({ redirect: true, callbackUrl: '/' }); // Use signOut from next-auth
+    await signOut({ redirect: true, callbackUrl: '/' });
   };
 
   const isActive = (href) => router.pathname === href;
@@ -239,12 +234,10 @@ const Navbar = ({ transparent, isBladeOpen }) => {
 
   return (
     <nav
-      className={`fixed top-0 left-0 z-50 w-full
-                 transition-all duration-300 ease-in-out
-                 ${(transparent && !scrolled && !navbarOpen && !isSearchExpanded) ? 'bg-transparent' : 'bg-white shadow-lg'}
-                 ${isBladeOpen ? 'pr-[15rem]' : 'pr-0'}`}
+      className={`fixed top-0 pr-8 pl-4 mt-2 left-1/2 transform -translate-x-1/2 z-50 w-auto transition-all duration-300 ease-in-out ${(transparent && !scrolled && !navbarOpen && !isSearchExpanded) ? 'bg-transparent' : 'bg-white shadow-lg rounded-full'} ${isBladeOpen ? 'pr-[15rem]' : 'pr-0'}`}
     >
-      <div className="container mx-auto px-4 py-3 flex items-center">
+      {/* MODIFICATION: Added justify-center to center navbar items */}
+      <div className="container mx-auto px-4 py-3 flex items-center justify-center">
         <div className="flex-shrink-0">
           <Link href="/">
             <div className="leading-relaxed py-2 whitespace-nowrap cursor-pointer inter-semi-bold text-ggreen text-2xl flex items-center gap-2">
@@ -302,15 +295,14 @@ const Navbar = ({ transparent, isBladeOpen }) => {
           )}
         </div>
 
-        <div className="hidden lg:flex items-center ml-auto space-x-4">
+        {/* MODIFICATION: Removed ml-auto from user actions container */}
+        <div className="hidden lg:flex items-center space-x-4">
           <ul className="flex flex-row list-none items-center space-x-1">
-            {/* Check session status and if user object exists */}
             {authStatus === "authenticated" && user && (
               <>
                 <li className="flex items-center">
                   <Link href="/visible/profile"><span className={`text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen hover:text-white ${isActive('/visible/profile') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>Account</span></Link>
                 </li>
-                {/* User properties (like is_org_admin) come from session.user */}
                 {!!user.is_org_admin && (
                   <li className="flex items-center">
                     <Link href="/admin/dashboard"><span className={`text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen hover:text-white ${isActive('/admin/dashboard') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>My Org Dashboard</span></Link>
@@ -342,6 +334,17 @@ const Navbar = ({ transparent, isBladeOpen }) => {
               </li>
             )}
           </ul>
+          {/* NEW "Browse Drives" Button */}
+          <div>
+            <Link href="/visible/search">
+              <button
+                className="bg-ggreen text-white text-xs inter-regular uppercase px-3 py-2 rounded-full shadow hover:shadow-md outline-none focus:outline-none ease-linear transition-all duration-150 whitespace-nowrap"
+                type="button"
+              >
+                Browse Drives
+              </button>
+            </Link>
+          </div>
           <div>
             <Link href="/visible/registerdrive">
               <button className="bg-white text-blueGray-700 active:bg-blueGray-50 text-xs inter-regular uppercase px-3 py-2 rounded-full shadow hover:shadow-md outline-none focus:outline-none ease-linear transition-all duration-150 whitespace-nowrap" type="button">
@@ -363,7 +366,8 @@ const Navbar = ({ transparent, isBladeOpen }) => {
           </div>
         </div>
 
-        <div className="lg:hidden flex items-center ml-auto">
+        {/* MODIFICATION: Removed ml-auto from mobile toggle container */}
+        <div className="lg:hidden flex items-center">
           <Link href="/visible/cart" className="p-2 text-ggreen hover:text-white">
             <div className="relative">
               <FaShoppingCart className="h-6 w-6" />
@@ -446,6 +450,14 @@ const Navbar = ({ transparent, isBladeOpen }) => {
                 <span className="text-sm inter-regular uppercase px-4 py-3 flex items-center text-gray-500 w-full whitespace-nowrap">Loading...</span>
               </li>
             )}
+            {/* NEW "Browse Drives" Button for Mobile */}
+            <li className="flex items-center px-4 py-3">
+              <Link href="/visible/search" className='w-full'>
+                <button className="bg-ggreen text-white active:bg-teal-700 text-xs inter-regular uppercase px-4 py-3 rounded-full shadow hover:shadow-md outline-none focus:outline-none w-full whitespace-nowrap" type="button">
+                  Browse Drives
+                </button>
+              </Link>
+            </li>
             <li className="flex items-center px-4 py-3">
               <Link href="/visible/registerdrive" className='w-full'>
                 <button className="bg-ggreen text-white active:bg-teal-700 text-xs inter-regular uppercase px-4 py-3 rounded-full shadow hover:shadow-md outline-none focus:outline-none w-full whitespace-nowrap" type="button">

@@ -2,11 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
-import Auth from 'layouts/Auth.js'; // Assuming this layout includes Navbar and Footer
+import Auth from 'layouts/Auth.js';
 import { useSession } from 'next-auth/react';
-import { toast } from 'react-toastify'; // For user feedback
+import { toast } from 'react-toastify';
+import Image from 'next/image'; // Import Next.js Image
 
-// REMOVED: const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+// Import AddItemBlade
+import AddItemBlade from '@/components/Blades/AddItemBlade';
 
 const NewDriveWizard = () => {
   const router = useRouter();
@@ -19,13 +21,19 @@ const NewDriveWizard = () => {
     endDate: '',
     driveTitle: '',
     driveDescription: '',
-    drivePhoto: null, // Will store the File object
+    drivePhoto: null,
   });
-  const [previewUrl, setPreviewUrl] = useState(null); // For image preview
+  const [previewUrl, setPreviewUrl] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
-  const [formError, setFormError] = useState(''); // For step-specific validation errors
-  const totalSteps = 3;
+  const [formError, setFormError] = useState('');
+
+  // --- NEW ---
+  const totalSteps = 4; // Increased from 3 to 4
+  const [createdDriveId, setCreatedDriveId] = useState(null); // To store the ID of the new drive
+  const [isAddItemBladeOpen, setIsAddItemBladeOpen] = useState(false);
+  // --- END NEW ---
+
 
   useEffect(() => {
     if (authStatus === "loading") return;
@@ -34,13 +42,11 @@ const NewDriveWizard = () => {
       router.push('/auth/login?callbackUrl=/visible/registerdrive');
     } else if (user && !user.is_org_admin) {
       toast.error("You must be an organization administrator to create a drive.");
-      router.push('/visible/registerorg'); // Or '/visible/profile'
+      router.push('/visible/registerorg');
     } else if (user && user.is_org_admin && !user.org_id) {
-      // This case should ideally not happen if org registration sets org_id correctly
       toast.error("Your account is not fully configured for an organization. Please contact support.");
       router.push('/visible/profile');
     }
-    // If user is org_admin and has org_id, they can stay on the page.
   }, [user, authStatus, router]);
 
   const handleChange = (e) => {
@@ -53,20 +59,22 @@ const NewDriveWizard = () => {
     } else {
       setDriveData((prev) => ({ ...prev, [name]: value }));
     }
-    setFormError(''); // Clear step-specific error on change
+    setFormError('');
   };
 
-  const handleSubmit = async () => {
+  // This function will now ONLY create the drive. Navigation is handled by nextStep or Finish button.
+  const handleCreateDrive = async () => {
     setFormError('');
+    // Validate all required fields for drive creation (from steps 1, 2, and optionally 3's photo)
     if (!driveData.driveTitle.trim() || !driveData.driveDescription.trim() || !driveData.startDate || !driveData.endDate) {
-      setFormError("Please ensure all required fields (Title, Description, Start Date, End Date) are filled.");
-      toast.error("Please ensure all required fields are filled before submitting.");
-      return;
+      setFormError("Please ensure all required fields (Title, Description, Start Date, End Date) are filled before proceeding.");
+      toast.error("Please ensure all required fields (Title, Description, Start Date, End Date) are filled.");
+      return false; // Indicate failure
     }
     if (new Date(driveData.endDate) < new Date(driveData.startDate)) {
       setFormError("End date cannot be before the start date.");
       toast.error("End date cannot be before the start date.");
-      return;
+      return false; // Indicate failure
     }
 
     setIsSubmitting(true);
@@ -80,25 +88,28 @@ const NewDriveWizard = () => {
     }
 
     try {
-      // UPDATED to relative path
-      await axios.post(`/api/drives`, formData, {
+      const response = await axios.post(`/api/drives`, formData, {
         withCredentials: true,
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      toast.success('Drive created successfully!');
-      router.push('/admin/currentDrives');
+      toast.success('Drive created successfully! Now add some gifts.');
+      setCreatedDriveId(response.data.drive_id); // Store the new drive ID
+      // Update driveTitle in state if it was modified by backend (e.g. trimming)
+      setDriveData(prev => ({ ...prev, driveTitle: response.data.name }));
+      setIsSubmitting(false);
+      return true; // Indicate success
     } catch (err) {
       console.error('Error creating new drive:', err.response?.data || err.message);
       const apiError = err.response?.data?.error || 'Failed to create drive. Please check your input and try again.';
-      setFormError(apiError); // Display API error globally for the form
+      setFormError(apiError);
       toast.error(apiError);
-    } finally {
       setIsSubmitting(false);
+      return false; // Indicate failure
     }
   };
 
-  const nextStep = () => {
-    setFormError(''); // Clear previous step errors
+  const nextStep = async () => {
+    setFormError('');
     let isValidForStep = true;
     if (currentStep === 1 && (!driveData.driveTitle.trim() || !driveData.driveDescription.trim())) {
       setFormError('Drive Title and Description are required for this step.');
@@ -110,35 +121,40 @@ const NewDriveWizard = () => {
       setFormError('End date cannot be before the start date.');
       isValidForStep = false;
     }
-    // Step 3 (photo) is optional, so no specific validation here unless photo becomes mandatory.
 
     if (!isValidForStep) {
       toast.error(formError || "Please complete the current step correctly.");
       return;
     }
 
-    if (currentStep < totalSteps) {
+    // If on Step 3 (Photo step), next action is to create the drive
+    if (currentStep === (totalSteps - 1)) { // This is Step 3 (Photo), before Add Gifts
+      const driveCreated = await handleCreateDrive();
+      if (driveCreated) {
+        setCurrentStep((prev) => prev + 1); // Proceed to Add Gifts step
+      }
+      // If driveCreated is false, handleCreateDrive already set errors/toasts
+    } else if (currentStep < totalSteps) {
       setCurrentStep((prev) => prev + 1);
     } else {
-      handleSubmit(); // This is the final step, so submit
+      // This is the final step (Add Gifts), "Next" button is "Finish"
+      router.push('/admin/currentDrives'); // Or wherever you want to redirect
     }
   };
 
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep((prev) => prev - 1);
-      setFormError(''); // Clear error when going back
+      setFormError('');
     }
   };
 
   const renderStep = () => {
-    // ... (renderStep JSX remains largely the same) ...
-    // Make sure `name` attributes match the keys in `driveData` state.
     switch (currentStep) {
-      case 1:
+      case 1: // Title & Description
         return (
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold mb-4">First, Let&apos;s Set Up Your Drive</h2>
+            <h2 className="text-2xl font-bold mb-4">Step 1: Set Up Your Drive Details</h2>
             <div>
               <label htmlFor="driveTitle" className="block text-sm font-medium text-gray-700 mb-1">Drive Title <span className="text-red-500">*</span></label>
               <input
@@ -158,10 +174,10 @@ const NewDriveWizard = () => {
             </div>
           </div>
         );
-      case 2:
+      case 2: // Dates
         return (
           <div className="space-y-8">
-            <h2 className="text-2xl font-bold mb-4">Set the Dates for Your Drive</h2>
+            <h2 className="text-2xl font-bold mb-4">Step 2: Set the Dates for Your Drive</h2>
             <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0">
               <div className="sm:w-1/2">
                 <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">Start Date <span className="text-red-500">*</span></label>
@@ -175,20 +191,20 @@ const NewDriveWizard = () => {
                 <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">End Date <span className="text-red-500">*</span></label>
                 <input
                   type="date" name="endDate" id="endDate" value={driveData.endDate}
-                  onChange={handleChange} required min={driveData.startDate}
+                  onChange={handleChange} required min={driveData.startDate || undefined} // Ensure min is not empty string
                   className="border px-3 py-2 w-full rounded-md shadow-sm focus:ring-ggreen focus:border-ggreen"
                 />
               </div>
             </div>
           </div>
         );
-      case 3:
+      case 3: // Photo
         return (
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold mb-4">Upload a Photo For Your Drive (Optional)</h2>
+            <h2 className="text-2xl font-bold mb-4">Step 3: Upload a Photo (Optional)</h2>
             {previewUrl ? (
               <div className="mb-4 flex justify-center">
-                <img src={previewUrl} alt="Drive Photo Preview" className="max-h-48 rounded shadow-md" />
+                <Image src={previewUrl} alt="Drive Photo Preview" width={192} height={192} className="max-h-48 w-auto rounded shadow-md object-contain" />
               </div>
             ) : (
               <div className="mb-4 border-2 border-dashed border-gray-300 p-6 rounded text-center">
@@ -209,6 +225,29 @@ const NewDriveWizard = () => {
             </div>
           </div>
         );
+      // --- NEW STEP ---
+      case 4: // Add Gifts
+        return (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold mb-2">Step 4: Add Gifts for &quot;{driveData.driveTitle}&quot;</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Your drive has been created. Now, add the items you&apos;d like supporters to donate. You can add more items later from your dashboard.
+            </p>
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setIsAddItemBladeOpen(true)}
+                className="bg-blue-500 text-white px-6 py-3 rounded-full hover:bg-blue-700 transition-colors"
+              >
+                Add Gift Item
+              </button>
+            </div>
+            {/* AddItemBlade will be rendered outside this specific div if it's a true blade */}
+            {/* For simplicity, we are just providing a button to open it. */}
+            {/* Optionally, list items already added here - requires fetching drive items */}
+          </div>
+        );
+      // --- END NEW STEP ---
       default:
         return null;
     }
@@ -224,8 +263,6 @@ const NewDriveWizard = () => {
     );
   }
   if (authStatus === "unauthenticated" || (user && !user.is_org_admin)) {
-    // This state will typically be handled by the redirect in useEffect,
-    // but this provides a fallback display.
     return (
       <div className="container mx-auto px-4 min-h-screen flex flex-col items-center justify-center text-center">
         <p className="text-xl text-red-600 mb-4">Access Denied</p>
@@ -240,51 +277,71 @@ const NewDriveWizard = () => {
     );
   }
 
-
   return (
-    <div className="container mx-auto px-4 min-h-screen flex flex-col justify-center items-center pt-10 pb-20 md:pt-20">
-      <div className="w-full max-w-2xl bg-white p-6 md:p-8 rounded-lg shadow-xl">
-        {formError && (
-          <div className="mb-6 p-3 bg-red-100 text-red-700 border border-red-300 rounded text-sm">
-            {formError}
+    <> {/* Fragment to wrap page content and modal/blade */}
+      <div className="container mx-auto px-4 min-h-screen flex flex-col justify-center items-center pt-10 pb-20 md:pt-20">
+        <div className="w-full max-w-2xl bg-white p-6 md:p-8 rounded-lg shadow-xl">
+          {formError && (
+            <div className="mb-6 p-3 bg-red-100 text-red-700 border border-red-300 rounded text-sm">
+              {formError}
+            </div>
+          )}
+          <div className="flex-1 mb-8">
+            {renderStep()}
           </div>
-        )}
-        <div className="flex-1 mb-8">
-          {renderStep()}
-        </div>
 
-        <div className="mt-8">
-          <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
-            <div
-              style={{ width: `${Math.round(progressPercentage)}%` }}
-              className="bg-ggreen h-2.5 rounded-full transition-all duration-300 ease-out"
-            />
+          <div className="mt-8">
+            <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+              <div
+                style={{ width: `${Math.round(progressPercentage)}%` }}
+                className="bg-ggreen h-2.5 rounded-full transition-all duration-300 ease-out"
+              />
+            </div>
+            <p className="text-center text-sm text-gray-500">
+              Step {currentStep} of {totalSteps}
+            </p>
           </div>
-          <p className="text-center text-sm text-gray-500">
-            Step {currentStep} of {totalSteps}
-          </p>
-        </div>
 
-        <div className="mt-8 flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
-          {currentStep > 1 ? (
+          <div className="mt-8 flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+            {currentStep > 1 ? (
+              <button
+                onClick={prevStep}
+                className="w-full sm:w-auto border-2 border-ggreen text-ggreen px-8 py-3 rounded-full hover:bg-ggreen hover:text-white transition-colors font-semibold"
+                disabled={isSubmitting}
+              >
+                Back
+              </button>
+            ) : <div className="w-full sm:w-auto"></div>}
             <button
-              onClick={prevStep}
-              className="w-full sm:w-auto border-2 border-ggreen text-ggreen px-8 py-3 rounded-full hover:bg-ggreen hover:text-white transition-colors font-semibold"
+              onClick={nextStep}
               disabled={isSubmitting}
+              className={`w-full sm:w-auto border-2 border-ggreen bg-ggreen text-white px-8 py-3 rounded-full hover:bg-teal-700 transition-colors font-semibold ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              Back
+              {isSubmitting ? (currentStep === (totalSteps - 1) ? 'Creating Drive...' : 'Processing...')
+                : (currentStep === totalSteps ? 'Finish Drive Setup'
+                  : (currentStep === (totalSteps - 1) ? 'Create Drive & Add Gifts' : 'Next'))}
             </button>
-          ) : <div className="w-full sm:w-auto"></div>}
-          <button
-            onClick={nextStep}
-            disabled={isSubmitting}
-            className={`w-full sm:w-auto border-2 border-ggreen bg-ggreen text-white px-8 py-3 rounded-full hover:bg-teal-700 transition-colors font-semibold ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {isSubmitting ? 'Submitting...' : (currentStep === totalSteps ? 'Create Drive' : 'Next')}
-          </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Render AddItemBlade conditionally */}
+      {createdDriveId && (
+        <AddItemBlade
+          isOpen={isAddItemBladeOpen}
+          driveId={createdDriveId}
+          existingDriveItem={null} // Not editing, adding new
+          onSave={() => {
+            // Item saved, blade will show toast.
+            // Optionally close blade or keep open to add more.
+            // setIsAddItemBladeOpen(false); // If you want it to close after each add
+            // Potentially refetch items if displaying them in Step 4
+            toast.success('Gift item added to drive!');
+          }}
+          onClose={() => setIsAddItemBladeOpen(false)}
+        />
+      )}
+    </>
   );
 };
 
