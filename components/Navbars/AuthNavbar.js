@@ -308,31 +308,31 @@ const Navbar = ({ transparent, isBladeOpen }) => {
             {authStatus === "authenticated" && user && (
               <>
                 <li className="flex items-center">
-                  <Link href="/visible/profile"><span className={`text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen hover:text-gyellow ${isActive('/visible/profile') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>Account</span></Link>
+                  <Link href="/visible/profile"><span className={`text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen hover:text-white ${isActive('/visible/profile') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>Account</span></Link>
                 </li>
                 {/* User properties (like is_org_admin) come from session.user */}
                 {!!user.is_org_admin && (
                   <li className="flex items-center">
-                    <Link href="/admin/dashboard"><span className={`text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen hover:text-gyellow ${isActive('/admin/dashboard') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>My Org Dashboard</span></Link>
+                    <Link href="/admin/dashboard"><span className={`text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen hover:text-white ${isActive('/admin/dashboard') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>My Org Dashboard</span></Link>
                   </li>
                 )}
                 {!!user.is_super_admin && (
                   <li className="flex items-center">
-                    <Link href="/admin/superAdmin"><span className={`text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen hover:text-gyellow ${isActive('/admin/superAdmin') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>Super Admin</span></Link>
+                    <Link href="/admin/superAdmin"><span className={`text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen hover:text-white ${isActive('/admin/superAdmin') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>Super Admin</span></Link>
                   </li>
                 )}
                 <li className="flex items-center">
-                  <button onClick={handleLogout} className="text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen hover:text-gyellow cursor-pointer bg-transparent border-none whitespace-nowrap">Logout</button>
+                  <button onClick={handleLogout} className="text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen hover:text-white cursor-pointer bg-transparent border-none whitespace-nowrap">Logout</button>
                 </li>
               </>
             )}
             {authStatus === "unauthenticated" && (
               <>
                 <li className="flex items-center">
-                  <Link href="/auth/login"><span className={`text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen hover:text-gyellow ${isActive('/auth/login') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>Login</span></Link>
+                  <Link href="/auth/login"><span className={`text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen hover:text-white ${isActive('/auth/login') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>Login</span></Link>
                 </li>
                 <li className="flex items-center">
-                  <Link href="/auth/register"><span className={`text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen hover:text-gyellow ${isActive('/auth/register') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>Register</span></Link>
+                  <Link href="/auth/register"><span className={`text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen hover:text-white ${isActive('/auth/register') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>Register</span></Link>
                 </li>
               </>
             )}
@@ -364,7 +364,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
         </div>
 
         <div className="lg:hidden flex items-center ml-auto">
-          <Link href="/visible/cart" className="p-2 text-ggreen hover:text-gyellow">
+          <Link href="/visible/cart" className="p-2 text-ggreen hover:text-white">
             <div className="relative">
               <FaShoppingCart className="h-6 w-6" />
               {itemCount > 0 && (
@@ -429,16 +429,16 @@ const Navbar = ({ transparent, isBladeOpen }) => {
           <ul className="flex flex-col list-none py-2">
             {authStatus === "authenticated" && user && (
               <>
-                <li className="flex items-center"><Link href="/visible/profile"><span className="text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen hover:text-gyellow w-full whitespace-nowrap">Account</span></Link></li>
-                {!!user.is_org_admin && <li className="flex items-center"><Link href="/admin/dashboard"><span className="text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen hover:text-gyellow w-full whitespace-nowrap">My Org Dashboard</span></Link></li>}
-                {!!user.is_super_admin && <li className="flex items-center"><Link href="/admin/superAdmin"><span className="text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen hover:text-gyellow w-full whitespace-nowrap">Super Admin</span></Link></li>}
-                <li className="flex items-center"><button onClick={handleLogout} className="text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen hover:text-gyellow w-full text-left bg-transparent border-none whitespace-nowrap">Logout</button></li>
+                <li className="flex items-center"><Link href="/visible/profile"><span className="text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen hover:text-white w-full whitespace-nowrap">Account</span></Link></li>
+                {!!user.is_org_admin && <li className="flex items-center"><Link href="/admin/dashboard"><span className="text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen hover:text-white w-full whitespace-nowrap">My Org Dashboard</span></Link></li>}
+                {!!user.is_super_admin && <li className="flex items-center"><Link href="/admin/superAdmin"><span className="text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen hover:text-white w-full whitespace-nowrap">Super Admin</span></Link></li>}
+                <li className="flex items-center"><button onClick={handleLogout} className="text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen hover:text-white w-full text-left bg-transparent border-none whitespace-nowrap">Logout</button></li>
               </>
             )}
             {authStatus === "unauthenticated" && (
               <>
-                <li className="flex items-center"><Link href="/auth/login"><span className="text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen hover:text-gyellow w-full whitespace-nowrap">Login</span></Link></li>
-                <li className="flex items-center"><Link href="/auth/register"><span className="text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen hover:text-gyellow w-full whitespace-nowrap">Register</span></Link></li>
+                <li className="flex items-center"><Link href="/auth/login"><span className="text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen hover:text-white w-full whitespace-nowrap">Login</span></Link></li>
+                <li className="flex items-center"><Link href="/auth/register"><span className="text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen hover:text-white w-full whitespace-nowrap">Register</span></Link></li>
               </>
             )}
             {authStatus === "loading" && (
