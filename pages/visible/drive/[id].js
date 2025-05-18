@@ -41,9 +41,7 @@ const calculateDaysRemaining = (endDateString) => {
 const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
   const router = useRouter();
   const { cart, loading: cartLoading, addToCart } = useContext(CartContext);
-  const { data: session, status: authStatus } = useSession();
-  const user = session?.user;
-
+  const { status: authStatus } = useSession();
   const [drive, setDrive] = useState(initialDriveData);
   // eslint-disable-next-line no-unused-vars
   const [pageUrl, setPageUrl] = useState('');
@@ -163,11 +161,12 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
   };
 
   const handleAddToCart = async (itemNeed, itemKeyType) => {
-    if (authStatus === "unauthenticated" || !user) {
-      toast.error("Please log in to add items.");
-      router.push('/auth/login?callbackUrl=' + encodeURIComponent(router.asPath));
-      return;
-    }
+    // REMOVED AUTHENTICATION CHECK:
+    // if (authStatus === "unauthenticated" || !user) {
+    //   toast.error("Please log in to add items.");
+    //   router.push('/auth/login?callbackUrl=' + encodeURIComponent(router.asPath));
+    //   return;
+    // }
 
     const itemKey = itemNeed[itemKeyType];
     if (!itemKey) {

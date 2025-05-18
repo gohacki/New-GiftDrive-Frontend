@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { toast } from 'react-toastify';
 import PropTypes from 'prop-types';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/router';
 
 import { CartContext } from '../../contexts/CartContext';
 import Navbar from 'components/Navbars/AuthNavbar';
@@ -55,7 +54,6 @@ const CartPage = () => {
   const { cart, setCart, removeFromCart, updateCartItemQuantity, loading: cartContextLoading, fetchCart } = useContext(CartContext);
   const { data: session, status: authStatus } = useSession();
   const user = session?.user;
-  const router = useRouter();
 
   const [checkoutStep, setCheckoutStep] = useState('idle'); // idle, payment, complete
   const [isProcessingPageAction, setIsProcessingPageAction] = useState(false);
@@ -241,7 +239,7 @@ const CartPage = () => {
         handleOrderError(err.message); // Show specific inventory error
         // setCheckoutStep('idle'); // Already set by the error handler
       } else {
-        handleOrderError(`Payment may have succeeded, but order finalization failed: ${err.message}. Please contact support with Rye Order ID(s) if received: ${successfulRyeOrders?.map(o => o.ryeOrderId).join(', ')}`);
+        handleOrderError(`Payment may have succeeded, but order finalization failed: ${err.message}.`);
       }
     } finally {
       setIsProcessingPageAction(false);
