@@ -8,10 +8,8 @@ import DriveListCard from 'components/Cards/DriveListCard';
 import OrganizationCard from 'components/Cards/OrganizationCard';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
-// REMOVED: const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
 const driveStatusOptions = [
-    { value: 'all', label: 'All Statuses (Current, Upcoming, Past)' }, // Clarified label
+    { value: 'all', label: 'All Statuses (Current, Upcoming, Past)' },
     { value: 'current', label: 'Current Drives' },
     { value: 'upcoming', label: 'Upcoming Drives' },
     { value: 'past', label: 'Past Drives' },
@@ -19,7 +17,8 @@ const driveStatusOptions = [
 
 export default function CombinedSearchPage() {
     const router = useRouter();
-    const { q, drive_status, org_state, org_city } = router.query;
+    // Destructure query parameters directly from router.query for use in dependencies
+    const { q: queryParam_q, drive_status: queryParam_drive_status, org_state: queryParam_org_state, org_city: queryParam_org_city } = router.query;
 
     // State for form inputs (controlled components)
     const [pageInputTerm, setPageInputTerm] = useState('');
@@ -34,102 +33,92 @@ export default function CombinedSearchPage() {
     // State for search results and status
     const [driveResults, setDriveResults] = useState([]);
     const [orgResults, setOrgResults] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false); // Changed initial state to false, will be true during fetch
     const [error, setError] = useState(null);
-    const [searchAttempted, setSearchAttempted] = useState(false); // To show initial message vs. "no results"
+    const [searchAttempted, setSearchAttempted] = useState(false);
 
     // Sync form state with URL query parameters
     useEffect(() => {
-        setPageInputTerm(typeof q === 'string' ? q : '');
-        setPageDriveFilter(typeof drive_status === 'string' ? drive_status : 'all');
-        setPageOrgStateFilter(typeof org_state === 'string' ? org_state : 'All');
-        // Only set city from query if state is also set, otherwise default to 'All'
-        setPageOrgCityFilter(typeof org_state === 'string' && org_state !== 'All' && typeof org_city === 'string' ? org_city : 'All');
-    }, [q, drive_status, org_state, org_city]);
+        setPageInputTerm(typeof queryParam_q === 'string' ? queryParam_q : '');
+        setPageDriveFilter(typeof queryParam_drive_status === 'string' ? queryParam_drive_status : 'all');
+        setPageOrgStateFilter(typeof queryParam_org_state === 'string' ? queryParam_org_state : 'All');
+        setPageOrgCityFilter(
+            typeof queryParam_org_state === 'string' && queryParam_org_state !== 'All' && typeof queryParam_org_city === 'string'
+                ? queryParam_org_city
+                : 'All'
+        );
+    }, [queryParam_q, queryParam_drive_status, queryParam_org_state, queryParam_org_city]);
 
     // Fetch available states for the filter dropdown
     useEffect(() => {
         const fetchFilterOptions = async () => {
             try {
-                // UPDATED to relative path
                 const statesResponse = await axios.get(`/api/organizations/states`);
                 setAvailableStates(statesResponse.data || []);
             } catch (err) {
                 console.error('Error fetching states:', err.response?.data || err.message);
-                // setError('Could not load state filter options.'); // Optional: display error
             }
         };
         fetchFilterOptions();
-    }, []); // Fetch states only once on component mount
+    }, []);
 
     // Fetch cities when the selected state changes
     useEffect(() => {
         const fetchCitiesForState = async () => {
             if (pageOrgStateFilter && pageOrgStateFilter !== 'All') {
-                setLoading(true); // Indicate loading for cities
+                // No setLoading(true) here as main loading handles combined fetch
                 try {
-                    // UPDATED to relative path
                     const citiesResponse = await axios.get(`/api/organizations/cities`, {
                         params: { state: pageOrgStateFilter },
                     });
                     setAvailableCities(citiesResponse.data || []);
-                    // If current city in URL isn't in new list, reset it (unless it's the initial load from URL)
                     if (!citiesResponse.data.includes(pageOrgCityFilter) && router.query.org_city !== pageOrgCityFilter) {
                         setPageOrgCityFilter('All');
                     }
                 } catch (err) {
                     console.error(`Error fetching cities for state ${pageOrgStateFilter}:`, err.response?.data || err.message);
                     setAvailableCities([]);
-                    // setError('Could not load city filter options.'); // Optional
-                } finally {
-                    setLoading(false);
                 }
             } else {
                 setAvailableCities([]);
-                if (pageOrgStateFilter === 'All') setPageOrgCityFilter('All'); // Reset city if state is "All"
+                if (pageOrgStateFilter === 'All') setPageOrgCityFilter('All');
             }
         };
-        fetchCitiesForState();
-    }, [pageOrgStateFilter, router.query.org_city]); // Re-fetch if selected state or URL city changes
+        if (router.isReady) { // Ensure state filter is synced from URL before fetching cities
+            fetchCitiesForState();
+        }
+    }, [pageOrgStateFilter, router.isReady, router.query.org_city]); // Added router.isReady and router.query.org_city
 
     // Main data fetching effect based on URL query parameters
     useEffect(() => {
-        const currentSearchTerm = typeof q === 'string' ? q.trim() : '';
-        const currentDriveFilter = typeof drive_status === 'string' ? drive_status : 'all';
-        const currentOrgState = typeof org_state === 'string' ? org_state : 'All';
-        const currentOrgCity = typeof org_city === 'string' ? org_city : 'All';
-
-        // Only search if there's a query term or a specific filter is applied
-        if (!currentSearchTerm && currentDriveFilter === 'all' && currentOrgState === 'All' && currentOrgCity === 'All') {
-            setDriveResults([]);
-            setOrgResults([]);
-            setLoading(false);
-            setSearchAttempted(false); // Not a search attempt if all filters are default and no query
-            setError(null);
-            return;
-        }
-
         const fetchData = async () => {
             setLoading(true);
             setError(null);
-            setSearchAttempted(true); // A search is being made
+            setSearchAttempted(true); // Indicate that a fetch (default or filtered) is being made
             setDriveResults([]);
             setOrgResults([]);
 
+            // Use the current state of form inputs for the API query parameters
+            // These are already synced with URL query params by the other useEffect
+            const effectiveSearchTerm = pageInputTerm.trim();
+            const effectiveDriveFilter = pageDriveFilter;
+            const effectiveOrgState = pageOrgStateFilter;
+            const effectiveOrgCity = pageOrgCityFilter;
+
             try {
                 // Fetch Drives
-                const driveParams = { search: currentSearchTerm, status: currentDriveFilter, limit: 12 }; // Example limit
-                if (currentDriveFilter === 'all') delete driveParams.status; // Don't send status if 'all'
-                // UPDATED to relative path
+                const driveParams = { search: effectiveSearchTerm, limit: 12 };
+                if (effectiveDriveFilter !== 'all') {
+                    driveParams.status = effectiveDriveFilter;
+                }
                 const driveResponse = await axios.get(`/api/drives`, { params: driveParams });
                 setDriveResults(driveResponse.data || []);
 
                 // Fetch Organizations
-                const orgParams = { search: currentSearchTerm, limit: 12, featured: "false" }; // Example limit
-                if (currentOrgState !== 'All') orgParams.state = currentOrgState;
-                if (currentOrgCity !== 'All' && currentOrgState !== 'All') orgParams.city = currentOrgCity;
-                // UPDATED to relative path
-                const orgResponse = await axios.get(`/api/organizations/featured`, { params: orgParams }); // Using /featured but with featured=false
+                const orgParams = { search: effectiveSearchTerm, limit: 12, featured: "false" };
+                if (effectiveOrgState !== 'All') orgParams.state = effectiveOrgState;
+                if (effectiveOrgCity !== 'All' && effectiveOrgState !== 'All') orgParams.city = effectiveOrgCity;
+                const orgResponse = await axios.get(`/api/organizations/featured`, { params: orgParams });
                 setOrgResults(orgResponse.data || []);
 
             } catch (err) {
@@ -140,11 +129,14 @@ export default function CombinedSearchPage() {
             }
         };
 
-        if (router.isReady) { // Ensure router.query is populated
+        if (router.isReady) {
+            // Previously, there was a condition here to prevent fetching if no query/filters.
+            // Removing that condition makes it fetch by default.
             fetchData();
         }
 
-    }, [q, drive_status, org_state, org_city, router.isReady]); // Depend on URL query params
+    }, [queryParam_q, queryParam_drive_status, queryParam_org_state, queryParam_org_city, router.isReady,
+        pageInputTerm, pageDriveFilter, pageOrgStateFilter, pageOrgCityFilter]); // Added form state to dependencies to refetch if form changes directly before submit
 
     const handleSearchAndFilterApply = (e) => {
         if (e) e.preventDefault();
@@ -155,19 +147,16 @@ export default function CombinedSearchPage() {
         if (pageDriveFilter !== 'all') queryParams.set('drive_status', pageDriveFilter);
         if (pageOrgStateFilter !== 'All') {
             queryParams.set('org_state', pageOrgStateFilter);
-            // Only set city if a specific state is selected and a specific city is chosen
             if (pageOrgCityFilter !== 'All') {
                 queryParams.set('org_city', pageOrgCityFilter);
             }
         }
-        // No need to set org_city if org_state is 'All'
-
         router.push(`/visible/search?${queryParams.toString()}`, undefined, { shallow: false });
     };
 
     return (
         <>
-            <Navbar transparent /> {/* Assuming AuthNavbar handles transparency based on scroll */}
+            <Navbar transparent />
             <main className="min-h-screen bg-secondary_green text-gray-800 relative pt-20 pb-16">
                 <div className="container mx-auto px-4 py-8">
                     <div className="text-center mb-8 pt-6">
@@ -175,7 +164,7 @@ export default function CombinedSearchPage() {
                         <p className="text-lg text-gray-600 mt-2">Find drives and organizations making a difference.</p>
                     </div>
 
-                    <form onSubmit={handleSearchAndFilterApply} className="bg-white p-6 rounded-lg shadow-md mb-8 sticky top-20 z-40"> {/* Ensure z-index is high enough */}
+                    <form onSubmit={handleSearchAndFilterApply} className="bg-white p-6 rounded-lg shadow-md mb-8 sticky top-24 z-40 border-ggreen border-2">
                         <div className="flex flex-col md:flex-row gap-4 items-end">
                             <div className="flex-grow">
                                 <label htmlFor="page-search-input" className="block text-sm font-medium text-gray-700 mb-1">
@@ -226,7 +215,7 @@ export default function CombinedSearchPage() {
                                     value={pageOrgStateFilter}
                                     onChange={(e) => {
                                         setPageOrgStateFilter(e.target.value);
-                                        if (e.target.value === 'All') setPageOrgCityFilter('All'); // Reset city if state becomes "All"
+                                        if (e.target.value === 'All') setPageOrgCityFilter('All');
                                     }}
                                     className="w-full text-sm border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-1 focus:ring-ggreen focus:border-ggreen bg-white"
                                 >
@@ -240,7 +229,7 @@ export default function CombinedSearchPage() {
                                     id="org-city-filter"
                                     value={pageOrgCityFilter}
                                     onChange={(e) => setPageOrgCityFilter(e.target.value)}
-                                    disabled={pageOrgStateFilter === 'All'}
+                                    disabled={pageOrgStateFilter === 'All' || availableCities.length === 0}
                                     className="w-full text-sm border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-1 focus:ring-ggreen focus:border-ggreen bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                                 >
                                     <option value="All">All Cities in State</option>
@@ -253,20 +242,22 @@ export default function CombinedSearchPage() {
                     {loading && <p className="text-center text-gray-600 text-lg py-10">Loading results...</p>}
                     {error && <p className="text-center text-red-500 text-lg py-10">{error}</p>}
 
-                    {!loading && !error && !searchAttempted && !q && !drive_status && !org_state && !org_city && ( // More specific initial state check
-                        <div className="text-center py-10 bg-white rounded-lg shadow p-6">
-                            <MagnifyingGlassIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                            <p className="text-xl text-gray-700 mb-2">Ready to find something?</p>
-                            <p className="text-gray-500">Enter a search term or use the filters above to begin.</p>
-                        </div>
-                    )}
-
+                    {/* This message is for when a search/filter returns no results */}
                     {!loading && !error && searchAttempted && driveResults.length === 0 && orgResults.length === 0 && (
                         <div className="text-center py-10 bg-white rounded-lg shadow p-6">
                             <p className="text-xl text-gray-700 mb-4">No results found for your criteria.</p>
                             <p className="text-gray-500">Try different keywords or broaden your filters.</p>
                         </div>
                     )}
+
+                    {/* This message is for the very initial load IF router isn't ready yet OR if not searchAttempted (though searchAttempted is now always true on load) */}
+                    {!loading && !error && !searchAttempted && !router.isReady && (
+                        <div className="text-center py-10 bg-white rounded-lg shadow p-6">
+                            <MagnifyingGlassIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                            <p className="text-xl text-gray-700 mb-2">Loading search...</p>
+                        </div>
+                    )}
+
 
                     {!loading && !error && (driveResults.length > 0 || orgResults.length > 0) && (
                         <>
