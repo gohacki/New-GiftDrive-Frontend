@@ -35,8 +35,21 @@ const DriveItemCard = ({
     const actionButtonLoading = isAddingToCartForItem || cartLoading;
 
     return (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col h-full border border-gray-200">
-            <div className="relative w-full h-48 bg-slate-100">
+        <div className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col h-full border border-ggreen">
+            <div className="p-4 flex flex-col flex-grow">
+                <h3 className="text-slate-900 text-center font-semibold text-base mb-0.5 line-clamp-2" title={displayName}>
+                    {displayName}
+                </h3>
+                {variantSubline ? (
+                    <p className="text-slate-600 text-center text-xs mb-1 line-clamp-1" title={variantSubline}>
+                        {variantSubline}
+                    </p>
+                ) : (
+                    <div className="h-4">
+                    </div>
+                )}
+            </div>
+            <div className="relative w-full h-48">
                 <Image
                     src={displayPhoto}
                     alt={displayName} // Use base name for alt text
@@ -49,17 +62,6 @@ const DriveItemCard = ({
             </div>
 
             <div className="p-4 flex flex-col flex-grow">
-                {/* MODIFIED: Display Name and Subline */}
-                <h3 className="text-slate-900 text-center font-semibold text-base mb-0.5 line-clamp-2" title={displayName}>
-                    {displayName}
-                </h3>
-                {variantSubline && (
-                    <p className="text-slate-600 text-center text-xs mb-1 line-clamp-1" title={variantSubline}>
-                        ({variantSubline})
-                    </p>
-                )}
-                {/* END MODIFIED */}
-
 
                 {displayPrice !== null && (
                     <p className="text-xl text-center font-bold text-slate-800 mb-2">

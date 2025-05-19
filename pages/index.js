@@ -86,15 +86,20 @@ export default function Landing() {
             {/* Left: Main Heading */}
             {/* This motion.h1 will apply h1BlockVariants to stagger its AnimatedTextLine children */}
             <motion.h1
-              className="font-semibold text-7xl sm:text-8xl lg:text-9xl leading-tight text-white drop-shadow-lg"
+              // *** MODIFICATION START ***
+              className="font-semibold text-7xl sm:text-8xl lg:text-9xl leading-tight text-white drop-shadow-lg text-center md:text-left"
+              // *** MODIFICATION END ***
               variants={h1BlockVariants}
             // initial and animate props are inherited from the parent motion.div
             >
               <AnimatedTextLine>Make</AnimatedTextLine>
-              {/* Replaced <br className="mb-12" /> with a div for explicit height. h-12 = height: 3rem */}
-              <div className="h-12" />
+              {/* *** MODIFICATION START *** */}
+              <div className="h-0 md:h-8 lg:h-12" /> {/* Adjusted height for responsiveness */}
+              {/* *** MODIFICATION END *** */}
               <AnimatedTextLine>Giving</AnimatedTextLine>
-              <div className="h-12" />
+              {/* *** MODIFICATION START *** */}
+              <div className="h-0 md:h-8 lg:h-12" /> {/* Adjusted height for responsiveness */}
+              {/* *** MODIFICATION END *** */}
               <AnimatedTextLine>Simple</AnimatedTextLine>
             </motion.h1>
 

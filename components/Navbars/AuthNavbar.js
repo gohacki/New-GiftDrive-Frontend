@@ -349,7 +349,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
               <>
                 <li className="flex items-center">
                   <Link href="/visible/profile">
-                    <span className={`relative group text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen ${isActive('/visible/profile') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>
+                    <span className={`relative group text-sm inter-semi-bold uppercase px-2.5 py-2 flex items-center text-ggreen ${isActive('/visible/profile') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>
                       Account
                       <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-ggreen transition-all duration-300 group-hover:w-full"></span>
                     </span>
@@ -358,7 +358,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
                 {!!user.is_org_admin && (
                   <li className="flex items-center">
                     <Link href="/admin/dashboard">
-                      <span className={`relative group text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen ${isActive('/admin/dashboard') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>
+                      <span className={`relative group text-sm inter-semi-bold uppercase px-2.5 py-2 flex items-center text-ggreen ${isActive('/admin/dashboard') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>
                         My Org Dashboard
                         <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-ggreen transition-all duration-300 group-hover:w-full"></span>
                       </span>
@@ -368,7 +368,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
                 {!!user.is_super_admin && (
                   <li className="flex items-center">
                     <Link href="/admin/superAdmin">
-                      <span className={`relative group text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen ${isActive('/admin/superAdmin') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>
+                      <span className={`relative group text-sm inter-semi-bold uppercase px-2.5 py-2 flex items-center text-ggreen ${isActive('/admin/superAdmin') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>
                         Super Admin
                         <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-ggreen transition-all duration-300 group-hover:w-full"></span>
                       </span>
@@ -376,7 +376,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
                   </li>
                 )}
                 <li className="flex items-center">
-                  <button onClick={handleLogout} className="relative group text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen cursor-pointer bg-transparent border-none whitespace-nowrap">
+                  <button onClick={handleLogout} className="relative group text-sm inter-semi-bold uppercase px-2.5 py-2 flex items-center text-ggreen cursor-pointer bg-transparent border-none whitespace-nowrap">
                     Logout
                     <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-ggreen transition-all duration-300 group-hover:w-full"></span>
                   </button>
@@ -387,7 +387,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
               <>
                 <li className="flex items-center">
                   <Link href="/auth/login">
-                    <span className={`relative group text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen ${isActive('/auth/login') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>
+                    <span className={`relative group text-sm inter-semi-bold uppercase px-2.5 py-2 flex items-center text-ggreen ${isActive('/auth/login') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>
                       Login
                       <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-ggreen transition-all duration-300 group-hover:w-full"></span>
                     </span>
@@ -395,7 +395,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
                 </li>
                 <li className="flex items-center">
                   <Link href="/auth/register">
-                    <span className={`relative group text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-ggreen ${isActive('/auth/register') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>
+                    <span className={`relative group text-sm inter-semi-bold uppercase px-2.5 py-2 flex items-center text-ggreen ${isActive('/auth/register') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>
                       Register
                       <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-ggreen transition-all duration-300 group-hover:w-full"></span>
                     </span>
@@ -405,7 +405,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
             )}
             {authStatus === "loading" && (
               <li className="flex items-center">
-                <span className="text-sm inter-regular uppercase px-2.5 py-2 flex items-center text-gray-500 whitespace-nowrap">Loading...</span>
+                <span className="text-sm inter-semi-bold uppercase px-2.5 py-2 flex items-center text-gray-500 whitespace-nowrap">Loading...</span>
               </li>
             )}
           </ul>
@@ -413,7 +413,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
           <div>
             <Link href="/visible/search">
               <button
-                className="bg-ggreen text-white text-xs inter-regular uppercase px-3 py-2 rounded-full shadow hover:shadow-md outline-none focus:outline-none ease-linear transition-all duration-150 whitespace-nowrap"
+                className="bg-ggreen text-white text-xs inter-semi-bold uppercase px-3 py-2 rounded-full shadow hover:shadow-md outline-none focus:outline-none ease-linear transition-all duration-150 whitespace-nowrap"
                 type="button"
               >
                 Browse Drives
@@ -422,7 +422,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
           </div>
           <div>
             <Link href="/visible/registerdrive">
-              <button className="bg-white text-blueGray-700 active:bg-blueGray-50 text-xs inter-regular uppercase px-3 py-2 rounded-full shadow hover:shadow-md outline-none focus:outline-none ease-linear transition-all duration-150 whitespace-nowrap" type="button">
+              <button className="bg-white text-blueGray-700 active:bg-blueGray-50 text-xs inter-semi-bold uppercase px-3 py-2 rounded-full shadow hover:shadow-md outline-none focus:outline-none ease-linear transition-all duration-150 whitespace-nowrap" type="button">
                 Create A Drive
               </button>
             </Link>
@@ -433,7 +433,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
               <div className="relative p-1">
                 <FaShoppingCart className="h-6 w-6 text-ggreen" />
                 {itemCount > 0 && (
-                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] inter-regular leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] inter-semi-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
                     {itemCount}
                   </span>
                 )}
@@ -450,7 +450,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
             <div className="relative">
               <FaShoppingCart className="h-6 w-6" />
               {itemCount > 0 && (
-                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] inter-regular leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] inter-semi-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
                   {itemCount}
                 </span>
               )}
@@ -517,7 +517,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
               <>
                 <li className="flex items-center">
                   <Link href="/visible/profile">
-                    <span className="relative group text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen w-full whitespace-nowrap">
+                    <span className="relative group text-sm inter-semi-bold uppercase px-4 py-3 flex items-center text-ggreen w-full whitespace-nowrap">
                       Account
                       <span className="absolute bottom-1 left-4 w-0 h-0.5 bg-ggreen transition-all duration-300 group-hover:w-[calc(100%-2rem)]"></span>
                     </span>
@@ -526,7 +526,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
                 {!!user.is_org_admin && (
                   <li className="flex items-center">
                     <Link href="/admin/dashboard">
-                      <span className="relative group text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen w-full whitespace-nowrap">
+                      <span className="relative group text-sm inter-semi-bold uppercase px-4 py-3 flex items-center text-ggreen w-full whitespace-nowrap">
                         My Org Dashboard
                         <span className="absolute bottom-1 left-4 w-0 h-0.5 bg-ggreen transition-all duration-300 group-hover:w-[calc(100%-2rem)]"></span>
                       </span>
@@ -536,7 +536,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
                 {!!user.is_super_admin && (
                   <li className="flex items-center">
                     <Link href="/admin/superAdmin">
-                      <span className="relative group text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen w-full whitespace-nowrap">
+                      <span className="relative group text-sm inter-semi-bold uppercase px-4 py-3 flex items-center text-ggreen w-full whitespace-nowrap">
                         Super Admin
                         <span className="absolute bottom-1 left-4 w-0 h-0.5 bg-ggreen transition-all duration-300 group-hover:w-[calc(100%-2rem)]"></span>
                       </span>
@@ -544,7 +544,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
                   </li>
                 )}
                 <li className="flex items-center">
-                  <button onClick={handleLogout} className="relative group text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen w-full text-left bg-transparent border-none whitespace-nowrap">
+                  <button onClick={handleLogout} className="relative group text-sm inter-semi-bold uppercase px-4 py-3 flex items-center text-ggreen w-full text-left bg-transparent border-none whitespace-nowrap">
                     Logout
                     <span className="absolute bottom-1 left-4 w-0 h-0.5 bg-ggreen transition-all duration-300 group-hover:w-[calc(100%-2rem)]"></span>
                   </button>
@@ -555,7 +555,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
               <>
                 <li className="flex items-center">
                   <Link href="/auth/login">
-                    <span className="relative group text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen w-full whitespace-nowrap">
+                    <span className="relative group text-sm inter-semi-bold uppercase px-4 py-3 flex items-center text-ggreen w-full whitespace-nowrap">
                       Login
                       <span className="absolute bottom-1 left-4 w-0 h-0.5 bg-ggreen transition-all duration-300 group-hover:w-[calc(100%-2rem)]"></span>
                     </span>
@@ -563,7 +563,7 @@ const Navbar = ({ transparent, isBladeOpen }) => {
                 </li>
                 <li className="flex items-center">
                   <Link href="/auth/register">
-                    <span className="relative group text-sm inter-regular uppercase px-4 py-3 flex items-center text-ggreen w-full whitespace-nowrap">
+                    <span className="relative group text-sm inter-semi-bold uppercase px-4 py-3 flex items-center text-ggreen w-full whitespace-nowrap">
                       Register
                       <span className="absolute bottom-1 left-4 w-0 h-0.5 bg-ggreen transition-all duration-300 group-hover:w-[calc(100%-2rem)]"></span>
                     </span>
@@ -573,20 +573,20 @@ const Navbar = ({ transparent, isBladeOpen }) => {
             )}
             {authStatus === "loading" && (
               <li className="flex items-center">
-                <span className="text-sm inter-regular uppercase px-4 py-3 flex items-center text-gray-500 w-full whitespace-nowrap">Loading...</span>
+                <span className="text-sm inter-semi-bold uppercase px-4 py-3 flex items-center text-gray-500 w-full whitespace-nowrap">Loading...</span>
               </li>
             )}
             {/* Mobile Buttons */}
             <li className="flex items-center px-4 py-3">
               <Link href="/visible/search" className='w-full'>
-                <button className="bg-ggreen text-white active:bg-teal-700 text-xs inter-regular uppercase px-4 py-3 rounded-full shadow hover:shadow-md outline-none focus:outline-none w-full whitespace-nowrap" type="button">
+                <button className="bg-ggreen text-white active:bg-teal-700 text-xs inter-semi-bold uppercase px-4 py-3 rounded-full shadow hover:shadow-md outline-none focus:outline-none w-full whitespace-nowrap" type="button">
                   Browse Drives
                 </button>
               </Link>
             </li>
             <li className="flex items-center px-4 py-3">
               <Link href="/visible/registerdrive" className='w-full'>
-                <button className="bg-ggreen text-white active:bg-teal-700 text-xs inter-regular uppercase px-4 py-3 rounded-full shadow hover:shadow-md outline-none focus:outline-none w-full whitespace-nowrap" type="button">
+                <button className="bg-ggreen text-white active:bg-teal-700 text-xs inter-semi-bold uppercase px-4 py-3 rounded-full shadow hover:shadow-md outline-none focus:outline-none w-full whitespace-nowrap" type="button">
                   Create A Drive
                 </button>
               </Link>

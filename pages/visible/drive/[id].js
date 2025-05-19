@@ -161,13 +161,6 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
   };
 
   const handleAddToCart = async (itemNeed, itemKeyType) => {
-    // REMOVED AUTHENTICATION CHECK:
-    // if (authStatus === "unauthenticated" || !user) {
-    //   toast.error("Please log in to add items.");
-    //   router.push('/auth/login?callbackUrl=' + encodeURIComponent(router.asPath));
-    //   return;
-    // }
-
     const itemKey = itemNeed[itemKeyType];
     if (!itemKey) {
       toast.error("Item identifier is missing.");
@@ -215,10 +208,9 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
 
     try {
       console.log("DrivePage: Payload for addToCart context:", payloadForContext);
-      await addToCart(payloadForContext); // This will now re-throw on error
-      await fetchDriveDataAfterCartAction(); // Only called if addToCart succeeds
+      await addToCart(payloadForContext);
+      await fetchDriveDataAfterCartAction();
     } catch (err) {
-      // Error is already toasted by CartContext, or could be toasted here if not.
       console.error('Error in DrivePage during cart operation:', err);
     } finally {
       setIsAddingToCart(prev => ({ ...prev, [itemKey]: false }));
@@ -254,7 +246,7 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
         <Navbar isBladeOpen={isCartBladeEffectivelyOpen} />
         <main className="min-h-screen flex flex-col items-center justify-center bg-secondary_green text-gray-800 px-4 text-center">
           <p className="text-red-600 text-lg font-semibold">{pageError}</p>
-          <Link href="/visible/orglist" className="mt-4 px-4 py-2 bg-ggreen text-white rounded hover:bg-teal-700">
+          <Link href="/visible/search" className="mt-4 px-4 py-2 bg-ggreen text-white rounded hover:bg-teal-700">
             Browse Other Drives
           </Link>
         </main>
@@ -282,13 +274,22 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
     totalPurchased = 0,
     organization_name,
     end_date,
-    items: driveItemsOnly = [], // Ensure items is always an array
-    children: driveChildren = [] // Ensure children is always an array
-  } = drive || {}; // Fallback to empty object if drive is null/undefined
+    items: driveItemsOnly = [],
+    children: driveChildren = []
+  } = drive || {};
 
   const progressPercentage = totalNeeded > 0 ? Math.min(100, (totalPurchased / totalNeeded) * 100) : 0;
   const daysRemaining = calculateDaysRemaining(end_date);
   const donationsToGo = Math.max(0, totalNeeded - totalPurchased);
+
+  // *** MODIFICATION START ***
+  let displayProgressPercentage = progressPercentage;
+  const MIN_VISUAL_FILL_AT_ZERO_DONATIONS = 10; // e.g., 2%
+
+  if (totalNeeded > 0 && totalPurchased === 0) {
+    displayProgressPercentage = MIN_VISUAL_FILL_AT_ZERO_DONATIONS;
+  }
+  // *** MODIFICATION END ***
 
   return (
     <>
@@ -299,7 +300,7 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-600 mb-8 justify-center md:justify-start">
             <div className="flex items-center">
-              <Image src="/img/brand/favicon.svg" alt="Items Needed" width={20} height={20} className="mr-1.5" />
+              <Image src="/img/brand/favicon.svg" alt="Items Needed" width={20} height={20} className="mr-2 ml-1" />
               <span>{totalNeeded} Item{totalNeeded !== 1 ? 's' : ''} Needed</span>
             </div>
             {(org_city && org_state) && (
@@ -319,10 +320,10 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
             {/* Left Column */}
             <div className="md:col-span-4 space-y-6">
-              <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
-                <h2 className="text-xl font-semibold text-ggreen mb-3">Drive Progress</h2>
+              <div className="bg-white p-6 rounded-lg shadow-lg border border-ggreen">
+                <h2 className="text-xl font-semibold text-ggreen">Drive Progress</h2>
                 {daysRemaining > 0 ? (
-                  <p className="text-sm text-slate-500 mb-3">{daysRemaining} day{daysRemaining !== 1 ? 's' : ''} remaining</p>
+                  <p className="text-sm text-slate-500 mb-3 italic">{daysRemaining} day{daysRemaining !== 1 ? 's' : ''} remaining</p>
                 ) : (
                   <p className="text-sm text-red-500 mb-3 font-medium">This drive has ended.</p>
                 )}
@@ -330,12 +331,16 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
                   <div className="absolute bottom-0 w-full rounded-full h-7 shadow-inner ring-1 ring-ggreen">
                     <div
                       className="bg-gradient-to-b from-teal-400 to-ggreen h-7 rounded-full shadow-lg transition-all duration-500 ease-out"
-                      style={{ width: `${progressPercentage}%` }}
+                      // *** MODIFICATION START ***
+                      style={{ width: `${displayProgressPercentage}%` }}
+                    // *** MODIFICATION END ***
                     ></div>
                   </div>
                   <div
                     className="absolute transform -translate-x-1/2"
-                    style={{ left: `${progressPercentage}%`, bottom: 'calc(2rem + 2px)' }}
+                    // *** MODIFICATION START ***
+                    style={{ left: `${displayProgressPercentage - 1}%`, bottom: 'calc(2rem + 2px)' }}
+                  // *** MODIFICATION END ***
                   >
                     <div className="flex flex-col items-center">
                       <Image src="/img/brand/favicon.svg" alt="Progress Marker" width={20} height={20} />
@@ -353,73 +358,82 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
                   <ShareOutlineIcon className="h-5 w-5 mr-2" /> Share Drive!
                 </button>
               </div>
+              <div className="bg-white p-6 rounded-lg shadow-lg border border-ggreen">
+                {topDonors && topDonors.length > 0 ? (
+                  <>
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-xl font-semibold text-ggreen">Top Donors</h2>
+                    </div>
+                    <ul className="space-y-3">
+                      {topDonors.map((donor, index) => (
+                        <li key={donor.name + '-' + index} className="flex items-center">
+                          <Image
+                            src={donor.avatar || '/img/default-avatar.png'}
+                            alt={donor.name || 'Donor'}
+                            width={40} height={40}
+                            className="rounded-full mr-3 object-cover"
+                            onError={(e) => e.currentTarget.src = '/img/default-avatar.png'}
+                          />
+                          <div className="flex-grow">
+                            <p className="text-sm font-medium text-slate-800">{donor.name || 'Anonymous Donor'} {donor.badge && <span className="text-xs">{donor.badge}</span>}</p>
+                            <p className="text-xs text-slate-500">{donor.items} Item{donor.items !== 1 ? 's' : ''}</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-xl font-semibold text-ggreen">Top Donors</h2>
+                    </div>
+                    <div className="bg-white p-6 text-center text-slate-500 text-sm">
+                      Be the first to donate to appear on the leaderboard!
+                    </div>
+                  </>
+                )}
 
-              {topDonors && topDonors.length > 0 ? (
-                <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-semibold text-ggreen">Top Donors</h2>
-                  </div>
-                  <ul className="space-y-3">
-                    {topDonors.map((donor, index) => (
-                      <li key={donor.name + '-' + index} className="flex items-center"> {/* Improved key */}
-                        <Image
-                          src={donor.avatar || '/img/default-avatar.png'}
-                          alt={donor.name || 'Donor'}
-                          width={40} height={40}
-                          className="rounded-full mr-3 object-cover"
-                          onError={(e) => e.currentTarget.src = '/img/default-avatar.png'}
-                        />
-                        <div className="flex-grow">
-                          <p className="text-sm font-medium text-slate-800">{donor.name || 'Anonymous Donor'} {donor.badge && <span className="text-xs">{donor.badge}</span>}</p>
-                          <p className="text-xs text-slate-500">{donor.items} Item{donor.items !== 1 ? 's' : ''}</p>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : (
-                <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200 text-center text-slate-500 text-sm">
-                  Be the first to donate to appear on the leaderboard!
-                </div>
-              )}
+                {recentDonations && recentDonations.length > 0 ? (
+                  <>
+                    <h2 className="text-xl font-semibold text-ggreen mb-4">Recent Donations</h2>
+                    <ul className="space-y-4">
+                      {recentDonations.map((donation, index) => (
+                        <li key={donation.itemName + '-' + donation.time + '-' + index} className="flex items-center">
+                          <Image
+                            src={donation.avatar || '/img/default-avatar.png'}
+                            alt={donation.donorName || 'Donor'}
+                            width={40} height={40}
+                            className="rounded-full mr-3 object-cover"
+                            onError={(e) => e.currentTarget.src = '/img/default-avatar.png'}
+                          />
+                          <div className="flex-grow">
+                            <p className="text-sm">
+                              <span className="font-medium text-slate-800">{donation.donorName || 'Anonymous Donor'}</span>
+                              {donation.badge && <span className="text-xs ml-1">{donation.badge}</span>}
+                            </p>
+                            <p className="text-sm text-slate-600">{donation.itemName || 'An item'}</p>
+                          </div>
+                          <span className="text-xs text-slate-400 flex-shrink-0">{donation.time}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="text-xl font-semibold text-ggreen mb-4">Recent Donations</h2>
 
-              {recentDonations && recentDonations.length > 0 ? (
-                <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
-                  <h2 className="text-xl font-semibold text-ggreen mb-4">Recent Donations</h2>
-                  <ul className="space-y-4">
-                    {recentDonations.map((donation, index) => (
-                      <li key={donation.itemName + '-' + donation.time + '-' + index} className="flex items-center"> {/* Improved key */}
-                        <Image
-                          src={donation.avatar || '/img/default-avatar.png'}
-                          alt={donation.donorName || 'Donor'}
-                          width={40} height={40}
-                          className="rounded-full mr-3 object-cover"
-                          onError={(e) => e.currentTarget.src = '/img/default-avatar.png'}
-                        />
-                        <div className="flex-grow">
-                          <p className="text-sm">
-                            <span className="font-medium text-slate-800">{donation.donorName || 'Anonymous Donor'}</span>
-                            {donation.badge && <span className="text-xs ml-1">{donation.badge}</span>}
-                          </p>
-                          <p className="text-sm text-slate-600">{donation.itemName || 'An item'}</p>
-                        </div>
-                        <span className="text-xs text-slate-400 flex-shrink-0">{donation.time}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : (
-                <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200 text-center text-slate-500 text-sm">
-                  No recent donations yet. Your donation could be the first!
-                </div>
-              )}
+                    <div className="bg-white p-6 text-center text-slate-500 text-sm">
+                      No recent donations yet. Your donation could be the first!
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Right Column - Items Grid */}
             <div className="md:col-span-8">
               {driveItemsOnly && driveItemsOnly.length > 0 && (
                 <div className="mb-12">
-                  <h2 className="text-2xl font-semibold text-ggreen mb-4">General Drive Needs</h2>
                   <DriveItemsSection
                     items={driveItemsOnly}
                     cart={cart}
