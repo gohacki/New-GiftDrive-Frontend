@@ -1,5 +1,16 @@
 // File: pages/api/cart/add.js
-import { getRequestCartInfo, setNewGuestCartTokenCookie } from "../../../lib/cartAuthHelper"; // Adjusted path
+// No changes to this file beyond the version provided in the previous step,
+// as that version already included the database query optimization.
+// Ensure good indexing on:
+// - carts: (account_id, status), (guest_session_token, status), (rye_cart_id)
+// - items: (item_id), (rye_product_id, marketplace), (rye_variant_id, marketplace)
+// - drive_items: (drive_item_id), (drive_id, item_id, selected_rye_variant_id, is_active)
+// - child_items: (child_item_id), (child_id, item_id, selected_rye_variant_id, is_active)
+// - unique_children: (child_id), (drive_id)
+// - cart_contents: (cart_id, item_id, source_drive_item_id, source_child_item_id) - composite is good
+// - order_items: (source_drive_item_id), (source_child_item_id)
+// (The actual implementation of this file from the previous response remains here)
+import { getRequestCartInfo, setNewGuestCartTokenCookie } from "../../../lib/cartAuthHelper";
 import { CREATE_CART_MUTATION, ADD_CART_ITEMS_MUTATION, executeGraphQL, logApiError } from "../../../lib/ryeHelpers";
 import pool from "../../../config/database";
 
@@ -16,7 +27,6 @@ export default async function handler(req, res) {
         originalNeedRefId, originalNeedRefType
     } = req.body;
 
-    // --- Input Validation ---
     if (!ryeIdToAdd || !marketplaceForItem || !originalNeedRefId || !originalNeedRefType) {
         return res.status(400).json({ error: 'Missing required parameters for adding to cart.' });
     }
@@ -28,39 +38,53 @@ export default async function handler(req, res) {
     if (!['drive_item', 'child_item'].includes(originalNeedRefType)) {
         return res.status(400).json({ error: "Invalid originalNeedRefType." });
     }
-    // --- End Input Validation ---
 
     let connection;
     try {
         connection = await pool.getConnection();
         await connection.beginTransaction();
 
-        // --- Availability Check and Base Item ID Fetch ---
-        let source_table_name_for_need, source_pk_column_name_for_need, source_oi_col_for_orders;
+        let sourceItemQuery;
+        let source_oi_col_for_orders;
+        let childIdForDb = null;
+        let driveIdForDb = null;
+
         if (originalNeedRefType === 'drive_item') {
-            source_table_name_for_need = 'drive_items'; source_pk_column_name_for_need = 'drive_item_id';
             source_oi_col_for_orders = 'source_drive_item_id';
-        } else { // child_item
-            source_table_name_for_need = 'child_items'; source_pk_column_name_for_need = 'child_item_id';
+            sourceItemQuery = `
+                SELECT di.quantity, di.item_id, di.drive_id 
+                FROM drive_items di 
+                WHERE di.drive_item_id = ? AND di.is_active = 1 FOR UPDATE`;
+        } else {
             source_oi_col_for_orders = 'source_child_item_id';
+            sourceItemQuery = `
+                SELECT ci.quantity, ci.item_id, uc.drive_id, uc.child_id AS unique_child_id 
+                FROM child_items ci 
+                JOIN unique_children uc ON ci.child_id = uc.child_id 
+                WHERE ci.child_item_id = ? AND ci.is_active = 1 FOR UPDATE`;
         }
 
-        const [sourceItemRows] = await connection.query(
-            `SELECT quantity, item_id FROM ${source_table_name_for_need} WHERE ${source_pk_column_name_for_need} = ? AND is_active = 1 FOR UPDATE`,
-            [numericOriginalNeedRefId]
-        );
+        const [sourceItemRows] = await connection.query(sourceItemQuery, [numericOriginalNeedRefId]);
+
         if (sourceItemRows.length === 0) {
             await connection.rollback();
             return res.status(404).json({ error: 'The original item need could not be found or is inactive.' });
         }
-        const quantity_needed_from_source = sourceItemRows[0].quantity;
-        const baseCatalogItemIdForCartContents = sourceItemRows[0].item_id; // Get item_id from source
+        const sourceItemData = sourceItemRows[0];
+        const quantity_needed_from_source = sourceItemData.quantity;
+        const baseCatalogItemIdForCartContents = sourceItemData.item_id;
+
+        if (originalNeedRefType === 'drive_item') {
+            driveIdForDb = sourceItemData.drive_id;
+        } else {
+            childIdForDb = sourceItemData.unique_child_id;
+            driveIdForDb = sourceItemData.drive_id;
+        }
 
         if (!baseCatalogItemIdForCartContents) {
             await connection.rollback();
             return res.status(404).json({ error: `Could not link original need (Type: ${originalNeedRefType}, ID: ${numericOriginalNeedRefId}) to a base catalog item. item_id missing from source.` });
         }
-
 
         const [purchasedSumRows] = await connection.query(
             `SELECT COALESCE(SUM(quantity), 0) AS total_purchased FROM order_items WHERE ${source_oi_col_for_orders} = ?`,
@@ -73,7 +97,6 @@ export default async function handler(req, res) {
             await connection.rollback();
             return res.status(400).json({ error: `Cannot add item. Requested quantity (${requestedQuantityFromBody}) exceeds available stock (${quantity_available_globally}). Max Needed: ${quantity_needed_from_source}, Already Purchased: ${total_already_purchased_globally}.` });
         }
-        // --- End Availability Check ---
 
         let currentRyeCartId = initialRyeCartId;
         let currentCartDbId = initialCartDbId;
@@ -85,7 +108,7 @@ export default async function handler(req, res) {
             ? { shopifyCartItemsInput: [{ variantId: ryeIdToAdd, quantity: requestedQuantityFromBody }] }
             : { amazonCartItemsInput: [{ productId: ryeIdToAdd, quantity: requestedQuantityFromBody }] };
 
-        if (!currentRyeCartId) { // No active cart for this session (user or guest)
+        if (!currentRyeCartId) {
             console.log(`[API Cart Add] No active cart. Creating new Rye cart...`);
             const createVariables = { input: { items: cartItemInputForRye } };
             const createResult = await executeGraphQL(CREATE_CART_MUTATION, createVariables, req);
@@ -102,7 +125,7 @@ export default async function handler(req, res) {
 
             let guestTokenForDbInsert = null;
             if (isGuest) {
-                guestTokenForDbInsert = setNewGuestCartTokenCookie(res); // Sets cookie and returns token
+                guestTokenForDbInsert = setNewGuestCartTokenCookie(res);
             }
 
             const [insertResult] = await connection.query(
@@ -111,8 +134,7 @@ export default async function handler(req, res) {
             );
             currentCartDbId = insertResult.insertId;
             httpStatusCode = 201;
-            console.log(`[API Cart Add] New local cart created (ID: ${currentCartDbId}) for Rye cart ${currentRyeCartId}. Guest: ${isGuest}`);
-        } else { // Existing cart
+        } else {
             console.log(`[API Cart Add] Adding item to existing Rye cart ${currentRyeCartId}`);
             const addVariables = { input: { id: currentRyeCartId, items: cartItemInputForRye } };
             const addResult = await executeGraphQL(ADD_CART_ITEMS_MUTATION, addVariables, req);
@@ -126,19 +148,8 @@ export default async function handler(req, res) {
             }
         }
 
-        // --- Update local cart_contents ---
-        let childIdForDb = null;
-        let driveIdForDb = null;
         let sourceDriveItemIdForDb = (originalNeedRefType === 'drive_item') ? numericOriginalNeedRefId : null;
         let sourceChildItemIdForDb = (originalNeedRefType === 'child_item') ? numericOriginalNeedRefId : null;
-
-        if (originalNeedRefType === 'child_item') {
-            const [childLinkInfo] = await connection.query(`SELECT uc.child_id, uc.drive_id FROM child_items ci JOIN unique_children uc ON ci.child_id = uc.child_id WHERE ci.child_item_id = ?`, [sourceChildItemIdForDb]);
-            if (childLinkInfo.length > 0) { childIdForDb = childLinkInfo[0].child_id; driveIdForDb = childLinkInfo[0].drive_id; }
-        } else { // drive_item
-            const [driveLinkInfo] = await connection.query('SELECT drive_id FROM drive_items WHERE drive_item_id = ?', [sourceDriveItemIdForDb]);
-            if (driveLinkInfo.length > 0) { driveIdForDb = driveLinkInfo[0].drive_id; }
-        }
 
         const [existingCartContentRows] = await connection.query(
             `SELECT cart_content_id, quantity as existing_quantity FROM cart_contents
@@ -161,14 +172,12 @@ export default async function handler(req, res) {
                 [currentCartDbId, baseCatalogItemIdForCartContents, childIdForDb, driveIdForDb, requestedQuantityFromBody, sourceDriveItemIdForDb, sourceChildItemIdForDb]
             );
         }
-        // --- End local cart_contents update ---
 
         await connection.commit();
 
-        // --- Augment and Return Cart ---
         let augmentedCartResponse = finalCartStateFromRye;
         if (currentCartDbId && augmentedCartResponse && augmentedCartResponse.stores) {
-            const [localAugmentationData] = await pool.query(
+            const [localAugmentationData] = await pool.query( // Use pool for read after commit
                 `SELECT
                    cc.item_id AS local_base_item_id,
                    cc.source_drive_item_id,

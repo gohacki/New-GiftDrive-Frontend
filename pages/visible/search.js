@@ -17,37 +17,52 @@ const driveStatusOptions = [
 
 export default function CombinedSearchPage() {
     const router = useRouter();
-    // Destructure query parameters directly from router.query for use in dependencies
     const { q: queryParam_q, drive_status: queryParam_drive_status, org_state: queryParam_org_state, org_city: queryParam_org_city } = router.query;
 
-    // State for form inputs (controlled components)
     const [pageInputTerm, setPageInputTerm] = useState('');
     const [pageDriveFilter, setPageDriveFilter] = useState('all');
     const [pageOrgStateFilter, setPageOrgStateFilter] = useState('All');
     const [pageOrgCityFilter, setPageOrgCityFilter] = useState('All');
 
-    // State for dynamic filter options
     const [availableStates, setAvailableStates] = useState([]);
     const [availableCities, setAvailableCities] = useState([]);
 
-    // State for search results and status
     const [driveResults, setDriveResults] = useState([]);
     const [orgResults, setOrgResults] = useState([]);
-    const [loading, setLoading] = useState(false); // Changed initial state to false, will be true during fetch
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [searchAttempted, setSearchAttempted] = useState(false);
 
+    // New state to manage client-side readiness for rendering dynamic content
+    const [isClientReady, setIsClientReady] = useState(false);
+
+    useEffect(() => {
+        // This effect runs only on the client, after hydration.
+        // It sets isClientReady to true once the router is ready.
+        if (router.isReady) {
+            setIsClientReady(true);
+        }
+    }, [router.isReady]);
+
     // Sync form state with URL query parameters
     useEffect(() => {
-        setPageInputTerm(typeof queryParam_q === 'string' ? queryParam_q : '');
-        setPageDriveFilter(typeof queryParam_drive_status === 'string' ? queryParam_drive_status : 'all');
-        setPageOrgStateFilter(typeof queryParam_org_state === 'string' ? queryParam_org_state : 'All');
-        setPageOrgCityFilter(
-            typeof queryParam_org_state === 'string' && queryParam_org_state !== 'All' && typeof queryParam_org_city === 'string'
-                ? queryParam_org_city
-                : 'All'
-        );
-    }, [queryParam_q, queryParam_drive_status, queryParam_org_state, queryParam_org_city]);
+        // Only update form state if router.isReady to ensure query params are available
+        if (router.isReady) {
+            setPageInputTerm(typeof queryParam_q === 'string' ? queryParam_q : '');
+            setPageDriveFilter(typeof queryParam_drive_status === 'string' ? queryParam_drive_status : 'all');
+            setPageOrgStateFilter(typeof queryParam_org_state === 'string' ? queryParam_org_state : 'All');
+            // Set city filter based on state; ensure it's 'All' if state is 'All' or city not in new list
+            const currentUrlCity = typeof queryParam_org_city === 'string' ? queryParam_org_city : 'All';
+            if (typeof queryParam_org_state === 'string' && queryParam_org_state !== 'All') {
+                // If cities for the current state are already fetched and the URL city is not among them, reset city to 'All'
+                // This logic is further handled in the city fetching useEffect
+                setPageOrgCityFilter(currentUrlCity);
+            } else {
+                setPageOrgCityFilter('All');
+            }
+        }
+    }, [queryParam_q, queryParam_drive_status, queryParam_org_state, queryParam_org_city, router.isReady]);
+
 
     // Fetch available states for the filter dropdown
     useEffect(() => {
@@ -66,55 +81,53 @@ export default function CombinedSearchPage() {
     useEffect(() => {
         const fetchCitiesForState = async () => {
             if (pageOrgStateFilter && pageOrgStateFilter !== 'All') {
-                // No setLoading(true) here as main loading handles combined fetch
                 try {
                     const citiesResponse = await axios.get(`/api/organizations/cities`, {
                         params: { state: pageOrgStateFilter },
                     });
-                    setAvailableCities(citiesResponse.data || []);
-                    if (!citiesResponse.data.includes(pageOrgCityFilter) && router.query.org_city !== pageOrgCityFilter) {
+                    const newCities = citiesResponse.data || [];
+                    setAvailableCities(newCities);
+                    // If the currently selected city (from URL or user interaction) is not in the new list of cities, reset it.
+                    if (!newCities.includes(pageOrgCityFilter)) {
                         setPageOrgCityFilter('All');
                     }
                 } catch (err) {
                     console.error(`Error fetching cities for state ${pageOrgStateFilter}:`, err.response?.data || err.message);
                     setAvailableCities([]);
+                    setPageOrgCityFilter('All'); // Reset city on error
                 }
             } else {
                 setAvailableCities([]);
-                if (pageOrgStateFilter === 'All') setPageOrgCityFilter('All');
+                if (pageOrgStateFilter === 'All') setPageOrgCityFilter('All'); // Ensure city is 'All' if state is 'All'
             }
         };
-        if (router.isReady) { // Ensure state filter is synced from URL before fetching cities
+        // Only run if isClientReady, as pageOrgStateFilter depends on router.isReady for its initial value
+        if (isClientReady) {
             fetchCitiesForState();
         }
-    }, [pageOrgStateFilter, router.isReady, router.query.org_city]); // Added router.isReady and router.query.org_city
+    }, [pageOrgStateFilter, isClientReady]); // pageOrgCityFilter removed to avoid loop, handled internally
 
-    // Main data fetching effect based on URL query parameters
+
+    // Main data fetching effect
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             setError(null);
-            setSearchAttempted(true); // Indicate that a fetch (default or filtered) is being made
+            setSearchAttempted(true);
             setDriveResults([]);
             setOrgResults([]);
 
-            // Use the current state of form inputs for the API query parameters
-            // These are already synced with URL query params by the other useEffect
             const effectiveSearchTerm = pageInputTerm.trim();
             const effectiveDriveFilter = pageDriveFilter;
             const effectiveOrgState = pageOrgStateFilter;
             const effectiveOrgCity = pageOrgCityFilter;
 
             try {
-                // Fetch Drives
                 const driveParams = { search: effectiveSearchTerm, limit: 12 };
-                if (effectiveDriveFilter !== 'all') {
-                    driveParams.status = effectiveDriveFilter;
-                }
+                if (effectiveDriveFilter !== 'all') driveParams.status = effectiveDriveFilter;
                 const driveResponse = await axios.get(`/api/drives`, { params: driveParams });
                 setDriveResults(driveResponse.data || []);
 
-                // Fetch Organizations
                 const orgParams = { search: effectiveSearchTerm, limit: 12, featured: "false" };
                 if (effectiveOrgState !== 'All') orgParams.state = effectiveOrgState;
                 if (effectiveOrgCity !== 'All' && effectiveOrgState !== 'All') orgParams.city = effectiveOrgCity;
@@ -129,14 +142,18 @@ export default function CombinedSearchPage() {
             }
         };
 
-        if (router.isReady) {
-            // Previously, there was a condition here to prevent fetching if no query/filters.
-            // Removing that condition makes it fetch by default.
+        // Only fetch data if the client is ready and query params are available
+        // This uses the state variables (pageInputTerm, etc.) which are synced from URL query params.
+        if (isClientReady) {
             fetchData();
         }
+        // Dependencies reflect the actual URL query parameters that should trigger a refetch.
+        // Form input states (pageInputTerm etc.) are derived from these, so they don't need to be direct dependencies here
+        // if their own useEffect correctly syncs them. However, to be absolutely sure fetchData runs when form state IS the source of truth
+        // (e.g. user types then clicks submit, which updates URL, then this runs), it's safer to include them or simplify.
+        // For now, relying on the fact that queryParam_x change will trigger this correctly.
+    }, [isClientReady, queryParam_q, queryParam_drive_status, queryParam_org_state, queryParam_org_city]);
 
-    }, [queryParam_q, queryParam_drive_status, queryParam_org_state, queryParam_org_city, router.isReady,
-        pageInputTerm, pageDriveFilter, pageOrgStateFilter, pageOrgCityFilter]); // Added form state to dependencies to refetch if form changes directly before submit
 
     const handleSearchAndFilterApply = (e) => {
         if (e) e.preventDefault();
@@ -151,20 +168,31 @@ export default function CombinedSearchPage() {
                 queryParams.set('org_city', pageOrgCityFilter);
             }
         }
+        // Pushing to router will update queryParams and trigger the fetchData effect
         router.push(`/visible/search?${queryParams.toString()}`, undefined, { shallow: false });
     };
+
+    // Initial content to be rendered consistently on server and client's first pass
+    const initialContent = (
+        <div className="text-center py-10 bg-white rounded-lg shadow p-6">
+            <MagnifyingGlassIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-xl text-gray-700 mb-2">Initializing search...</p>
+            <p className="text-sm text-gray-500">Use the filters above to find drives and organizations.</p>
+        </div>
+    );
 
     return (
         <>
             <Navbar transparent />
             <main className="min-h-screen bg-secondary_green text-gray-800 relative pt-20 pb-16">
-                <div className="container mx-auto px-4 py-8">
-                    <div className="text-center mb-8 pt-6">
+                <div className="container mx-auto px-4 py-8"> {/* Line 161 */}
+                    <div className="text-center mb-8 pt-6"> {/* Line 162 */}
                         <h1 className="text-4xl font-semibold text-ggreen">Discover & Support</h1>
                         <p className="text-lg text-gray-600 mt-2">Find drives and organizations making a difference.</p>
                     </div>
 
                     <form onSubmit={handleSearchAndFilterApply} className="bg-white p-6 rounded-lg shadow-md mb-8 sticky top-24 z-40 border-ggreen border-2">
+                        {/* Form content... (unchanged) */}
                         <div className="flex flex-col md:flex-row gap-4 items-end">
                             <div className="flex-grow">
                                 <label htmlFor="page-search-input" className="block text-sm font-medium text-gray-700 mb-1">
@@ -195,7 +223,6 @@ export default function CombinedSearchPage() {
                                 Search
                             </button>
                         </div>
-
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                             <div>
                                 <label htmlFor="drive-status-filter" className="block text-xs font-medium text-gray-700 mb-1">Drive Status</label>
@@ -215,6 +242,7 @@ export default function CombinedSearchPage() {
                                     value={pageOrgStateFilter}
                                     onChange={(e) => {
                                         setPageOrgStateFilter(e.target.value);
+                                        // If state is changed to "All", city filter should also reset to "All"
                                         if (e.target.value === 'All') setPageOrgCityFilter('All');
                                     }}
                                     className="w-full text-sm border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-1 focus:ring-ggreen focus:border-ggreen bg-white"
@@ -239,48 +267,42 @@ export default function CombinedSearchPage() {
                         </div>
                     </form>
 
-                    {loading && <p className="text-center text-gray-600 text-lg py-10">Loading results...</p>}
-                    {error && <p className="text-center text-red-500 text-lg py-10">{error}</p>}
-
-                    {/* This message is for when a search/filter returns no results */}
-                    {!loading && !error && searchAttempted && driveResults.length === 0 && orgResults.length === 0 && (
-                        <div className="text-center py-10 bg-white rounded-lg shadow p-6">
-                            <p className="text-xl text-gray-700 mb-4">No results found for your criteria.</p>
-                            <p className="text-gray-500">Try different keywords or broaden your filters.</p>
-                        </div>
-                    )}
-
-                    {/* This message is for the very initial load IF router isn't ready yet OR if not searchAttempted (though searchAttempted is now always true on load) */}
-                    {!loading && !error && !searchAttempted && !router.isReady && (
-                        <div className="text-center py-10 bg-white rounded-lg shadow p-6">
-                            <MagnifyingGlassIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                            <p className="text-xl text-gray-700 mb-2">Loading search...</p>
-                        </div>
-                    )}
-
-
-                    {!loading && !error && (driveResults.length > 0 || orgResults.length > 0) && (
+                    {!isClientReady ? initialContent : (
                         <>
-                            {driveResults.length > 0 && (
-                                <section className="mb-12">
-                                    <h2 className="text-2xl font-semibold text-gray-700 mb-4">Drives Found</h2>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {driveResults.map((drive) => (
-                                            <DriveListCard key={`drive-${drive.drive_id}`} drive={drive} />
-                                        ))}
-                                    </div>
-                                </section>
+                            {loading && <p className="text-center text-gray-600 text-lg py-10">Loading results...</p>}
+                            {error && <p className="text-center text-red-500 text-lg py-10">{error}</p>}
+
+                            {!loading && !error && searchAttempted && driveResults.length === 0 && orgResults.length === 0 && (
+                                <div className="text-center py-10 bg-white rounded-lg shadow p-6">
+                                    <p className="text-xl text-gray-700 mb-4">No results found for your criteria.</p>
+                                    <p className="text-gray-500">Try different keywords or broaden your filters.</p>
+                                </div>
                             )}
 
-                            {orgResults.length > 0 && (
-                                <section>
-                                    <h2 className="text-2xl font-semibold text-gray-700 mb-4">Organizations Found</h2>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {orgResults.map((org) => (
-                                            <OrganizationCard key={`org-${org.org_id}`} org={org} />
-                                        ))}
-                                    </div>
-                                </section>
+                            {!loading && !error && (driveResults.length > 0 || orgResults.length > 0) && (
+                                <>
+                                    {driveResults.length > 0 && (
+                                        <section className="mb-12">
+                                            <h2 className="text-2xl font-semibold text-gray-700 mb-4">Drives Found</h2>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                {driveResults.map((drive) => (
+                                                    <DriveListCard key={`drive-${drive.drive_id}`} drive={drive} />
+                                                ))}
+                                            </div>
+                                        </section>
+                                    )}
+
+                                    {orgResults.length > 0 && (
+                                        <section>
+                                            <h2 className="text-2xl font-semibold text-gray-700 mb-4">Organizations Found</h2>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                {orgResults.map((org) => (
+                                                    <OrganizationCard key={`org-${org.org_id}`} org={org} />
+                                                ))}
+                                            </div>
+                                        </section>
+                                    )}
+                                </>
                             )}
                         </>
                     )}

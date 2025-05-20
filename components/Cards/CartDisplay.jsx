@@ -1,4 +1,4 @@
-// src/components/CartDisplay.jsx
+// src/components/Cards/CartDisplay.jsx
 import { formatCurrency } from '@/lib/utils';
 import Image from 'next/image';
 import React from 'react';
@@ -6,7 +6,7 @@ import PropTypes from 'prop-types';
 
 export default function CartDisplay({ cart, checkoutStep, onRemoveItem, onUpdateItemQuantity, isLoading }) {
 
-    const renderCartErrors = (stores, currentCheckoutStep) => { /* ... existing error rendering ... */
+    const renderCartErrors = (stores, currentCheckoutStep) => {
         let allErrors = [];
         let unavailableItemsMessages = [];
 
@@ -56,7 +56,7 @@ export default function CartDisplay({ cart, checkoutStep, onRemoveItem, onUpdate
             </div>
         );
     };
-    const renderCartSummary = (cost) => { /* ... existing summary rendering ... */
+    const renderCartSummary = (cost) => {
         if (!cost) {
             return (
                 <div className="mt-4 pt-3 border-t text-right text-sm text-gray-500 italic">
@@ -124,36 +124,31 @@ export default function CartDisplay({ cart, checkoutStep, onRemoveItem, onUpdate
                                     </h4>
                                     {store.cartLines?.map((line, itemIndex) => {
                                         const isShopify = marketplace === 'SHOPIFY';
-                                        // For Shopify, line.variant contains the specific variant details.
-                                        // For Amazon, line.product contains the product details.
                                         const itemData = isShopify ? line.variant : line.product;
 
-                                        const ryeItemId = itemData?.id || 'N/A'; // This is the Rye Variant ID (Shopify) or Product ID (Amazon)
+                                        // Use optimisticId for key if present, otherwise a combination
+                                        const keyForItem = line.optimisticId || `${itemData?.id || 'item'}-${storeIndex}-${itemIndex}`;
+                                        const ryeItemId = itemData?.id || 'N/A';
+                                        const isOptimistic = !!line.isOptimistic;
 
-                                        // Attempt to get base product name from augmented data if available
-                                        // This requires your /api/cart GET route to augment cart lines
-                                        // with giftdrive_base_product_name and giftdrive_variant_details_text
+
                                         const baseProductName = line.giftdrive_base_product_name || (isShopify ? line.product?.title : itemData?.title) || 'Unknown Base Product';
-                                        const variantDetailsText = line.giftdrive_variant_details_text || (isShopify ? itemData?.title : null); // This might be "Base Name - Variant" or just "Variant"
+                                        const variantDetailsText = line.giftdrive_variant_details_text || (isShopify ? itemData?.title : null);
 
-                                        // Final display logic for name
                                         let displayTitle = baseProductName;
                                         let displaySubline = null;
 
                                         if (variantDetailsText && variantDetailsText !== baseProductName) {
-                                            // If variantDetailsText is the full "Base Name - Variant Detail", extract just variant part
                                             let specificVariantPart = variantDetailsText.replace(baseProductName, '').trim();
                                             if (specificVariantPart.startsWith('- ')) {
                                                 specificVariantPart = specificVariantPart.substring(2).trim();
                                             }
-                                            displaySubline = specificVariantPart || variantDetailsText; // Fallback to full if replacement empty
+                                            displaySubline = specificVariantPart || variantDetailsText;
                                         } else if (isShopify && itemData?.title && itemData.title !== baseProductName) {
-                                            // Fallback if augmented data isn't there, but variant title differs from base
                                             displaySubline = itemData.title;
                                         }
 
-
-                                        const imageUrl = isShopify ? itemData?.image?.url : itemData?.images?.[0]?.url;
+                                        const imageUrl = isShopify ? (itemData?.image?.url || line.giftdrive_display_photo) : (itemData?.images?.[0]?.url || line.giftdrive_display_photo);
                                         const placeholderImg = '/placeholder-image.png';
 
                                         const handleQuantityChange = (newQuantity) => {
@@ -164,25 +159,29 @@ export default function CartDisplay({ cart, checkoutStep, onRemoveItem, onUpdate
                                         };
 
                                         return (
-                                            <div key={`${ryeItemId}-${itemIndex}`} className="bg-gray-50 p-3 rounded border border-gray-200 mb-2 flex items-center gap-3">
+                                            <div key={keyForItem}
+                                                className={`bg-gray-50 p-3 rounded border border-gray-200 mb-2 flex items-center gap-3 relative ${isOptimistic ? 'opacity-70 animate-pulse' : ''}`}>
+                                                {isOptimistic && (
+                                                    <span className="absolute top-1 right-1 text-xs text-blue-600 italic bg-blue-100 px-1.5 py-0.5 rounded-full">Adding...</span>
+                                                )}
                                                 <div className="w-16 h-16 relative flex-shrink-0 border bg-white rounded overflow-hidden">
                                                     <Image src={imageUrl || placeholderImg} alt={displayTitle} fill style={{ objectFit: 'contain' }} sizes="64px" onError={(e) => e.currentTarget.src = placeholderImg} />
                                                 </div>
                                                 <div className="flex-grow flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                                                    <div className="min-w-0"> {/* For truncation */}
+                                                    <div className="min-w-0">
                                                         <p className="font-medium text-sm leading-tight truncate" title={displayTitle}>{displayTitle}</p>
                                                         {displaySubline && (
                                                             <p className="text-xs text-gray-500 truncate" title={displaySubline}>{displaySubline}</p>
                                                         )}
-                                                        <p className="text-xs text-gray-400">ID: {ryeItemId}</p>
+                                                        {!isOptimistic && <p className="text-xs text-gray-400">ID: {ryeItemId}</p>}
                                                     </div>
                                                     <div className="flex items-center gap-2 flex-shrink-0">
-                                                        <button onClick={() => handleQuantityChange(line.quantity - 1)} disabled={isLoading} className="px-2 py-0.5 text-sm bg-gray-300 hover:bg-gray-400 text-gray-800 rounded disabled:opacity-50" aria-label={`Decrease quantity of ${displayTitle}`}>-</button>
+                                                        <button onClick={() => handleQuantityChange(line.quantity - 1)} disabled={isLoading || isOptimistic} className="px-2 py-0.5 text-sm bg-gray-300 hover:bg-gray-400 text-gray-800 rounded disabled:opacity-50" aria-label={`Decrease quantity of ${displayTitle}`}>-</button>
                                                         <span className="text-sm font-semibold w-6 text-center">{line.quantity}</span>
-                                                        <button onClick={() => handleQuantityChange(line.quantity + 1)} disabled={isLoading} className="px-2 py-0.5 text-sm bg-gray-300 hover:bg-gray-400 text-gray-800 rounded disabled:opacity-50" aria-label={`Increase quantity of ${displayTitle}`}>+</button>
+                                                        <button onClick={() => handleQuantityChange(line.quantity + 1)} disabled={isLoading || isOptimistic} className="px-2 py-0.5 text-sm bg-gray-300 hover:bg-gray-400 text-gray-800 rounded disabled:opacity-50" aria-label={`Increase quantity of ${displayTitle}`}>+</button>
                                                     </div>
                                                 </div>
-                                                <button onClick={() => onRemoveItem(ryeItemId, marketplace)} disabled={isLoading} className="ml-2 px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded shadow-sm disabled:opacity-50 flex-shrink-0" aria-label={`Remove ${displayTitle} from cart`}>Remove</button>
+                                                <button onClick={() => onRemoveItem(ryeItemId, marketplace)} disabled={isLoading || isOptimistic} className="ml-2 px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded shadow-sm disabled:opacity-50 flex-shrink-0" aria-label={`Remove ${displayTitle} from cart`}>Remove</button>
                                             </div>
                                         );
                                     })}
@@ -200,14 +199,17 @@ export default function CartDisplay({ cart, checkoutStep, onRemoveItem, onUpdate
 const cartLineItemShape = PropTypes.shape({
     giftdrive_base_product_name: PropTypes.string,
     giftdrive_variant_details_text: PropTypes.string,
+    giftdrive_display_photo: PropTypes.string, // Added for optimistic update
     quantity: PropTypes.number,
-    variant: PropTypes.shape({ // For Shopify variant
+    isOptimistic: PropTypes.bool, // Added for optimistic update
+    optimisticId: PropTypes.string, // Added for optimistic update
+    variant: PropTypes.shape({
         id: PropTypes.string,
         title: PropTypes.string,
         image: PropTypes.shape({ url: PropTypes.string }),
         priceV2: PropTypes.shape({ value: PropTypes.number, currency: PropTypes.string }),
     }),
-    product: PropTypes.shape({ // For Amazon product or Shopify parent product
+    product: PropTypes.shape({
         id: PropTypes.string,
         title: PropTypes.string,
         images: PropTypes.arrayOf(PropTypes.shape({ url: PropTypes.string })),
@@ -228,7 +230,7 @@ CartDisplay.propTypes = {
             }),
         })),
         cost: PropTypes.shape({
-            subtotal: PropTypes.object, // Assuming formatCurrency handles its structure
+            subtotal: PropTypes.object,
             shipping: PropTypes.object,
             tax: PropTypes.object,
             total: PropTypes.object,

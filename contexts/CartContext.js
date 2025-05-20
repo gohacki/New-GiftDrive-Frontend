@@ -3,82 +3,150 @@ import React, { createContext, useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-// No longer need useRouter here if all redirects are handled by pages or NextAuth
 import { useSession } from 'next-auth/react';
+import { v4 as uuidv4 } from 'uuid'; // For temporary optimistic item IDs
 
 export const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true); // True initially to fetch cart
-  const { status: authStatus } = useSession(); // Only need authStatus to trigger re-fetch
+  const { status: authStatus } = useSession();
 
   const fetchCart = useCallback(async () => {
     console.log("CartContext: fetchCart called. Auth status:", authStatus);
-    // Don't set loading true here if it's a background refresh,
-    // only if it's the initial load or a major context change.
-    // The `loading` state here primarily reflects the cart's readiness.
-    // If authStatus is "loading", we might want to wait before fetching.
     if (authStatus === "loading") {
-      setLoading(true); // Keep context loading until auth is resolved
+      setLoading(true);
       return;
     }
-
-    setLoading(true); // Indicate cart fetching
+    setLoading(true);
     try {
       const response = await axios.get(`/api/cart`, { withCredentials: true });
       setCart(response.data || null);
       console.log("CartContext: Cart data fetched/updated:", response.data);
     } catch (error) {
       console.error('CartContext: Error fetching cart:', error.response?.data || error.message);
-      setCart(null); // Clear cart on error
-      // Optionally toast an error if it's not a silent fetch
-      // toast.error("Could not load your cart.");
+      setCart(null);
     } finally {
       setLoading(false);
     }
-  }, [authStatus]); // Re-fetch when authStatus changes
+  }, [authStatus]);
 
   useEffect(() => {
-    // Fetch cart initially when auth status is determined (authenticated or unauthenticated)
-    // This ensures guest carts are loaded if a cookie exists.
     fetchCart();
-  }, [fetchCart]); // fetchCart dependency includes authStatus
+  }, [fetchCart]);
 
   const resetCart = useCallback(() => {
     setCart(null);
-    // Optionally, you might want to call an API endpoint to clear the guestCartToken cookie
-    // if you want guests to explicitly "clear" their cart token.
-    // For now, just clearing client-side state.
     console.log("CartContext: Cart reset locally.");
   }, []);
 
-  const addToCart = async (payload) => {
-    // No longer check authStatus or redirect. API handles guest/user logic.
-    console.log(`CartContext: Adding item via API:`, payload);
-    setLoading(true); // Indicate cart operation
+  const addToCart = async (itemDisplayInfo, apiPayload) => {
+    // itemDisplayInfo: { name, image, priceInCents, currency, base_item_name, variant_display_name, base_item_photo, variant_display_photo, base_item_price, variant_display_price, base_rye_product_id, base_marketplace_store_domain (for Shopify) ... }
+    // apiPayload: { ryeIdToAdd, marketplaceForItem, quantity, originalNeedRefId, originalNeedRefType }
+
+    const originalCart = cart ? JSON.parse(JSON.stringify(cart)) : null; // Deep clone for rollback
+    const optimisticCartLineId = `optimistic-${uuidv4()}`;
+
+    // --- Optimistic UI Update ---
+    setCart(prevCart => {
+      let newCart = prevCart ? JSON.parse(JSON.stringify(prevCart)) : { stores: [], cost: null, buyerIdentity: null, id: `temp-${uuidv4()}` };
+      if (!newCart.stores) newCart.stores = [];
+
+      const marketplaceKey = apiPayload.marketplaceForItem.toUpperCase();
+      let storeIdentifier = marketplaceKey === "AMAZON" ? "amazon" : (itemDisplayInfo.base_marketplace_store_domain || marketplaceKey);
+
+      let storeIndex = newCart.stores.findIndex(s => s.store === storeIdentifier && s.__typename === (marketplaceKey === "AMAZON" ? "AmazonStore" : "ShopifyStore"));
+
+      if (storeIndex === -1) {
+        newCart.stores.push({
+          __typename: marketplaceKey === "AMAZON" ? "AmazonStore" : "ShopifyStore",
+          store: storeIdentifier,
+          cartLines: [],
+          offer: { shippingMethods: [], selectedShippingMethod: null, errors: [], notAvailableIds: [] },
+          errors: [],
+          isSubmitted: false,
+          orderId: null
+        });
+        storeIndex = newCart.stores.length - 1;
+      }
+
+      const displayPrice = itemDisplayInfo.variant_display_price ?? itemDisplayInfo.base_item_price ?? 0;
+      const priceInCents = Math.round(displayPrice * 100);
+      const currencyCode = itemDisplayInfo.currency || 'USD'; // Assume USD if not specified
+
+      const optimisticCartLine = {
+        quantity: apiPayload.quantity,
+        isOptimistic: true,
+        optimisticId: optimisticCartLineId, // Use this as key if needed
+        giftdrive_base_product_name: itemDisplayInfo.base_item_name,
+        giftdrive_variant_details_text: itemDisplayInfo.variant_display_name || itemDisplayInfo.base_item_name,
+        giftdrive_display_photo: itemDisplayInfo.variant_display_photo || itemDisplayInfo.base_item_photo,
+        giftdrive_display_price: displayPrice,
+        giftdrive_source_drive_item_id: apiPayload.originalNeedRefType === 'drive_item' ? apiPayload.originalNeedRefId : null,
+        giftdrive_source_child_item_id: apiPayload.originalNeedRefType === 'child_item' ? apiPayload.originalNeedRefId : null,
+      };
+
+      if (marketplaceKey === 'AMAZON') {
+        optimisticCartLine.product = {
+          id: apiPayload.ryeIdToAdd, // This is the ASIN for Amazon
+          title: itemDisplayInfo.base_item_name,
+          images: itemDisplayInfo.base_item_photo ? [{ url: itemDisplayInfo.base_item_photo }] : [],
+          price: { value: priceInCents, currency: currencyCode, displayValue: `$${(priceInCents / 100).toFixed(2)}` }
+        };
+      } else { // SHOPIFY
+        optimisticCartLine.variant = {
+          id: apiPayload.ryeIdToAdd, // This is the Shopify Variant ID
+          title: itemDisplayInfo.variant_display_name || itemDisplayInfo.base_item_name,
+          image: itemDisplayInfo.variant_display_photo ? { url: itemDisplayInfo.variant_display_photo } : null,
+          priceV2: { value: priceInCents, currency: currencyCode, displayValue: `$${(priceInCents / 100).toFixed(2)}` }
+        };
+        optimisticCartLine.product = { // Basic parent product info
+          id: itemDisplayInfo.base_rye_product_id || `parent-${apiPayload.ryeIdToAdd}`,
+          title: itemDisplayInfo.base_item_name
+        };
+      }
+      newCart.stores[storeIndex].cartLines.push(optimisticCartLine);
+
+      // Optimistically update subtotal and total (basic)
+      if (priceInCents != null) {
+        if (!newCart.cost) newCart.cost = { isEstimated: true, subtotal: { value: 0, currency: currencyCode, displayValue: '$0.00' }, total: { value: 0, currency: currencyCode, displayValue: '$0.00' }, tax: null, shipping: null };
+        if (!newCart.cost.subtotal) newCart.cost.subtotal = { value: 0, currency: currencyCode, displayValue: '$0.00' };
+        if (!newCart.cost.total) newCart.cost.total = { value: 0, currency: currencyCode, displayValue: '$0.00' };
+
+        newCart.cost.subtotal.value += (priceInCents * apiPayload.quantity);
+        newCart.cost.subtotal.displayValue = `$${(newCart.cost.subtotal.value / 100).toFixed(2)}`;
+        newCart.cost.isEstimated = true; // Likely estimated until full Rye recalc
+
+        newCart.cost.total.value += (priceInCents * apiPayload.quantity);
+        newCart.cost.total.displayValue = `$${(newCart.cost.total.value / 100).toFixed(2)}`;
+      }
+      return newCart;
+    });
+    // --- End Optimistic UI Update ---
+
+    setLoading(true); // Indicate background activity
     try {
-      const response = await axios.post(
-        `/api/cart/add`,
-        payload,
-        { withCredentials: true }
-      );
-      setCart(response.data);
-      toast.success('Item added to cart!');
+      const response = await axios.post(`/api/cart/add`, apiPayload, { withCredentials: true });
+      setCart(response.data); // Set the authoritative cart from backend
+      toast.success(`${itemDisplayInfo.name || 'Item'} added to cart!`);
       return true;
     } catch (error) {
       console.error('CartContext: Error adding to cart:', error.response?.data || error.message);
-      toast.error(error.response?.data?.error || 'Failed to add item to cart.');
-      // Fetch cart to sync state in case of partial failure or if backend returns old state on error
-      await fetchCart();
-      throw error; // Re-throw so calling component can handle if needed
+      toast.error(error.response?.data?.error || `Failed to add ${itemDisplayInfo.name || 'item'} to cart.`);
+      setCart(originalCart); // Rollback on error
+      // Optionally, fetch authoritative cart state again if rollback is too simple
+      // await fetchCart(); 
+      throw error; // Re-throw so calling component can know about the failure
     } finally {
       setLoading(false);
     }
   };
 
+  // Keep removeFromCart and updateCartItemQuantity as they were for now
+  // Optimistic updates for these can be added later if needed, following a similar pattern.
   const removeFromCart = async (ryeItemId, marketplace) => {
-    // No authStatus check here
+    // ... (original implementation) ...
     setLoading(true);
     try {
       const response = await axios.post(
@@ -87,15 +155,13 @@ export const CartProvider = ({ children }) => {
         { withCredentials: true }
       );
       const updatedCart = response.data;
-      // Rye might return an empty cart object rather than null if all items are removed.
-      // Check if the cart is truly empty.
       const isEmpty = !updatedCart?.stores || updatedCart.stores.every(s => !s.cartLines || s.cartLines.length === 0);
       setCart(isEmpty ? null : updatedCart);
       toast.success('Item removed from cart.');
     } catch (error) {
       console.error('CartContext: Error removing from cart:', error.response?.data || error.message);
       toast.error(error.response?.data?.error || 'Failed to remove item from cart.');
-      await fetchCart(); // Sync state
+      await fetchCart();
       throw error;
     } finally {
       setLoading(false);
@@ -103,8 +169,8 @@ export const CartProvider = ({ children }) => {
   };
 
   const updateCartItemQuantity = async (ryeItemId, marketplace, quantity) => {
-    // No authStatus check here
-    if (quantity <= 0) { // Delegate to removeFromCart
+    // ... (original implementation) ...
+    if (quantity <= 0) {
       try {
         await removeFromCart(ryeItemId, marketplace);
       } catch { /* Error already handled by removeFromCart */ }
@@ -118,12 +184,10 @@ export const CartProvider = ({ children }) => {
         { withCredentials: true }
       );
       setCart(response.data);
-      // Optionally, toast a success message, but can be noisy for quantity changes
-      // toast.info('Cart quantity updated.');
     } catch (error) {
       console.error('CartContext: Error updating quantity:', error.response?.data || error.message);
       toast.error(error.response?.data?.error || 'Failed to update item quantity.');
-      await fetchCart(); // Sync state
+      await fetchCart();
       throw error;
     } finally {
       setLoading(false);
@@ -133,12 +197,12 @@ export const CartProvider = ({ children }) => {
   return (
     <CartContext.Provider value={{
       cart,
-      setCart, // Keep for direct manipulation if ever needed (e.g., after order success)
+      setCart,
       addToCart,
       removeFromCart,
       updateCartItemQuantity,
-      loading, // This 'loading' reflects cart operations / initial fetch
-      fetchCart, // Expose if manual refresh is needed from components
+      loading,
+      fetchCart,
       resetCart
     }}>
       {children}

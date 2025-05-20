@@ -4,7 +4,7 @@ import axios from 'axios';
 import PropTypes from 'prop-types';
 import { useRouter } from 'next/router';
 import { toast } from 'react-toastify';
-import { MapPinIcon, BuildingLibraryIcon, ShareIcon as ShareOutlineIcon } from '@heroicons/react/24/outline';
+import { MapPinIcon, BuildingLibraryIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
@@ -14,7 +14,8 @@ import Footer from 'components/Footers/Footer.js';
 import ChildModal from 'components/Modals/ChildModal';
 import CartBlade from '@/components/Blades/CartBlade';
 import { CartContext } from 'contexts/CartContext';
-import DriveItemsSection from '@/components/DrivePage/DriveItemsSection'; // Ensure this path is correct
+import DriveItemsSection from '@/components/DrivePage/DriveItemsSection';
+import ShareButton from '@/components/Share/ShareButton'; // Added ShareButton
 
 // Helper function to check if an item is in the cart
 function isThisSpecificNeedInCart(itemNeed, cartFromContext, itemKeyType) {
@@ -22,7 +23,7 @@ function isThisSpecificNeedInCart(itemNeed, cartFromContext, itemKeyType) {
   const sourceIdToCheck = itemNeed[itemKeyType];
   const sourceFieldInCart = itemKeyType === 'drive_item_id' ? 'giftdrive_source_drive_item_id' : 'giftdrive_source_child_item_id';
   return cartFromContext.stores.some(store =>
-    store.cartLines?.some(line => line[sourceFieldInCart] != null && line[sourceFieldInCart] === sourceIdToCheck)
+    store.cartLines?.some(line => line[sourceFieldInCart] != null && line[sourceFieldInCart] == sourceIdToCheck) // Use == for type flexibility if IDs are mixed string/number
   );
 }
 
@@ -43,7 +44,6 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
   const { cart, loading: cartLoading, addToCart } = useContext(CartContext);
   const { status: authStatus } = useSession();
   const [drive, setDrive] = useState(initialDriveData);
-  // eslint-disable-next-line no-unused-vars
   const [pageUrl, setPageUrl] = useState('');
   const [pageError, setPageError] = useState(initialError || null);
 
@@ -55,9 +55,8 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
   const [isChildModalOpen, setIsChildModalOpen] = useState(false);
 
   const [itemQuantities, setItemQuantities] = useState({});
-  const [isAddingToCart, setIsAddingToCart] = useState({});
+  const [isAddingToCart, setIsAddingToCart] = useState({}); // Tracks loading state for specific items
 
-  // State for dynamic data from API - initialized from GSSP
   const [topDonors, setTopDonors] = useState(initialDriveData?.topDonors || []);
   const [recentDonations, setRecentDonations] = useState(initialDriveData?.recentDonations || []);
 
@@ -75,16 +74,15 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
     const initialQuantities = {};
     const processItems = (items, keyPrefix) => {
       (items || []).forEach(itemNeed => {
-        const itemKey = itemNeed[`${keyPrefix}_item_id`]; // Use the correct key like 'drive_item_id'
+        const itemKey = itemNeed[`${keyPrefix}_item_id`];
         if (itemKey) initialQuantities[itemKey] = 1;
       });
     };
     if (drive) {
-      processItems(drive.items, 'drive'); // For general drive items
+      processItems(drive.items, 'drive');
       (drive.children || []).forEach(child => {
-        processItems(child.items, 'child'); // For items associated with children
+        processItems(child.items, 'child');
       });
-      // Update local state if drive data changes (e.g., after refetch)
       setTopDonors(drive.topDonors || []);
       setRecentDonations(drive.recentDonations || []);
     }
@@ -98,7 +96,6 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
       const baseApiUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
       const driveId = drive.drive_id;
 
-      // Fetch all necessary data in parallel
       const [
         updatedDriveResponse,
         aggregateResponse,
@@ -198,7 +195,26 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
       return;
     }
 
-    const payloadForContext = {
+    // --- Prepare itemDisplayInfo for optimistic update ---
+    const itemDisplayInfo = {
+      name: itemNeed.variant_display_name || itemNeed.base_item_name || "Item",
+      image: itemNeed.variant_display_photo || itemNeed.base_item_photo,
+      priceInCents: Math.round((itemNeed.variant_display_price ?? itemNeed.base_item_price ?? 0) * 100),
+      currency: 'USD', // Or get dynamically if available from itemNeed.base_item_price_currency or similar
+      base_item_name: itemNeed.base_item_name,
+      variant_display_name: itemNeed.variant_display_name,
+      base_item_photo: itemNeed.base_item_photo,
+      variant_display_photo: itemNeed.variant_display_photo,
+      base_item_price: itemNeed.base_item_price,
+      variant_display_price: itemNeed.variant_display_price,
+      base_rye_product_id: itemNeed.base_rye_product_id,
+      // This field is important for Shopify. It should be the store's canonical domain.
+      // Ensure itemNeed contains this if the item is from Shopify.
+      // e.g., itemNeed.base_marketplace_store_domain (like 'cool-store.myshopify.com')
+      base_marketplace_store_domain: itemNeed.base_marketplace_store_domain || (itemNeed.base_marketplace === 'SHOPIFY' ? 'unknown-shopify.myshopify.com' : null),
+    };
+
+    const apiPayloadForContext = {
       ryeIdToAdd: ryeIdForCartApi,
       marketplaceForItem: marketplaceForCartApi,
       quantity: quantity,
@@ -207,10 +223,11 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
     };
 
     try {
-      console.log("DrivePage: Payload for addToCart context:", payloadForContext);
-      await addToCart(payloadForContext);
+      console.log("DrivePage: Calling optimistic addToCart. DisplayInfo:", itemDisplayInfo, "ApiPayload:", apiPayloadForContext);
+      await addToCart(itemDisplayInfo, apiPayloadForContext); // Pass both objects
       await fetchDriveDataAfterCartAction();
     } catch (err) {
+      // Error toast is handled by CartContext now, but this ensures the loading spinner stops
       console.error('Error in DrivePage during cart operation:', err);
     } finally {
       setIsAddingToCart(prev => ({ ...prev, [itemKey]: false }));
@@ -224,7 +241,7 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
   const closeChildModal = () => {
     setSelectedChildIdForModal(null);
     setIsChildModalOpen(false);
-    fetchDriveDataAfterCartAction();
+    fetchDriveDataAfterCartAction(); // Refresh data when modal closes
   };
   const handleBladeClose = () => setIsBladeDismissed(true);
 
@@ -273,6 +290,10 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
     org_state,
     totalPurchased = 0,
     organization_name,
+    organization_photo, // Added
+    org_id, // Added
+    description, // Added for ShareButton
+    photo: drivePhoto, // Added for ShareButton
     end_date,
     items: driveItemsOnly = [],
     children: driveChildren = []
@@ -281,15 +302,18 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
   const progressPercentage = totalNeeded > 0 ? Math.min(100, (totalPurchased / totalNeeded) * 100) : 0;
   const daysRemaining = calculateDaysRemaining(end_date);
   const donationsToGo = Math.max(0, totalNeeded - totalPurchased);
+  const displayProgressPercentage = (totalNeeded > 0 && totalPurchased === 0) ? 10 : progressPercentage;
 
-  // *** MODIFICATION START ***
-  let displayProgressPercentage = progressPercentage;
-  const MIN_VISUAL_FILL_AT_ZERO_DONATIONS = 10; // e.g., 2%
+  // Prepare pageData for ShareButton
+  const sharePageData = {
+    id: drive.drive_id,
+    name: name,
+    description: description,
+    photo: drivePhoto,
+    organization_name: organization_name,
+    // Add other relevant fields if your ShareButton uses them for drives
+  };
 
-  if (totalNeeded > 0 && totalPurchased === 0) {
-    displayProgressPercentage = MIN_VISUAL_FILL_AT_ZERO_DONATIONS;
-  }
-  // *** MODIFICATION END ***
 
   return (
     <>
@@ -310,10 +334,10 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
               </div>
             )}
             {organization_name && (
-              <div className="flex items-center">
-                <BuildingLibraryIcon className="h-5 w-5 mr-1.5 text-ggreen" />
+              <Link href={`/visible/organization/${org_id}`} className="flex items-center text-ggreen hover:underline">
+                <BuildingLibraryIcon className="h-5 w-5 mr-1.5" />
                 <span>{organization_name}</span>
-              </div>
+              </Link>
             )}
           </div>
 
@@ -331,16 +355,12 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
                   <div className="absolute bottom-0 w-full rounded-full h-7 shadow-inner ring-1 ring-ggreen">
                     <div
                       className="bg-gradient-to-b from-teal-400 to-ggreen h-7 rounded-full shadow-lg transition-all duration-500 ease-out"
-                      // *** MODIFICATION START ***
                       style={{ width: `${displayProgressPercentage}%` }}
-                    // *** MODIFICATION END ***
                     ></div>
                   </div>
                   <div
                     className="absolute transform -translate-x-1/2"
-                    // *** MODIFICATION START ***
                     style={{ left: `${displayProgressPercentage - 1}%`, bottom: 'calc(2rem + 2px)' }}
-                  // *** MODIFICATION END ***
                   >
                     <div className="flex flex-col items-center">
                       <Image src="/img/brand/favicon.svg" alt="Progress Marker" width={20} height={20} />
@@ -351,13 +371,39 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
                 <p className="text-sm text-slate-700 font-medium mb-5">
                   {donationsToGo > 0 ? `${donationsToGo} Donation${donationsToGo !== 1 ? 's' : ''} to go!` : "Goal Reached!"}
                 </p>
-                <button
-                  onClick={() => toast.info("Share functionality coming soon!")}
-                  className="w-full flex items-center justify-center px-4 py-3 bg-ggreen text-white font-semibold rounded-full hover:bg-teal-700 transition-colors text-sm shadow"
-                >
-                  <ShareOutlineIcon className="h-5 w-5 mr-2" /> Share Drive!
-                </button>
+                {/* Share Button Integration */}
+                {pageUrl && drive && (
+                  <ShareButton
+                    pageType="drive"
+                    pageData={sharePageData}
+                    pageUrl={pageUrl}
+                  />
+                )}
               </div>
+              {/* Organization Info Card */}
+              {org_id && organization_name && (
+                <div className="bg-white p-6 rounded-lg shadow-lg border border-ggreen">
+                  <h2 className="text-xl font-semibold text-ggreen mb-3">Organized By</h2>
+                  {organization_photo && (
+                    <div className="flex justify-center mb-3">
+                      <Image
+                        src={organization_photo}
+                        alt={organization_name}
+                        width={80} height={80}
+                        className="rounded-full object-cover shadow-md"
+                      />
+                    </div>
+                  )}
+                  <Link href={`/visible/organization/${org_id}`} className="block text-center text-ggreen hover:underline font-semibold mb-1">
+                    {organization_name}
+                  </Link>
+                  {(org_city && org_state) && (
+                    <p className="text-xs text-slate-500 text-center">{org_city}, {org_state}</p>
+                  )}
+                  {/* You can add more org details here if needed */}
+                </div>
+              )}
+
               <div className="bg-white p-6 rounded-lg shadow-lg border border-ggreen">
                 {topDonors && topDonors.length > 0 ? (
                   <>
@@ -395,7 +441,7 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
 
                 {recentDonations && recentDonations.length > 0 ? (
                   <>
-                    <h2 className="text-xl font-semibold text-ggreen mb-4">Recent Donations</h2>
+                    <h2 className="text-xl font-semibold text-ggreen mt-6 mb-4">Recent Donations</h2>
                     <ul className="space-y-4">
                       {recentDonations.map((donation, index) => (
                         <li key={donation.itemName + '-' + donation.time + '-' + index} className="flex items-center">
@@ -420,8 +466,7 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
                   </>
                 ) : (
                   <>
-                    <h2 className="text-xl font-semibold text-ggreen mb-4">Recent Donations</h2>
-
+                    <h2 className="text-xl font-semibold text-ggreen mt-6 mb-4">Recent Donations</h2>
                     <div className="bg-white p-6 text-center text-slate-500 text-sm">
                       No recent donations yet. Your donation could be the first!
                     </div>
@@ -434,6 +479,7 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
             <div className="md:col-span-8">
               {driveItemsOnly && driveItemsOnly.length > 0 && (
                 <div className="mb-12">
+                  <h2 className="text-2xl font-semibold text-ggreen mb-6">General Drive Needs</h2>
                   <DriveItemsSection
                     items={driveItemsOnly}
                     cart={cart}
@@ -450,7 +496,7 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
 
               {driveChildren && driveChildren.length > 0 && (
                 <section>
-                  <h2 className="text-2xl font-semibold text-ggreen mb-4">
+                  <h2 className="text-2xl font-semibold text-ggreen mb-6">
                     Children Supported by {name}
                   </h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -514,6 +560,8 @@ export async function getServerSideProps(context) {
       ...item,
       selected_rye_variant_id: item.selected_rye_variant_id || null,
       selected_rye_marketplace: item.selected_rye_marketplace || null,
+      // Ensure base_marketplace_store_domain is passed if available from your items table
+      base_marketplace_store_domain: item.base_marketplace_store_domain || (item.base_marketplace === 'SHOPIFY' ? 'unknown-shopify.myshopify.com' : null),
     }));
 
     const childrenWithItemCounts = await Promise.all(
@@ -523,6 +571,7 @@ export async function getServerSideProps(context) {
           ...item,
           selected_rye_variant_id: item.selected_rye_variant_id || null,
           selected_rye_marketplace: item.selected_rye_marketplace || null,
+          base_marketplace_store_domain: item.base_marketplace_store_domain || (item.base_marketplace === 'SHOPIFY' ? 'unknown-shopify.myshopify.com' : null),
         }));
         return {
           ...child,
@@ -554,7 +603,7 @@ export async function getServerSideProps(context) {
       totalNeeded: Number(aggregate.totalNeeded) || 0,
       totalPurchased: Number(aggregate.totalPurchased) || 0,
       donorsCount: Number(aggregate.donorsCount) || 0,
-      id: driveData.drive_id.toString(),
+      id: driveData.drive_id.toString(), // Keep as string for consistency if router passes as string
       organization_photo: driveData.organization_photo || (driveData.organization?.photo || null),
       topDonors,
       recentDonations
@@ -570,7 +619,7 @@ export async function getServerSideProps(context) {
 DrivePage.propTypes = {
   drive: PropTypes.shape({
     drive_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-    id: PropTypes.string,
+    id: PropTypes.string, // from GSSP string conversion
     org_id: PropTypes.number,
     name: PropTypes.string,
     description: PropTypes.string,
@@ -589,7 +638,7 @@ DrivePage.propTypes = {
       child_name: PropTypes.string.isRequired,
       child_photo: PropTypes.string,
       items_needed_count: PropTypes.number,
-      items: PropTypes.array,
+      items: PropTypes.array, // Further PropTypes for items in child can be added
     })),
     items: PropTypes.arrayOf(PropTypes.shape({
       drive_item_id: PropTypes.number.isRequired,
@@ -599,6 +648,12 @@ DrivePage.propTypes = {
       remaining: PropTypes.number,
       selected_rye_variant_id: PropTypes.string,
       selected_rye_marketplace: PropTypes.string,
+      base_rye_product_id: PropTypes.string, // Added for optimistic updates
+      base_item_photo: PropTypes.string,    // Added for optimistic updates
+      variant_display_photo: PropTypes.string,// Added for optimistic updates
+      base_item_price: PropTypes.number,    // Added for optimistic updates
+      variant_display_price: PropTypes.number,// Added for optimistic updates
+      base_marketplace_store_domain: PropTypes.string, // Added for Shopify store identifier
     })),
     topDonors: PropTypes.arrayOf(PropTypes.shape({
       name: PropTypes.string,
