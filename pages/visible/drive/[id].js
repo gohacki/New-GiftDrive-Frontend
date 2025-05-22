@@ -290,7 +290,6 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
     org_state,
     totalPurchased = 0,
     organization_name,
-    organization_photo, // Added
     org_id, // Added
     description, // Added for ShareButton
     photo: drivePhoto, // Added for ShareButton
@@ -380,30 +379,6 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
                   />
                 )}
               </div>
-              {/* Organization Info Card */}
-              {org_id && organization_name && (
-                <div className="bg-white p-6 rounded-lg shadow-lg border border-ggreen">
-                  <h2 className="text-xl font-semibold text-ggreen mb-3">Organized By</h2>
-                  {organization_photo && (
-                    <div className="flex justify-center mb-3">
-                      <Image
-                        src={organization_photo}
-                        alt={organization_name}
-                        width={80} height={80}
-                        className="rounded-full object-cover shadow-md"
-                      />
-                    </div>
-                  )}
-                  <Link href={`/visible/organization/${org_id}`} className="block text-center text-ggreen hover:underline font-semibold mb-1">
-                    {organization_name}
-                  </Link>
-                  {(org_city && org_state) && (
-                    <p className="text-xs text-slate-500 text-center">{org_city}, {org_state}</p>
-                  )}
-                  {/* You can add more org details here if needed */}
-                </div>
-              )}
-
               <div className="bg-white p-6 rounded-lg shadow-lg border border-ggreen">
                 {topDonors && topDonors.length > 0 ? (
                   <>
@@ -479,7 +454,6 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
             <div className="md:col-span-8">
               {driveItemsOnly && driveItemsOnly.length > 0 && (
                 <div className="mb-12">
-                  <h2 className="text-2xl font-semibold text-ggreen mb-6">General Drive Needs</h2>
                   <DriveItemsSection
                     items={driveItemsOnly}
                     cart={cart}
