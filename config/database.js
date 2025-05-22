@@ -2,7 +2,7 @@
 import { createPool } from 'mysql2/promise';
 
 const pool = createPool(process.env.DB_CONNECTION_STRING, {
-  connectionLimit: 30,
+  connectionLimit: 100,
   waitForConnections: true,
   queueLimit: 0,
   multipleStatements: false,

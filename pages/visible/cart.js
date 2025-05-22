@@ -69,6 +69,8 @@ const CartPage = () => {
     setPageError(null); // Clear page-specific errors when cart or step changes
   }, [cart, checkoutStep]);
 
+
+
   useEffect(() => {
     // This effect now mainly serves to ensure cart is fetched if context didn't already.
     // Redirection logic for fully unauthenticated users without a cart is less aggressive,
@@ -84,10 +86,12 @@ const CartPage = () => {
 
 
   const handleGuestInfoChange = (e) => {
-    setGuestInfo(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    setPageError(null); // Clear error when guest types
+    setGuestInfo(prev => {
+      const newState = { ...prev, [e.target.name]: e.target.value };
+      return newState;
+    });
+    setPageError(null);
   };
-
 
   const handleStartCheckout = async () => {
     if (!cart) {
@@ -286,7 +290,6 @@ const CartPage = () => {
         : '';
   }
 
-
   if (isLoadingPage) {
     return (
       <>
@@ -322,22 +325,21 @@ const CartPage = () => {
               </Link>
             </div>
           )}
-
-          {isGuestSession && checkoutStep === 'idle' && cart && canInitiateCheckout && (
+          {isGuestSession && checkoutStep === 'idle' && (
             <fieldset className="border p-4 rounded-md shadow mt-6 bg-white">
               <legend className="text-lg font-semibold px-2 text-gray-700">Your Information (for Receipt & Billing)</legend>
               <div className="space-y-3 p-2">
                 <div>
                   <label htmlFor="guestFirstName" className="block text-sm font-medium text-gray-700">First Name <span className="text-red-500">*</span></label>
-                  <input type="text" name="guestFirstName" id="guestFirstName" value={guestInfo.firstName} onChange={handleGuestInfoChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-ggreen focus:border-ggreen" />
+                  <input type="text" name="firstName" id="guestFirstName" value={guestInfo.firstName} onChange={handleGuestInfoChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-ggreen focus:border-ggreen" />
                 </div>
                 <div>
                   <label htmlFor="guestLastName" className="block text-sm font-medium text-gray-700">Last Name <span className="text-red-500">*</span></label>
-                  <input type="text" name="guestLastName" id="guestLastName" value={guestInfo.lastName} onChange={handleGuestInfoChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-ggreen focus:border-ggreen" />
+                  <input type="text" name="lastName" id="guestLastName" value={guestInfo.lastName} onChange={handleGuestInfoChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-ggreen focus:border-ggreen" />
                 </div>
                 <div>
                   <label htmlFor="guestEmail" className="block text-sm font-medium text-gray-700">Email Address <span className="text-red-500">*</span></label>
-                  <input type="email" name="guestEmail" id="guestEmail" value={guestInfo.email} onChange={handleGuestInfoChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-ggreen focus:border-ggreen" />
+                  <input type="email" name="email" id="guestEmail" value={guestInfo.email} onChange={handleGuestInfoChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-ggreen focus:border-ggreen" />
                 </div>
                 <p className="text-xs text-gray-500">This information is for your receipt and billing purposes. Items ship to the organization.</p>
               </div>

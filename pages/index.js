@@ -139,38 +139,97 @@ export default function Landing() {
           </motion.div>
         </section>
 
+        <section className="flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8 pt-12 md:pt-12 pb-12 md:pb-48 bg-white">
+          {/* This motion.div orchestrates the animation of its direct children (H1 and the right content block) */}
+          <motion.div
+            className="max-w-7xl w-full mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center"
+            variants={heroContentVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.div
+              className="md:col-span-1 text-center md:text-left flex flex-col items-center md:items-start md:pt-8 lg:pt-12"
+              variants={{ // Inline variants to stagger its own children (paragraph and CTA div)
+                hidden: {},
+                visible: { transition: { staggerChildren: 0.2 } }
+              }}
+            >
+              <Image
+                src="/example3.png"
+                alt="Example 3"
+                width={500}
+                height={500}
+              />
+            </motion.div>
+            <motion.div
+              className="md:col-span-1 text-center md:text-left flex flex-col items-center md:items-start md:pt-8 lg:pt-12"
+              variants={{ // Inline variants to stagger its own children (paragraph and CTA div)
+                hidden: {},
+                visible: { transition: { staggerChildren: 0.2 } }
+              }}
+            // initial and animate props are inherited
+            >
+              <motion.h1
+                className="text-4xl sm:text-5xl lg:text-6xl leading-tight text-ggreen drop-shadow-lg text-center md:text-left"
+                variants={h1BlockVariants}
+              // initial and animate props are inherited from the parent motion.div
+              >
+                <AnimatedTextLine>Create a</AnimatedTextLine>
+                <div className="h-0 md:h-4 lg:h-6" />
+                <AnimatedTextLine className="inter-semi-bold">Tangible Impact</AnimatedTextLine>
+                <div className="h-0 md:h-4 lg:h-6" />
+                <AnimatedTextLine>In Your Community</AnimatedTextLine>
+              </motion.h1>
+              <motion.div
+                className="flex flex-col items-center md:items-start space-y-5"
+                variants={slideUpItemVariants} // This div (containing buttons) will also use slideUpItemVariants
+              >
+                <Link href="/visible/registerorg" legacyBehavior>
+                  <a className="inline-flex items-center justify-center px-8 py-4 bg-ggreen text-white text-lg font-semibold rounded-full shadow-md hover:bg-opacity-90 transition-colors duration-300 mt-20">
+                    Learn More
+                  </a>
+                </Link>
+              </motion.div>
+
+            </motion.div>
+
+
+          </motion.div>
+        </section>
+
         {/* How It Works Section (Unchanged) */}
-        <section className="bg-white px-4 py-12 sm:py-20">
+        <section className="bg-ggreen px-4 py-12 sm:py-20">
           <div className="max-w-7xl mx-auto">
-            <h2 className="inter-bold text-2xl sm:text-3xl text-center mb-10">
-              How It Works
+            <h2 className="inter-bold text-4xl sm:text-5xl text-left mb-24">
+              Simply...
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-8 text-center">
               {[1, 2, 3, 4].map((step) => (
+
                 <div
                   key={step}
-                  className="bg-white rounded-xl p-6 shadow w-64 h-64 mx-auto flex flex-col"
+                  className="w-64 h-64 mx-auto flex flex-col"
                 >
-                  <div className="flex items-center justify-center w-16 h-24 rounded-full bg-ggreen text-white font-bold mx-auto mt-4 mb-12">
-                    {step}
+                  <div className="bg-white rounded-xl p-6 shadow h-32">
                   </div>
-                  <h3 className="inter-semi-bold mb-2">
-                    {step === 1 && "Identify a Drive"}
-                    {step === 2 && "Choose a Child"}
-                    {step === 3 && "Purchase Gifts"}
-                    {step === 4 && "Make a Difference"}
+                  <h3 className="inter-semi-bold mb-2 text-3xl mt-4">
+                    {step === 1 && "Register"}
+                    {step === 2 && "Start a Drive"}
+                    {step === 3 && "Share"}
+                    {step === 4 && "Track Goals"}
                   </h3>
-                  <p className="inter-medium text-gray-600">
+                  <p className="inter-medium text-white">
                     {step === 1 &&
-                      "Find or create a gift drive for children in need."}
+                      "Create a GiftDrive account for your organization."}
                     {step === 2 &&
-                      "Browse children's wishlists and pick one to sponsor."}
+                      "Fill your drive with essential items in need of donors."}
                     {step === 3 &&
-                      "Select and purchase items from their wishlist."}
+                      "Share on social media or community bulletins."}
                     {step === 4 &&
-                      "Help a child feel special and cared for."}
+                      "Track your drive with GiftDrive’s live analytics."}
                   </p>
                 </div>
+
               ))}
             </div>
           </div>
@@ -354,7 +413,7 @@ export default function Landing() {
             </div>
           </div>
         </section>
-      </main>
+      </main >
       <Footer />
     </>
   );

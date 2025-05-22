@@ -1,33 +1,11 @@
 // File: pages/api/cart/validate-checkout.js
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "../auth/[...nextauth]";
+// import { getServerSession } from "next-auth/next"; // No longer needed directly here if getRequestCartInfo handles session internally
+// import { authOptions } from "../auth/[...nextauth]"; // No longer needed directly here
 import pool from "../../../config/database";
-// No Rye helpers needed for this specific route as it's purely DB validation
+import { getRequestCartInfo } from "../../../lib/cartAuthHelper"; // Import the correct helper
 
-// Helper function (same as before, or move to a shared util)
-async function getAuthAndCartInfo(req, res) {
-    const session = await getServerSession(req, res, authOptions);
-    if (!session || !session.user) {
-        return { user: null, ryeCartId: null, cartDbId: null, errorResponse: { status: 401, body: { message: "Not authenticated" } } };
-    }
-    const user = session.user;
-    let ryeCartId = null;
-    let cartDbId = null;
-    try {
-        const [cartRows] = await pool.query(
-            'SELECT id, rye_cart_id FROM carts WHERE account_id = ? AND status = ? LIMIT 1',
-            [user.id, 'active']
-        );
-        if (cartRows.length > 0) {
-            ryeCartId = cartRows[0].rye_cart_id;
-            cartDbId = cartRows[0].id;
-        }
-        return { user, ryeCartId, cartDbId, errorResponse: null };
-    } catch (dbError) {
-        console.error('API Route: Error fetching active user cart:', dbError);
-        return { user, ryeCartId: null, cartDbId: null, errorResponse: { status: 500, body: { message: "Database error fetching cart info." } } };
-    }
-}
+// Remove the old, local getAuthAndCartInfo function:
+// async function getAuthAndCartInfo(req, res) { ... } // DELETE THIS FUNCTION
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') { // Or GET if you prefer for validation without side effects
@@ -35,24 +13,36 @@ export default async function handler(req, res) {
         return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
 
-    const { user, cartDbId, errorResponse: authError } = await getAuthAndCartInfo(req, res);
+    // Use the correct helper that handles both authenticated users and guests
+    const { user, accountIdForDb, cartDbId, isGuest, guestCartToken } = await getRequestCartInfo(req, res);
 
-    if (authError) {
-        return res.status(authError.status).json(authError.body);
-    }
-    if (!user) {
-        return res.status(401).json({ message: "Not authenticated" });
-    }
-
+    // Improved check for cartDbId based on user type
     if (!cartDbId) {
+        if (isGuest && guestCartToken) {
+            console.warn(`[API Validate Checkout] Guest with token ${guestCartToken} has no active cartDbId.`);
+            return res.status(404).json({ error: "No active cart found for your session. Your cart might have expired or been cleared." });
+        } else if (isGuest && !guestCartToken) {
+            console.warn(`[API Validate Checkout] Guest has no cart token and no active cartDbId.`);
+            return res.status(404).json({ error: "No active cart found. Please add items to your cart." });
+        } else if (!isGuest && !accountIdForDb && user) { // Authenticated user but no accountIdForDb (edge case)
+            console.error(`[API Validate Checkout] Authenticated user but no accountIdForDb. Session user:`, user);
+            return res.status(401).json({ message: "Authentication error: User ID missing from session." });
+        } else if (!isGuest && accountIdForDb) { // Authenticated user with ID but no cart
+            console.log(`[API Validate Checkout] User ${accountIdForDb} has no active cartDbId.`);
+            return res.status(404).json({ error: "No active cart found for your account." });
+        }
+        // General fallback if somehow cartDbId is missing without hitting above conditions.
+        // Also handles cases where user might be null due to session issue not caught by getRequestCartInfo,
+        // though getRequestCartInfo aims to provide clear states.
+        if (!user && !isGuest) { // Should not happen if getRequestCartInfo is working as expected.
+            return res.status(401).json({ message: "Not authenticated" });
+        }
         return res.status(404).json({ error: "No active cart found for validation." });
     }
 
     let connection;
     try {
         connection = await pool.getConnection();
-        // No transaction needed for read-only validation, but using one doesn't hurt consistency if reads need to be atomic.
-        // await connection.beginTransaction(); // Optional for read-only
 
         const [cartItemsToValidate] = await connection.query(
             `SELECT
@@ -68,7 +58,6 @@ export default async function handler(req, res) {
         );
 
         if (cartItemsToValidate.length === 0) {
-            // await connection.commit(); // Optional if beginTransaction was used
             return res.status(200).json({ isValid: true, issues: [] });
         }
 
@@ -94,7 +83,7 @@ export default async function handler(req, res) {
             }
 
             const [sourceItemRows] = await connection.query(
-                `SELECT quantity FROM ${source_table} WHERE ${source_pk_col} = ? AND is_active = 1`, // Added is_active check
+                `SELECT quantity FROM ${source_table} WHERE ${source_pk_col} = ? AND is_active = 1`,
                 [source_id_value]
             );
 
@@ -128,8 +117,6 @@ export default async function handler(req, res) {
             }
         }
 
-        // await connection.commit(); // Optional
-
         if (validationIssues.length > 0) {
             console.warn("[API Validate Checkout] Validation issues found:", validationIssues);
             return res.status(400).json({ isValid: false, issues: validationIssues });
@@ -139,7 +126,6 @@ export default async function handler(req, res) {
         return res.status(200).json({ isValid: true, issues: [] });
 
     } catch (error) {
-        // if (connection) await connection.rollback(); // Optional if beginTransaction was used
         console.error('Error validating cart for checkout:', error);
         return res.status(500).json({ error: 'Internal server error during cart validation.' });
     } finally {

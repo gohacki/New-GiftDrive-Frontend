@@ -267,14 +267,14 @@ const Navbar = ({ transparent, isBladeOpen }) => {
     navWidthClass = "w-11/12 md:w-5/6 lg:w-3/4 xl:w-2/3";
     navPlClass = "pl-6";
     navPrClass = isBladeOpen ? "pr-[calc(15rem+1.5rem)]" : "pr-6"; // blade offset + its own padding
-    navBackgroundShapeClass = "bg-white shadow-xl rounded-xl";
+    navBackgroundShapeClass = "bg-white shadow-xl rounded-full";
   } else {
     navWidthClass = "w-auto";
     navPlClass = "pl-4";
     navPrClass = isBladeOpen ? "pr-[calc(15rem+2rem)]" : "pr-8"; // blade offset + its own padding
     navBackgroundShapeClass = (transparent && !scrolled && !navbarOpen)
       ? "bg-transparent"
-      : "bg-white shadow-lg rounded-full";
+      : "bg-white border border-ggreen border-2 shadow-lg rounded-full";
   }
   // --- End Navbar conditional styling ---
 
