@@ -4,7 +4,7 @@ import Link from 'next/link';
 import PropTypes from 'prop-types';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
-import { FaShoppingCart, FaSpinner } from 'react-icons/fa';
+import { FaShoppingCart, FaSpinner } from 'react-icons/fa'; // Added FaUserCircle
 import { CartContext } from '../../contexts/CartContext';
 import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-toastify';
@@ -49,6 +49,10 @@ const Navbar = ({ transparent, isBladeOpen }) => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+
+  // Determine avatar URL
+  const avatarUrl = user?.profile_picture_url || '/img/default-avatar.svg';
+
 
   useEffect(() => {
     const handleScroll = () => {
@@ -342,14 +346,23 @@ const Navbar = ({ transparent, isBladeOpen }) => {
           )}
         </div>
 
-        {/* Desktop User Actions & Cart - Conditionally hide if search is too expanded and not enough space? For now, always show. */}
+        {/* Desktop User Actions & Cart */}
         <div className={`hidden lg:flex items-center ${isSearchExpanded ? 'flex-shrink-0 space-x-2' : 'space-x-4'}`}>
           <ul className="flex flex-row list-none items-center space-x-1">
             {authStatus === "authenticated" && user && (
               <>
                 <li className="flex items-center">
-                  <Link href="/visible/profile">
-                    <span className={`relative group text-sm inter-semi-bold uppercase px-2.5 py-2 flex items-center text-ggreen ${isActive('/visible/profile') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>
+                  <Link href="/visible/profile" className="flex items-center">
+                    <div className="relative w-8 h-8 mr-2 rounded-full overflow-hidden border-2 border-ggreen flex-shrink-0">
+                      <Image
+                        src={avatarUrl}
+                        alt={user.name || 'User Avatar'}
+                        fill
+                        style={{ objectFit: 'cover' }}
+                        onError={(e) => { e.currentTarget.src = '/img/default-avatar.svg'; }}
+                      />
+                    </div>
+                    <span className={`relative group text-sm inter-semi-bold uppercase py-2 flex items-center text-ggreen ${isActive('/visible/profile') ? 'text-blueGray-300' : ''} whitespace-nowrap`}>
                       Account
                       <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-ggreen transition-all duration-300 group-hover:w-full"></span>
                     </span>
@@ -516,10 +529,19 @@ const Navbar = ({ transparent, isBladeOpen }) => {
             {authStatus === "authenticated" && user && (
               <>
                 <li className="flex items-center">
-                  <Link href="/visible/profile">
-                    <span className="relative group text-sm inter-semi-bold uppercase px-4 py-3 flex items-center text-ggreen w-full whitespace-nowrap">
+                  <Link href="/visible/profile" className="flex items-center px-4 py-3 w-full">
+                    <div className="relative w-7 h-7 mr-3 rounded-full overflow-hidden border border-ggreen flex-shrink-0">
+                      <Image
+                        src={avatarUrl}
+                        alt={user.name || 'User Avatar'}
+                        fill
+                        style={{ objectFit: 'cover' }}
+                        onError={(e) => { e.currentTarget.src = '/img/default-avatar.svg'; }}
+                      />
+                    </div>
+                    <span className="relative group text-sm inter-semi-bold uppercase text-ggreen whitespace-nowrap">
                       Account
-                      <span className="absolute bottom-1 left-4 w-0 h-0.5 bg-ggreen transition-all duration-300 group-hover:w-[calc(100%-2rem)]"></span>
+                      <span className="absolute bottom-[-2px] left-0 w-0 h-0.5 bg-ggreen transition-all duration-300 group-hover:w-full"></span>
                     </span>
                   </Link>
                 </li>

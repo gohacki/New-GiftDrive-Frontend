@@ -36,8 +36,8 @@ export default async function handler(req, res) {
             `SELECT
                 a.username AS donorName,
                 i.name AS itemName,
-                o.order_date AS time
-                -- a.photo AS avatar -- REMOVED a.photo
+                o.order_date AS time,
+                a.profile_picture_url AS avatar  -- UPDATED to fetch profile_picture_url
             FROM orders o
             JOIN accounts a ON o.account_id = a.account_id
             JOIN order_items oi ON o.order_id = oi.order_id
@@ -51,10 +51,11 @@ export default async function handler(req, res) {
         );
 
         const formattedDonations = recentDonations.map(donation => ({
-            ...donation,
-            avatar: donation.avatar || '/img/default-avatar.png', // donation.avatar will be undefined, so default will be used
+            donorName: donation.donorName, // Keep existing fields
+            itemName: donation.itemName,
             time: formatTimeAgo(donation.time),
-            badge: ''
+            avatar: donation.avatar || '/img/default-avatar.svg', // Use fetched avatar or default
+            badge: '' // Keep if used elsewhere, or remove if not needed
         }));
 
         return res.status(200).json(formattedDonations);

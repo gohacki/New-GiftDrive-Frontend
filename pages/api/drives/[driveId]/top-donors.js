@@ -18,7 +18,7 @@ export default async function handler(req, res) {
         const [topDonors] = await pool.query(
             `SELECT
                 a.username AS name,
-                -- a.photo AS avatar, -- REMOVED a.photo
+                a.profile_picture_url AS avatar, -- UPDATED to fetch profile_picture_url
                 SUM(oi.quantity) AS items
             FROM orders o
             JOIN accounts a ON o.account_id = a.account_id
@@ -26,22 +26,22 @@ export default async function handler(req, res) {
             WHERE
                 (oi.drive_id = ? OR oi.child_id IN (SELECT child_id FROM unique_children WHERE drive_id = ?))
                 AND o.status NOT IN ('cancelled', 'failed', 'refunded')
-            GROUP BY o.account_id, a.username -- REMOVED a.photo from GROUP BY
+            GROUP BY o.account_id, a.username, a.profile_picture_url -- ADDED profile_picture_url to GROUP BY
             ORDER BY items DESC, a.username ASC
             LIMIT 3`,
             [numericDriveId, numericDriveId]
         );
 
         const formattedDonors = topDonors.map(donor => ({
-            ...donor,
+            name: donor.name, // Keep existing fields
             items: Number(donor.items) || 0,
-            avatar: donor.avatar || '/img/default-avatar.png', // donor.avatar will be undefined, so default will be used
-            badge: ''
+            avatar: donor.avatar || '/img/default-avatar.svg', // Use fetched avatar or default
+            badge: '' // Keep if used elsewhere, or remove if not needed
         }));
 
         return res.status(200).json(formattedDonors);
     } catch (error) {
-        console.error(`Error fetching top donors for drive ${numericDriveId}:`, error); // This is line 36 now
+        console.error(`Error fetching top donors for drive ${numericDriveId}:`, error);
         return res.status(500).json({ error: 'Failed to fetch top donors.' });
     }
 }

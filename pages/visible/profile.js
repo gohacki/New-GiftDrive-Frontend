@@ -1,44 +1,52 @@
 // pages/visible/profile.js
-import React, { useState, useEffect } from 'react'; // Removed useContext
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-// import { AuthContext } from '../../contexts/AuthContext'; // REMOVE THIS LINE
-import { useSession } from 'next-auth/react'; // ADD THIS LINE
+import { useSession, signOut } from 'next-auth/react'; // Use signOut from next-auth
 import { useRouter } from 'next/router';
+import Image from 'next/image'; // Import Next.js Image
 import Navbar from '../../components/Navbars/AuthNavbar';
 import Footer from '../../components/Footers/Footer';
 import { formatCurrency } from '../../lib/utils';
 import Link from 'next/link';
+import { toast } from 'react-toastify';
 
-// --- Import Modal and Detail Display ---
 import AuthModal from '../../components/auth/AuthModal';
 import OrderDetailDisplay from '../../components/Orders/OrderDetailDisplay';
 import StatusDisplay from '../../components/Cards/StatusDisplay';
 
-// const apiUrl = process.env.NEXT_PUBLIC_API_URL; // Not needed for internal API calls
-
 const AccountPage = () => {
-  const { data: session, status: authStatus } = useSession(); // USE useSession hook
-  const user = session?.user; // User object from NextAuth session
+  const { data: session, status: authStatus, update: updateSession } = useSession();
+  const user = session?.user;
   const router = useRouter();
 
   const [orders, setOrders] = useState([]);
   const [error, setError] = useState(null);
-  // const { loading: authLoading } = useContext(AuthContext); // REMOVE THIS LINE, use authStatus === "loading"
-
   const [selectedOrderDetails, setSelectedOrderDetails] = useState(null);
   const [isOrderDetailModalOpen, setIsOrderDetailModalOpen] = useState(false);
   const [isFetchingOrderDetails, setIsFetchingOrderDetails] = useState(false);
   const [detailsError, setDetailsError] = useState(null);
 
-  const fetchOrderList = async () => {
-    if (!user || !user.id) return; // Guard against fetching without user.id (from NextAuth session)
+  // Profile picture state
+  const [profilePictureFile, setProfilePictureFile] = useState(null);
+  const [profilePicturePreview, setProfilePicturePreview] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [currentProfilePicUrl, setCurrentProfilePicUrl] = useState(user?.profile_picture_url || '/img/default-avatar.svg');
+
+  useEffect(() => {
+    if (user?.profile_picture_url) {
+      setCurrentProfilePicUrl(user.profile_picture_url);
+    } else {
+      setCurrentProfilePicUrl('/img/default-avatar.svg');
+    }
+  }, [user?.profile_picture_url]);
+
+
+  const fetchOrderList = async () => { /* ... (existing logic) ... */
+    if (!user || !user.id) return;
     setError(null);
     try {
-      console.log("Profile: Fetching order list...");
-      // Calls YOUR Next.js API route for fetching the cart
-      const response = await axios.get(`/api/orders`, { withCredentials: true }); // Relative path to Next.js API
+      const response = await axios.get(`/api/orders`, { withCredentials: true });
       setOrders(response.data || []);
-      console.log("Profile: Order list fetched:", response.data);
     } catch (err) {
       console.error('Error fetching order list:', err.response?.data || err);
       setError('Failed to load order history.');
@@ -50,32 +58,20 @@ const AccountPage = () => {
     if (authStatus === "authenticated" && user) {
       fetchOrderList();
     } else if (authStatus === "unauthenticated") {
-      // Redirect if user logs out while on the page (or arrived unauthenticated)
-      console.log("Profile page: User not authenticated, redirecting to login.");
       router.push('/auth/login');
     }
-    // If authStatus is "loading", the UI will show a loading state.
-  }, [user, authStatus, router]); // Effect runs when user or authStatus changes
+  }, [user, authStatus, router]);
 
-  const handleViewOrderDetails = async (ryeOrderId) => {
+  const handleViewOrderDetails = async (ryeOrderId) => { /* ... (existing logic) ... */
     if (!ryeOrderId || isFetchingOrderDetails) return;
-
-    console.log(`Profile: Fetching details for Rye Order ID: ${ryeOrderId}`);
     setIsFetchingOrderDetails(true);
     setDetailsError(null);
     setSelectedOrderDetails(null);
     setIsOrderDetailModalOpen(true);
-
     try {
-      const response = await axios.post(
-        `/api/orders/details`, // Relative path to Next.js API
-        { ryeOrderId },
-        { withCredentials: true }
-      );
-      console.log("Profile: Order details received:", response.data);
+      const response = await axios.post(`/api/orders/details`, { ryeOrderId }, { withCredentials: true });
       setSelectedOrderDetails(response.data);
     } catch (err) {
-      console.error('Error fetching order details:', err.response?.data || err);
       setDetailsError(err.response?.data?.error || 'Failed to load order details.');
       setSelectedOrderDetails(null);
     } finally {
@@ -83,15 +79,57 @@ const AccountPage = () => {
     }
   };
 
-  const closeOrderDetailModal = () => {
+  const closeOrderDetailModal = () => { /* ... (existing logic) ... */
     setIsOrderDetailModalOpen(false);
     setSelectedOrderDetails(null);
     setDetailsError(null);
-  }
+  };
 
-  // --- Render Logic ---
+  const handleProfilePictureChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setProfilePictureFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePicturePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setProfilePictureFile(null);
+      setProfilePicturePreview(null);
+    }
+  };
 
-  if (authStatus === "loading") { // Show loading or let redirect happen
+  const handleProfilePictureUpload = async () => {
+    if (!profilePictureFile) {
+      toast.error('Please select an image file.');
+      return;
+    }
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('profilePicture', profilePictureFile);
+
+    try {
+      const response = await axios.post('/api/account/profile-picture', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        withCredentials: true,
+      });
+      toast.success(response.data.message || 'Profile picture updated!');
+      setCurrentProfilePicUrl(response.data.profile_picture_url); // Update displayed image
+      setProfilePictureFile(null); // Reset file input state
+      setProfilePicturePreview(null); // Reset preview
+      // Important: Trigger session update to reflect new URL globally
+      await updateSession({ profile_picture_url: response.data.profile_picture_url });
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to upload profile picture.');
+      console.error('Profile picture upload error:', err.response?.data || err);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+
+  if (authStatus === "loading") { /* ... (existing logic) ... */
     return (
       <>
         <Navbar transparent />
@@ -102,12 +140,8 @@ const AccountPage = () => {
       </>
     );
   }
-
-  // If unauthenticated, the useEffect above should redirect.
-  // This is a fallback or for the brief moment before redirect.
-  if (authStatus === "unauthenticated" || !user) {
-    // router.push('/auth/login'); // Handled by useEffect, but can be here for immediate attempt
-    return ( // Or a more explicit "You need to login" message
+  if (authStatus === "unauthenticated" || !user) { /* ... (existing logic) ... */
+    return (
       <>
         <Navbar transparent />
         <main className="min-h-screen bg-secondary_green pt-24 flex items-center justify-center">
@@ -118,7 +152,6 @@ const AccountPage = () => {
     );
   }
 
-
   return (
     <>
       <Navbar transparent />
@@ -127,27 +160,75 @@ const AccountPage = () => {
           <div className="container mx-auto px-4">
             <div className="bg-white shadow-xl rounded-lg p-6">
               <div className="flex flex-col items-center mb-10">
-                <h3 className="text-4xl font-semibold mb-2 text-gray-800">
-                  {user.name || user.email} {/* Use user.name from NextAuth session */}
+                {/* Profile Picture Display and Upload */}
+                <div className="relative mb-6">
+                  <Image
+                    src={profilePicturePreview || currentProfilePicUrl}
+                    alt="Profile Picture"
+                    width={120}
+                    height={120}
+                    className="rounded-full object-cover shadow-md border-2 border-gray-200"
+                    onError={(e) => { e.currentTarget.src = '/img/default-avatar.svg'; }}
+                  />
+                  <label htmlFor="profilePictureInput" className="absolute -bottom-2 -right-2 bg-ggreen text-white p-2 rounded-full cursor-pointer hover:bg-teal-700 transition-colors shadow-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                    </svg>
+                    <input
+                      type="file"
+                      id="profilePictureInput"
+                      accept="image/*"
+                      onChange={handleProfilePictureChange}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+                {profilePictureFile && (
+                  <div className="mb-4 text-center">
+                    <button
+                      onClick={handleProfilePictureUpload}
+                      disabled={isUploading}
+                      className="px-4 py-2 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 disabled:opacity-50"
+                    >
+                      {isUploading ? 'Uploading...' : 'Save Picture'}
+                    </button>
+                    <button
+                      onClick={() => { setProfilePictureFile(null); setProfilePicturePreview(null); }}
+                      disabled={isUploading}
+                      className="ml-2 px-4 py-2 bg-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-400 disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+
+                <h3 className="text-3xl font-semibold mb-1 text-gray-800">
+                  {user.name || user.email}
                 </h3>
                 <div className="text-sm mb-2 text-gray-600 font-bold uppercase">
                   <i className="fas fa-envelope mr-2 text-lg text-gray-600"></i>
                   {user.email}
                 </div>
-                {/* Example: Add links if you have admin roles in your session.user object */}
                 {user.is_org_admin && user.org_id && (
-                  <Link href="/admin/dashboard" className="mt-2 text-blue-500 hover:underline">
+                  <Link href="/admin/dashboard" className="mt-2 text-blue-500 hover:underline text-sm">
                     Go to Organization Dashboard
                   </Link>
                 )}
                 {user.is_super_admin && (
-                  <Link href="/admin/superAdmin" className="mt-2 text-purple-500 hover:underline">
+                  <Link href="/admin/superAdmin" className="mt-1 text-purple-500 hover:underline text-sm">
                     Go to Super Admin Dashboard
                   </Link>
                 )}
+                <button
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className="mt-3 px-4 py-2 text-xs bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+                >
+                  Log Out
+                </button>
               </div>
 
               <div className="mt-10 py-10 border-t border-gray-200">
+                {/* ... (Order History JSX remains the same) ... */}
                 <h2 className="text-2xl font-semibold text-gray-800 mb-4">Your Order History</h2>
                 <StatusDisplay isLoading={authStatus === "loading" && !orders.length} error={error} />
 
@@ -187,7 +268,6 @@ const AccountPage = () => {
                                 disabled={!order.primary_rye_order_id || isFetchingOrderDetails}
                                 className="px-3 py-1 text-xs bg-ggreen text-white rounded shadow-sm hover:bg-teal-700 disabled:opacity-50"
                               >
-                                {/* Update loading state indication to be specific to the button/action */}
                                 {isFetchingOrderDetails && selectedOrderDetails?.id === order.primary_rye_order_id ? 'Loading...' : 'View Details'}
                               </button>
                             </td>
@@ -205,12 +285,12 @@ const AccountPage = () => {
       <Footer />
 
       <AuthModal isOpen={isOrderDetailModalOpen} onClose={closeOrderDetailModal}>
+        {/* ... (Modal content JSX remains the same) ... */}
         {detailsError && <p className="text-red-600 text-sm mb-2 text-center">{detailsError}</p>}
         <OrderDetailDisplay
           orderDetails={selectedOrderDetails}
           isLoading={isFetchingOrderDetails}
           onClose={closeOrderDetailModal}
-        // onReturnRequest={handleRequestReturn} // Pass if you implement returns
         />
       </AuthModal>
     </>
