@@ -320,7 +320,7 @@ const CartPage = () => {
           {checkoutStep !== 'complete' && !cart && !cartContextLoading && (
             <div className="text-center py-10 bg-white shadow rounded-lg">
               <h2 className="text-2xl font-semibold mb-4 text-gray-700">Your Cart is Empty</h2>
-              <Link href="/visible/orglist" className="text-ggreen hover:underline font-medium">
+              <Link href="/visible/search" className="text-ggreen hover:underline font-medium">
                 Discover drives and organizations to support
               </Link>
             </div>

@@ -1,4 +1,5 @@
 // config/database.js
+import 'server-only';
 import { createPool } from 'mysql2/promise';
 
 const pool = createPool(process.env.DB_CONNECTION_STRING, {
