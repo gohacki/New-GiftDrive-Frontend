@@ -6,32 +6,40 @@ import { formatCurrency } from '@/lib/utils';
 
 const DriveItemCard = ({
     itemNeed,
-    itemKeyType, // Used to uniquely identify the item source (drive_item_id or child_item_id)
+    itemKeyType,
     isInCart,
     isAddingToCartForItem,
     cartLoading,
     onAddToCart,
+    // Removed onQuantityChange if not used for direct quantity input on this card
 }) => {
     const isCompletelyFulfilled = itemNeed.remaining <= 0;
 
-    // --- MODIFIED: Logic for display name and photo ---
+    // --- Display Logic ---
+    // Prioritize base_item_name from `items` table for consistency and freshness
     const baseName = itemNeed.base_item_name || "Item";
-    const variantName = itemNeed.variant_display_name;
+    // Variant display name from drive_items/child_items (snapshot/override)
+    const variantSpecificName = itemNeed.variant_display_name;
 
-    // Main display name is always the base product name
+    // Final display name: Show base name. If variant name is different, show it as a sub-line.
     const displayName = baseName;
+    const variantSubline = (variantSpecificName && variantSpecificName !== baseName) ? variantSpecificName : null;
 
-    // Variant subline is shown only if variantName exists and is different from baseName
-    const variantSubline = (variantName && variantName !== baseName) ? variantName : null;
-
-    // Photo: Prioritize variant-specific, then base, then placeholder
+    // Photo: Prioritize variant_display_photo (snapshot/override), then base_item_photo (fresher from `items`), then placeholder
     const displayPhoto = itemNeed.variant_display_photo || itemNeed.base_item_photo || '/img/default-item.png';
 
-    // Price: Prioritize variant-specific, then base
-    const displayPrice = itemNeed.variant_display_price !== null ? itemNeed.variant_display_price : itemNeed.base_item_price;
-    // --- END MODIFIED ---
+    // Price: Prioritize variant_display_price (snapshot/override), then base_item_price (fresher from `items`)
+    // This handles sales: if variant_display_price was set when item added, it's used.
+    // If not, or if you want freshest, then base_item_price from `items` (updated by webhook) is used.
+    const displayPrice = itemNeed.variant_display_price !== null && itemNeed.variant_display_price !== undefined
+        ? itemNeed.variant_display_price
+        : (itemNeed.base_item_price !== null && itemNeed.base_item_price !== undefined
+            ? itemNeed.base_item_price
+            : null);
+    // --- End Display Logic ---
 
-    const canAddToCartOnline = !isCompletelyFulfilled && !isInCart && itemNeed.is_rye_linked;
+
+    const canAddToCartOnline = !isCompletelyFulfilled && !isInCart && itemNeed.is_rye_linked; // is_rye_linked comes from items table
     const actionButtonLoading = isAddingToCartForItem || cartLoading;
 
     return (
@@ -45,14 +53,14 @@ const DriveItemCard = ({
                         {variantSubline}
                     </p>
                 ) : (
-                    <div className="h-4">
+                    <div className="h-4"> {/* Placeholder for consistent height if no subline */}
                     </div>
                 )}
             </div>
             <div className="relative w-full h-48">
                 <Image
                     src={displayPhoto}
-                    alt={displayName} // Use base name for alt text
+                    alt={displayName}
                     fill
                     style={{ objectFit: "contain" }}
                     className="p-2"
@@ -62,20 +70,15 @@ const DriveItemCard = ({
             </div>
 
             <div className="p-4 flex flex-col flex-grow">
-
                 {displayPrice !== null && (
                     <p className="text-xl text-center font-bold text-slate-800 mb-2">
-                        {formatCurrency(displayPrice * 100, 'USD')}
+                        {formatCurrency(displayPrice * 100, 'USD')} {/* Assuming price is in main unit */}
                     </p>
                 )}
-
                 <div className="mt-auto pt-2 space-y-2.5">
-                    {itemNeed.is_rye_linked ? (
+                    {itemNeed.is_rye_linked ? ( // This comes from items.is_rye_linked via the service functions
                         <button
-                            onClick={() => {
-                                // Ensure itemKeyType is correctly passed and used by onAddToCart
-                                onAddToCart(itemNeed, itemKeyType);
-                            }}
+                            onClick={() => onAddToCart(itemNeed, itemKeyType)}
                             disabled={!canAddToCartOnline || actionButtonLoading || isCompletelyFulfilled}
                             className={`w-full px-3 py-2.5 text-sm font-semibold rounded-full shadow-sm transition-colors
                                 ${(!canAddToCartOnline || actionButtonLoading || isCompletelyFulfilled)
@@ -103,20 +106,22 @@ const DriveItemCard = ({
 
 DriveItemCard.propTypes = {
     itemNeed: PropTypes.shape({
-        drive_item_id: PropTypes.number,
-        child_item_id: PropTypes.number,
-        base_item_name: PropTypes.string,
-        variant_display_name: PropTypes.string,
-        base_item_photo: PropTypes.string,
-        variant_display_photo: PropTypes.string,
-        base_item_price: PropTypes.number,
-        variant_display_price: PropTypes.number,
-        is_rye_linked: PropTypes.bool,
-        remaining: PropTypes.number,
-        selected_rye_variant_id: PropTypes.string,
-        selected_rye_marketplace: PropTypes.string,
+        drive_item_id: PropTypes.number, // For drive-specific items
+        child_item_id: PropTypes.number, // For child-specific items
+        base_item_name: PropTypes.string, // From joined items table
+        variant_display_name: PropTypes.string, // From drive_items/child_items (admin's snapshot)
+        base_item_photo: PropTypes.string, // From joined items table
+        variant_display_photo: PropTypes.string, // From drive_items/child_items (admin's snapshot)
+        base_item_price: PropTypes.number, // From joined items table (webhook updatable)
+        variant_display_price: PropTypes.number, // From drive_items/child_items (admin's snapshot)
+        is_rye_linked: PropTypes.bool, // From joined items table (webhook updatable)
+        remaining: PropTypes.number, // Calculated (needed - purchased)
+        // These are crucial for adding to cart
+        selected_rye_variant_id: PropTypes.string.isRequired,
+        selected_rye_marketplace: PropTypes.string.isRequired,
+        base_rye_product_id: PropTypes.string, // For context, from items table
     }).isRequired,
-    itemKeyType: PropTypes.string.isRequired, // e.g., 'drive_item_id' or 'child_item_id'
+    itemKeyType: PropTypes.string.isRequired,
     isInCart: PropTypes.bool.isRequired,
     isAddingToCartForItem: PropTypes.bool,
     cartLoading: PropTypes.bool,

@@ -1,12 +1,11 @@
 // File: pages/api/drives/[driveId]/items/index.js
-import { validationResult, body, query as queryValidator } from 'express-validator';
+import { validationResult, body, query as queryValidator } from 'express-validator'; // param renamed to queryValidator
 import { runMiddleware } from '@/lib/runMiddleware';
 import pool from '@/config/database';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from '../../../auth/[...nextauth]';
-import { getDriveSpecificItems } from '../../../../../lib/services/driveService'; // IMPORT THE SERVICE
+import { getDriveSpecificItems } from '../../../../../lib/services/driveService';
 
-// ... (getSessionAndVerifyDriveOwnership and validation chains remain the same)
 async function getSessionAndVerifyDriveOwnership(req, res, driveIdFromParams) {
     const session = await getServerSession(req, res, authOptions);
     if (!session || !session.user) {
@@ -37,6 +36,14 @@ async function getSessionAndVerifyDriveOwnership(req, res, driveIdFromParams) {
 
 const getValidations = [
     queryValidator('driveId').isInt({ gt: 0 }).withMessage('Drive ID must be a positive integer.'),
+    async (req, res, next) => {
+        await runMiddleware(req, res, (r, s, cb) => {
+            const errors = validationResult(r);
+            if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+            cb();
+        });
+        if (!res.writableEnded) next();
+    }
 ];
 
 const postValidations = [
@@ -45,9 +52,17 @@ const postValidations = [
     body('base_catalog_item_id').notEmpty().isInt({ gt: 0 }).withMessage('Base catalog item ID is required and must be a positive integer.'),
     body('selected_rye_variant_id').notEmpty().isString().withMessage('Selected Rye Variant ID is required.'),
     body('selected_rye_marketplace').notEmpty().isString().withMessage('Selected Rye Marketplace is required.'),
-    body('variant_display_name').optional({ checkFalsy: true }).isString(),
+    body('variant_display_name').optional({ checkFalsy: true }).isString().trim(),
     body('variant_display_price').optional({ checkFalsy: true }).isFloat({ gt: -0.01 }),
     body('variant_display_photo').optional({ checkFalsy: true }).isURL(),
+    async (req, res, next) => {
+        await runMiddleware(req, res, (r, s, cb) => {
+            const errors = validationResult(r);
+            if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+            cb();
+        });
+        if (!res.writableEnded) next();
+    }
 ];
 
 
@@ -55,12 +70,17 @@ export default async function handler(req, res) {
     const { driveId: driveIdFromQuery } = req.query;
 
     if (req.method === 'GET') {
-        for (const validation of getValidations) { await runMiddleware(req, res, validation); }
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+        for (const validation of getValidations) {
+            let errorOccurred = false;
+            await new Promise(resolve => validation(req, res, (result) => { if (result instanceof Error) errorOccurred = true; resolve(); }));
+            if (errorOccurred || res.writableEnded) return;
+        }
+        // No need to call validationResult again if runMiddleware handles it
+        // const errors = validationResult(req);
+        // if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
         try {
-            const items = await getDriveSpecificItems(driveIdFromQuery); // USE THE SERVICE FUNCTION
+            const items = await getDriveSpecificItems(driveIdFromQuery);
             return res.status(200).json(items);
         } catch (error) {
             console.error('Error fetching drive items:', error);
@@ -71,39 +91,64 @@ export default async function handler(req, res) {
         }
 
     } else if (req.method === 'POST') {
-        // ... (POST logic remains the same as it's about creating/modifying data) ...
-        // ... Your existing POST code for adding an item to a drive ...
         const authCheck = await getSessionAndVerifyDriveOwnership(req, res, driveIdFromQuery);
         if (!authCheck.authorized) {
             return res.status(authCheck.status).json({ error: authCheck.message });
         }
         const driveId = authCheck.driveId;
 
-        for (const validation of postValidations) { await runMiddleware(req, res, validation); }
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+        for (const validation of postValidations) {
+            let errorOccurred = false;
+            await new Promise(resolve => validation(req, res, (result) => { if (result instanceof Error) errorOccurred = true; resolve(); }));
+            if (errorOccurred || res.writableEnded) return;
+        }
+        // const errors = validationResult(req);
+        // if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
         const {
             quantity, base_catalog_item_id, selected_rye_variant_id,
             selected_rye_marketplace, variant_display_name,
             variant_display_price, variant_display_photo
         } = req.body;
-        try {
-            const [itemCheck] = await pool.query('SELECT name, image_url, price FROM items WHERE item_id = ?', [base_catalog_item_id]);
-            if (itemCheck.length === 0) return res.status(404).json({ error: `Base catalog item ID ${base_catalog_item_id} not found.` });
-            const baseItemDetails = itemCheck[0];
 
+        let connection;
+        try {
+            connection = await pool.getConnection();
+            await connection.beginTransaction();
+
+            // **NEW CHECK**: Verify the base catalog item is still active/linked
+            const [itemStatusCheck] = await connection.query(
+                'SELECT name, image_url, price, is_rye_linked FROM items WHERE item_id = ?',
+                [base_catalog_item_id]
+            );
+            if (itemStatusCheck.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({ error: `Base catalog item ID ${base_catalog_item_id} not found.` });
+            }
+            const baseItemDetails = itemStatusCheck[0];
+            if (!baseItemDetails.is_rye_linked) {
+                await connection.rollback();
+                return res.status(400).json({ error: `Item "${baseItemDetails.name}" is currently not available for purchase and cannot be added as a drive need.` });
+            }
+            // **END NEW CHECK**
+
+            // Use baseItemDetails fetched above
             const displayName = variant_display_name || baseItemDetails.name;
-            const displayPrice = (variant_display_price !== null && variant_display_price !== undefined) ? parseFloat(variant_display_price) : (baseItemDetails.price !== null ? parseFloat(baseItemDetails.price) : null);
+            const displayPrice = (variant_display_price !== null && variant_display_price !== undefined)
+                ? parseFloat(variant_display_price)
+                : (baseItemDetails.price !== null ? parseFloat(baseItemDetails.price) : null);
             const displayPhoto = variant_display_photo || baseItemDetails.image_url;
 
-            const [existingItem] = await pool.query(
+            const [existingItem] = await connection.query(
                 'SELECT drive_item_id FROM drive_items WHERE drive_id = ? AND item_id = ? AND selected_rye_variant_id = ? AND is_active = 1',
                 [driveId, base_catalog_item_id, selected_rye_variant_id]
             );
-            if (existingItem.length > 0) return res.status(409).json({ error: 'This specific item variant is already an active need.' });
+            if (existingItem.length > 0) {
+                await connection.rollback();
+                return res.status(409).json({ error: 'This specific item variant is already an active need for this drive.' });
+            }
 
-            const [result] = await pool.query(
+            const [result] = await connection.query(
                 `INSERT INTO drive_items (
                    drive_id, item_id, base_catalog_item_id, quantity,
                    selected_rye_variant_id, selected_rye_marketplace,
@@ -117,15 +162,28 @@ export default async function handler(req, res) {
                 ]
             );
             const newDriveItemId = result.insertId;
-            const [newDriveItemRow] = await pool.query(
-                `SELECT di.*, i.name as base_item_name, i.description as base_item_description, i.price as base_item_price, i.image_url as base_item_photo, i.rye_product_id as base_rye_product_id, i.marketplace as base_marketplace, i.is_rye_linked as base_is_rye_linked
-                 FROM drive_items di JOIN items i ON di.item_id = i.item_id
-                 WHERE di.drive_item_id = ?`, [newDriveItemId]
+
+            // Fetch the newly created item along with joined base item details for the response
+            const [newDriveItemRow] = await connection.query(
+                `SELECT di.*, 
+                        i.name as base_item_name, i.description as base_item_description, 
+                        i.price as base_item_price, i.image_url as base_item_photo, 
+                        i.rye_product_id as base_rye_product_id, i.marketplace as base_marketplace, 
+                        i.is_rye_linked as base_is_rye_linked
+                 FROM drive_items di 
+                 JOIN items i ON di.item_id = i.item_id
+                 WHERE di.drive_item_id = ?`,
+                [newDriveItemId]
             );
+            await connection.commit();
             return res.status(201).json({ message: 'Item need added to drive successfully', driveItem: newDriveItemRow[0] });
+
         } catch (error) {
+            if (connection) await connection.rollback();
             console.error('Error adding item need to drive:', error);
             return res.status(500).json({ error: 'Internal server error' });
+        } finally {
+            if (connection) connection.release();
         }
 
     } else {
