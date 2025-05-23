@@ -13,8 +13,9 @@ import { toast } from 'react-toastify';
 import AuthModal from '../../components/auth/AuthModal';
 import OrderDetailDisplay from '../../components/Orders/OrderDetailDisplay';
 import StatusDisplay from '../../components/Cards/StatusDisplay';
+import PropTypes from 'prop-types';
 
-// Change Password Form Component (from previous step)
+// Change Password Form Component
 const ChangePasswordForm = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -77,6 +78,7 @@ const ChangePasswordForm = () => {
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             required
+            autoComplete="current-password"
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-ggreen focus:border-ggreen"
           />
         </div>
@@ -91,6 +93,7 @@ const ChangePasswordForm = () => {
             onChange={(e) => setNewPassword(e.target.value)}
             required
             minLength="6"
+            autoComplete="new-password"
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-ggreen focus:border-ggreen"
           />
         </div>
@@ -104,6 +107,7 @@ const ChangePasswordForm = () => {
             value={confirmNewPassword}
             onChange={(e) => setConfirmNewPassword(e.target.value)}
             required
+            autoComplete="new-password"
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-ggreen focus:border-ggreen"
           />
         </div>
@@ -118,6 +122,106 @@ const ChangePasswordForm = () => {
     </div>
   );
 };
+
+// Deactivate Account Form/Section Component
+const DeactivateAccountSection = ({ userProvider }) => {
+  const [password, setPassword] = useState('');
+  const [isDeactivating, setIsDeactivating] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const router = useRouter();
+
+  const needsPasswordConfirmation = userProvider === 'credentials';
+
+  const handleDeactivate = async () => {
+    setIsDeactivating(true);
+    try {
+      const payload = {};
+      if (needsPasswordConfirmation) {
+        if (!password) {
+          toast.error("Password is required to confirm deactivation.");
+          setIsDeactivating(false);
+          return;
+        }
+        payload.password = password;
+      }
+      await axios.post('/api/account/deactivate', payload, { withCredentials: true });
+      toast.success('Your account has been deactivated. You will be logged out.');
+      await signOut({ redirect: false });
+      router.push('/');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to deactivate account.');
+      setIsDeactivating(false);
+      setShowConfirmation(false);
+    }
+    // No finally setIsDeactivating(false) here, as successful deactivation logs out.
+  };
+
+  if (showConfirmation) {
+    return (
+      <AuthModal isOpen={showConfirmation} onClose={() => setShowConfirmation(false)}>
+        <div className="p-2">
+          <h3 className="text-xl font-semibold text-red-600 mb-4">Confirm Account Deactivation</h3>
+          <p className="text-sm text-gray-700 mb-4">
+            Are you absolutely sure you want to deactivate your account? This action cannot be undone.
+            Your personal information will be anonymized, but your order history will be retained.
+          </p>
+          {needsPasswordConfirmation && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="deactivatePassword">
+                Enter Password to Confirm <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="password"
+                id="deactivatePassword"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
+              />
+            </div>
+          )}
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={() => setShowConfirmation(false)}
+              disabled={isDeactivating}
+              className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDeactivate}
+              disabled={isDeactivating || (needsPasswordConfirmation && !password)}
+              className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+            >
+              {isDeactivating ? 'Deactivating...' : 'Yes, Deactivate My Account'}
+            </button>
+          </div>
+        </div>
+      </AuthModal>
+    );
+  }
+
+  return (
+    <div className="mt-12 p-6 border border-red-300 rounded-lg shadow-sm bg-red-50">
+      <h3 className="text-xl font-semibold text-red-700 mb-3">Deactivate Account</h3>
+      <p className="text-sm text-gray-700 mb-4">
+        Deactivating your account will anonymize your personal data and prevent future logins.
+        Your order history will be retained for record-keeping. This action is irreversible.
+      </p>
+      <button
+        onClick={() => setShowConfirmation(true)}
+        className="w-full sm:w-auto px-6 py-2.5 bg-red-600 text-white font-semibold rounded-md shadow-sm hover:bg-red-700 transition-colors"
+      >
+        Deactivate My Account
+      </button>
+    </div>
+  );
+};
+
+DeactivateAccountSection.propTypes = {
+  userProvider: PropTypes.string.isRequired,
+}
 
 
 const AccountPage = () => {
@@ -137,16 +241,15 @@ const AccountPage = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [currentProfilePicUrl, setCurrentProfilePicUrl] = useState(user?.profile_picture_url || '/img/default-avatar.svg');
 
-  // UPDATED: Use the provider from the session
   const canChangePassword = user?.provider === 'credentials';
 
   useEffect(() => {
     if (user?.profile_picture_url) {
       setCurrentProfilePicUrl(user.profile_picture_url);
-    } else {
+    } else if (authStatus === "authenticated" && user) { // Ensure user object exists
       setCurrentProfilePicUrl('/img/default-avatar.svg');
     }
-  }, [user?.profile_picture_url]);
+  }, [user?.profile_picture_url, authStatus, user]);
 
   const fetchOrderList = async () => {
     if (!user || !user.id) return;
@@ -165,7 +268,7 @@ const AccountPage = () => {
     if (authStatus === "authenticated" && user) {
       fetchOrderList();
     } else if (authStatus === "unauthenticated") {
-      router.push('/auth/login');
+      router.push('/auth/login?callbackUrl=/visible/profile');
     }
   }, [user, authStatus, router]);
 
@@ -233,10 +336,12 @@ const AccountPage = () => {
         withCredentials: true,
       });
       toast.success(response.data.message || 'Profile picture updated!');
-      setCurrentProfilePicUrl(response.data.profile_picture_url + `?v=${new Date().getTime()}`);
+      const newPicUrl = response.data.profile_picture_url + `?v=${new Date().getTime()}`;
+      setCurrentProfilePicUrl(newPicUrl);
       setProfilePictureFile(null);
       setProfilePicturePreview(null);
-      await updateSession({ profile_picture_url: response.data.profile_picture_url });
+      document.getElementById('profilePictureInput').value = null; // Clear file input
+      await updateSession({ ...session, user: { ...user, profile_picture_url: response.data.profile_picture_url } });
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to upload profile picture.');
       console.error('Profile picture upload error:', err.response?.data || err);
@@ -257,8 +362,10 @@ const AccountPage = () => {
     );
   }
   if (authStatus === "unauthenticated" || !user) {
-    if (typeof window !== 'undefined') router.push('/auth/login');
-    return (
+    // This condition should be caught by useEffect and redirect, but as a fallback
+    // or if useEffect hasn't run yet on initial server render followed by client nav
+    if (typeof window !== 'undefined') router.push('/auth/login?callbackUrl=/visible/profile');
+    return ( // Return a loading/redirecting state
       <>
         <Navbar transparent />
         <main className="min-h-screen bg-secondary_green pt-24 flex items-center justify-center">
@@ -281,9 +388,7 @@ const AccountPage = () => {
                   <Image
                     src={profilePicturePreview || currentProfilePicUrl}
                     alt="Profile Picture"
-                    width={120}
-                    height={120}
-                    key={currentProfilePicUrl}
+                    width={120} height={120} key={currentProfilePicUrl}
                     className="rounded-full object-cover shadow-md border-2 border-gray-200"
                     onError={(e) => { e.currentTarget.src = '/img/default-avatar.svg'; }}
                   />
@@ -291,116 +396,57 @@ const AccountPage = () => {
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                     </svg>
-                    <input
-                      type="file"
-                      id="profilePictureInput"
-                      accept="image/jpeg,image/png,image/gif,image/webp"
-                      onChange={handleProfilePictureChange}
-                      className="hidden"
-                    />
+                    <input type="file" id="profilePictureInput" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleProfilePictureChange} className="hidden" />
                   </label>
                 </div>
                 {profilePictureFile && (
                   <div className="mb-4 text-center">
-                    <button
-                      onClick={handleProfilePictureUpload}
-                      disabled={isUploading}
-                      className="px-4 py-2 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 disabled:opacity-50"
-                    >
+                    <button onClick={handleProfilePictureUpload} disabled={isUploading} className="px-4 py-2 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 disabled:opacity-50">
                       {isUploading ? 'Uploading...' : 'Save Picture'}
                     </button>
-                    <button
-                      onClick={() => { setProfilePictureFile(null); setProfilePicturePreview(null); document.getElementById('profilePictureInput').value = null; }}
-                      disabled={isUploading}
-                      className="ml-2 px-4 py-2 bg-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-400 disabled:opacity-50"
-                    >
+                    <button onClick={() => { setProfilePictureFile(null); setProfilePicturePreview(null); document.getElementById('profilePictureInput').value = null; }} disabled={isUploading} className="ml-2 px-4 py-2 bg-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-400 disabled:opacity-50">
                       Cancel
                     </button>
                   </div>
                 )}
-
-                <h3 className="text-3xl font-semibold mb-1 text-gray-800">
-                  {user.name || user.email}
-                </h3>
-                <div className="text-sm mb-2 text-gray-600 font-bold uppercase">
-                  <i className="fas fa-envelope mr-2 text-lg text-gray-600"></i>
-                  {user.email}
-                </div>
-                {!user.email_verified_at && (
-                  <div className="text-xs text-yellow-600 bg-yellow-100 border border-yellow-300 px-2 py-1 rounded-full mb-2">
-                    Email not verified
-                  </div>
-                )}
-                {user.is_org_admin && user.org_id && (
-                  <Link href="/admin/dashboard" className="mt-2 text-blue-500 hover:underline text-sm">
-                    Go to Organization Dashboard
-                  </Link>
-                )}
-                {user.is_super_admin && (
-                  <Link href="/admin/superAdmin" className="mt-1 text-purple-500 hover:underline text-sm">
-                    Go to Super Admin Dashboard
-                  </Link>
-                )}
-                <button
-                  onClick={() => signOut({ callbackUrl: '/' })}
-                  className="mt-3 px-4 py-2 text-xs bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-                >
-                  Log Out
-                </button>
+                <h3 className="text-3xl font-semibold mb-1 text-gray-800">{user.name || user.email}</h3>
+                <div className="text-sm mb-2 text-gray-600 font-bold uppercase"><i className="fas fa-envelope mr-2 text-lg text-gray-600"></i>{user.email}</div>
+                {!user.email_verified_at && (<div className="text-xs text-yellow-600 bg-yellow-100 border border-yellow-300 px-2 py-1 rounded-full mb-2">Email not verified</div>)}
+                {user.is_org_admin && user.org_id && (<Link href="/admin/dashboard" className="mt-2 text-blue-500 hover:underline text-sm">Go to Organization Dashboard</Link>)}
+                {user.is_super_admin && (<Link href="/admin/superAdmin" className="mt-1 text-purple-500 hover:underline text-sm">Go to Super Admin Dashboard</Link>)}
+                <button onClick={() => signOut({ callbackUrl: '/' })} className="mt-3 px-4 py-2 text-xs bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors">Log Out</button>
               </div>
 
-              {/* UPDATED: Conditionally render ChangePasswordForm */}
               {canChangePassword ? (
                 <ChangePasswordForm />
               ) : (
                 <div className="mt-8 p-6 border border-gray-200 rounded-lg shadow-sm bg-gray-50 text-center">
                   <p className="text-sm text-gray-600">
-                    Password management is not available for accounts created via social login ({user.provider}).
+                    Password management is not available for accounts created via {user.provider || 'social login'}.
                   </p>
                 </div>
               )}
 
+              <DeactivateAccountSection userProvider={user.provider} />
 
               <div className="mt-10 py-10 border-t border-gray-200">
                 <h2 className="text-2xl font-semibold text-gray-800 mb-4">Your Order History</h2>
-                <StatusDisplay isLoading={authStatus === "loading" && !orders.length} error={error} />
-
-                {authStatus !== "loading" && !error && orders.length === 0 && (
-                  <p className="text-gray-600 italic">You have no orders yet.</p>
-                )}
-
+                <StatusDisplay isLoading={authStatus === "loading" && !orders.length && !error} error={error} />
+                {authStatus !== "loading" && !error && orders.length === 0 && (<p className="text-gray-600 italic">You have no orders yet.</p>)}
                 {orders.length > 0 && (
                   <div className="overflow-x-auto">
                     <table className="min-w-full bg-white border">
-                      <thead>
-                        <tr className="bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                          <th className="py-2 px-4">Order ID</th>
-                          <th className="py-2 px-4">Date</th>
-                          <th className="py-2 px-4">Total</th>
-                          <th className="py-2 px-4">Status</th>
-                          <th className="py-2 px-4">Rye Ref</th>
-                          <th className="py-2 px-4">Actions</th>
-                        </tr>
-                      </thead>
+                      <thead><tr className="bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"><th className="py-2 px-4">Order ID</th><th className="py-2 px-4">Date</th><th className="py-2 px-4">Total</th><th className="py-2 px-4">Status</th><th className="py-2 px-4">Rye Ref</th><th className="py-2 px-4">Actions</th></tr></thead>
                       <tbody className="divide-y divide-gray-200">
                         {orders.map(order => (
                           <tr key={order.order_id} className="hover:bg-gray-50">
                             <td className="py-2 px-4 text-sm text-gray-800 font-mono">#{order.order_id}</td>
                             <td className="py-2 px-4 text-sm text-gray-800">{new Date(order.order_date).toLocaleDateString()}</td>
-                            <td className="py-2 px-4 text-sm text-gray-800 font-medium">
-                              {formatCurrency(
-                                order.total_amount ? parseFloat(order.total_amount) * 100 : null,
-                                order.currency
-                              )}
-                            </td>
+                            <td className="py-2 px-4 text-sm text-gray-800 font-medium">{formatCurrency(order.total_amount ? parseFloat(order.total_amount) * 100 : null, order.currency)}</td>
                             <td className="py-2 px-4 text-sm text-gray-800 capitalize">{order.status || 'N/A'}</td>
                             <td className="py-2 px-4 text-xs text-gray-500 font-mono">{order.primary_rye_order_id || 'N/A'}</td>
                             <td className="py-2 px-4 text-sm">
-                              <button
-                                onClick={() => handleViewOrderDetails(order.primary_rye_order_id)}
-                                disabled={!order.primary_rye_order_id || isFetchingOrderDetails}
-                                className="px-3 py-1 text-xs bg-ggreen text-white rounded shadow-sm hover:bg-teal-700 disabled:opacity-50"
-                              >
+                              <button onClick={() => handleViewOrderDetails(order.primary_rye_order_id)} disabled={!order.primary_rye_order_id || isFetchingOrderDetails} className="px-3 py-1 text-xs bg-ggreen text-white rounded shadow-sm hover:bg-teal-700 disabled:opacity-50">
                                 {isFetchingOrderDetails && selectedOrderDetails?.id === order.primary_rye_order_id ? 'Loading...' : 'View Details'}
                               </button>
                             </td>
