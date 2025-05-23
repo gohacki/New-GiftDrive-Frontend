@@ -27,7 +27,7 @@ export default async function handler(req, res) {
         try {
             const [drives] = await pool.query(`
                 SELECT d.drive_id, d.org_id, d.name, d.description, d.photo, 
-                       d.start_date, d.end_date, d.created_at,
+                       d.start_date, d.end_date,
                        o.city AS org_city, o.state AS org_state
                 FROM drives d
                 JOIN organizations o ON d.org_id = o.org_id
@@ -67,7 +67,6 @@ export default async function handler(req, res) {
                 [driveIds]
             );
 
-            // Map aggregates to drives
             const driveItemsNeededMap = new Map(driveItemsNeededRows.map(r => [r.drive_id, Number(r.total_drive_needed) || 0]));
             const childItemsNeededMap = new Map(childItemsNeededRows.map(r => [r.drive_id, Number(r.total_child_needed) || 0]));
             const driveItemsPurchasedMap = new Map(driveItemsPurchasedRows.map(r => [r.drive_id, Number(r.total_drive_purchased) || 0]));
@@ -87,17 +86,18 @@ export default async function handler(req, res) {
 
             return res.status(200).json(driveData);
         } catch (error) {
+            // Log the detailed error for server-side debugging
             console.error('Error fetching drives for list:', error);
+            // Send a generic error to the client
             return res.status(500).json({ error: 'Internal server error fetching drives' });
         }
     } else if (req.method === 'POST') {
-        // ... (Your POST logic remains the same, but ensure it releases connections if using pool.getConnection())
         const session = await getServerSession(req, res, authOptions);
         if (!session || !session.user || !session.user.org_id) {
             return res.status(401).json({ message: 'Not authenticated or not an organization admin.' });
         }
 
-        let tempFilePath = null; // To track uploaded file for cleanup on error
+        let tempFilePath = null;
         try {
             const { fields, files } = await parseForm(req);
             const { name, description, start_date, end_date } = fields;
@@ -150,9 +150,11 @@ export default async function handler(req, res) {
             }
             return res.status(500).json({ error: 'Internal server error creating drive.' });
         } finally {
-            if (tempFilePath) { // Clean up temp file if it exists
+            if (tempFilePath) {
                 try {
-                    fs.unlinkSync(tempFilePath);
+                    if (fs.existsSync(tempFilePath)) { // Check if file exists before unlinking
+                        fs.unlinkSync(tempFilePath);
+                    }
                 } catch (unlinkErr) {
                     console.warn("Error cleaning up temp file:", unlinkErr);
                 }
