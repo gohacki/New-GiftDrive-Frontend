@@ -36,11 +36,6 @@ const calculateDaysRemaining = (endDateString) => {
 };
 
 const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
-  // ... Component logic remains largely the same ...
-  // The handleAddToCart and fetchDriveDataAfterCartAction will need to be re-evaluated
-  // if they were relying on service functions being available in the component scope.
-  // For now, let's assume they primarily interact with CartContext or make API calls.
-
   const router = useRouter();
   const { cart, loading: cartLoading, addToCart, fetchCart: refreshCartContext } = useContext(CartContext);
   const { status: authStatus } = useSession();
@@ -76,13 +71,16 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
       const initialQuantities = {};
       const processItems = (items, keyPrefix) => {
         (items || []).forEach(itemNeed => {
-          const itemKey = itemNeed[`${keyPrefix}_item_id`];
-          if (itemKey) initialQuantities[itemKey] = 1;
+          // Only consider items not hidden for quantity selection on public page
+          if (!itemNeed.is_hidden_from_public) {
+            const itemKey = itemNeed[`${keyPrefix}_item_id`];
+            if (itemKey) initialQuantities[itemKey] = 1;
+          }
         });
       };
-      processItems(initialDriveData.items, 'drive');
+      processItems(initialDriveData.items, 'drive'); // These are already filtered in GSSP
       (initialDriveData.children || []).forEach(child => {
-        processItems(child.items, 'child');
+        processItems(child.items, 'child'); // These are already filtered in GSSP
       });
       setItemQuantities(initialQuantities);
     } else {
@@ -103,6 +101,12 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
     if (!itemKey) {
       toast.error("Item identifier is missing."); return;
     }
+    // Ensure item is not hidden before adding to cart from public page
+    if (itemNeed.is_hidden_from_public) {
+      toast.warn("This item is currently not available.");
+      return;
+    }
+
     setIsAddingToCart(prev => ({ ...prev, [itemKey]: true }));
 
     const ryeIdForCartApi = itemNeed.selected_rye_variant_id;
@@ -148,10 +152,7 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
     try {
       const success = await addToCart(itemDisplayInfo, apiPayloadForContext);
       if (success) {
-        // Instead of calling fetchDriveDataAfterCartAction which can't use services,
-        // we rely on CartContext update and potentially GSSP re-run on next navigation.
-        // Or, trigger a route refresh to re-run GSSP:
-        router.replace(router.asPath); // This will re-run getServerSideProps
+        router.replace(router.asPath);
         await refreshCartContext();
       }
     } catch (err) {
@@ -169,20 +170,29 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
   const closeChildModal = async () => {
     setSelectedChildIdForModal(null);
     setIsChildModalOpen(false);
-    // Trigger GSSP re-run
     router.replace(router.asPath);
     await refreshCartContext();
   };
 
   const handleBladeClose = () => setIsBladeDismissed(true);
 
-  // --- Component Render Logic ---
   if (router.isFallback || (authStatus === "loading" && !initialDriveData && !initialError)) {
-    return ( /* Loading state */ <></>); // Keep your loading UI
+    return (<div className="min-h-screen flex items-center justify-center"><p>Loading drive...</p></div>);
   }
 
   if (pageError || !drive) {
-    return ( /* Error/Not Found state */  <></>); // Keep your error UI
+    return (
+      <>
+        <Navbar transparent />
+        <main className="min-h-screen flex flex-col items-center justify-center bg-secondary_green text-slate-800 relative px-4 text-center">
+          <p className="text-red-600 text-lg font-semibold">{pageError || 'Drive not found.'}</p>
+          <Link href="/visible/search" className="mt-4 px-4 py-2 bg-ggreen text-white rounded hover:bg-teal-700">
+            Browse Other Drives
+          </Link>
+        </main>
+        <Footer isBladeOpen={false} />
+      </>
+    );
   }
 
   const {
@@ -190,8 +200,8 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
     org_id, organization_name, org_city, org_state,
     end_date,
     totalNeeded = 0, totalPurchased = 0,
-    items: driveItemsOnly = [],
-    children: driveChildren = [],
+    items: driveItemsOnly = [], // Already filtered in GSSP
+    children: driveChildren = [], // Children and their items already filtered in GSSP
     topDonors = [],
     recentDonations = [],
   } = drive;
@@ -210,7 +220,6 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
       <Navbar isBladeOpen={isCartBladeEffectivelyOpen} />
       <main className={`min-h-screen bg-white text-slate-800 relative pt-24 pb-16 ${isCartBladeEffectivelyOpen ? 'mr-[15rem]' : 'mr-0'} transition-all duration-300 ease-in-out`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Page Title & Meta */}
           <h1 className="text-3xl lg:text-4xl font-bold text-ggreen mb-3 mt-6 text-center md:text-left">{name}</h1>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-600 mb-8 justify-center md:justify-start">
             <div className="flex items-center">
@@ -223,7 +232,7 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
                 <span>{org_city}, {org_state}</span>
               </div>
             )}
-            {organization_name && org_id && ( // Added org_id check for Link
+            {organization_name && org_id && (
               <Link href={`/visible/organization/${org_id}`} className="flex items-center text-ggreen hover:underline">
                 <BuildingLibraryIcon className="h-5 w-5 mr-1.5" />
                 <span>{organization_name}</span>
@@ -231,9 +240,7 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
             )}
           </div>
 
-          {/* Main Grid Layout */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-            {/* Left Column (Progress, Donors, Share) */}
             <div className="md:col-span-4 space-y-6">
               <div className="bg-white p-6 rounded-lg shadow-lg border border-ggreen">
                 <h2 className="text-xl font-semibold text-ggreen">Drive Progress</h2>
@@ -319,6 +326,7 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
                   <h2 className="text-2xl font-semibold text-ggreen mb-6">Children Supported by {name}</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {driveChildren.map((child) => (
+                      !child.is_hidden_from_public && // Ensure child itself isn't marked hidden (if that feature exists)
                       <div key={child.child_id} onClick={() => openChildModal(child.child_id)} className="cursor-pointer block border-2 border-ggreen bg-white shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-shadow p-4 text-center">
                         {child.child_photo && (<div className="flex justify-center mb-3 h-20 relative"><Image src={child.child_photo || '/img/default-child.png'} alt={child.child_name} width={80} height={80} className="object-contain rounded-full" onError={(e) => e.currentTarget.src = '/img/default-child.png'} /></div>)}
                         <h3 className="text-md font-semibold text-ggreen mb-1">{child.child_name}</h3>
@@ -342,16 +350,16 @@ const DrivePage = ({ drive: initialDriveData, error: initialError }) => {
   );
 };
 
-DrivePage.propTypes = { /* ... PropTypes remain the same ... */
+DrivePage.propTypes = {
   drive: PropTypes.shape({
     drive_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-    id: PropTypes.string, // This was added in GSSP, should be string version of drive_id
+    id: PropTypes.string,
     org_id: PropTypes.number,
     name: PropTypes.string,
     description: PropTypes.string,
     photo: PropTypes.string,
-    start_date: PropTypes.string, // Now an ISO string
-    end_date: PropTypes.string,   // Now an ISO string
+    start_date: PropTypes.string,
+    end_date: PropTypes.string,
     organization_name: PropTypes.string,
     organization_photo: PropTypes.string,
     org_city: PropTypes.string,
@@ -364,9 +372,9 @@ DrivePage.propTypes = { /* ... PropTypes remain the same ... */
       child_name: PropTypes.string.isRequired,
       child_photo: PropTypes.string,
       items_needed_count: PropTypes.number,
-      items: PropTypes.array,
+      items: PropTypes.array, // Items here should already be filtered for public display
     })),
-    items: PropTypes.arrayOf(PropTypes.shape({
+    items: PropTypes.arrayOf(PropTypes.shape({ // These are already filtered for public display
       drive_item_id: PropTypes.number.isRequired,
       base_item_name: PropTypes.string,
       variant_display_name: PropTypes.string,
@@ -379,6 +387,7 @@ DrivePage.propTypes = { /* ... PropTypes remain the same ... */
       variant_display_photo: PropTypes.string,
       base_item_price: PropTypes.number,
       variant_display_price: PropTypes.number,
+      is_hidden_from_public: PropTypes.bool, // Present for completeness, but should be false here
     })),
     topDonors: PropTypes.arrayOf(PropTypes.shape({
       name: PropTypes.string, items: PropTypes.number, avatar: PropTypes.string, badge: PropTypes.string,
@@ -394,7 +403,6 @@ DrivePage.propTypes = { /* ... PropTypes remain the same ... */
 export async function getServerSideProps(context) {
   const { id } = context.params;
 
-  // --- Dynamically import service functions INSIDE getServerSideProps ---
   const {
     getCoreDriveDetails,
     getDriveAggregates,
@@ -403,12 +411,10 @@ export async function getServerSideProps(context) {
     getDriveRecentDonations
   } = await import('../../../lib/services/driveService');
   const { getChildItems } = await import('../../../lib/services/childService');
-  // --- End dynamic imports ---
 
   try {
     const coreDriveData = await getCoreDriveDetails(id);
     if (!coreDriveData || !coreDriveData.drive_id) {
-      console.warn(`[GSSP Drive ${id}] Core drive data not found or drive_id missing.`);
       return { notFound: true };
     }
 
@@ -419,8 +425,8 @@ export async function getServerSideProps(context) {
     };
 
     const [aggregateData, driveSpecificItemsData, topDonorsData, recentDonationsData] = await Promise.all([
-      getDriveAggregates(id),
-      getDriveSpecificItems(id),
+      getDriveAggregates(id), // This now excludes hidden items from totalNeeded
+      getDriveSpecificItems(id).then(items => items.filter(item => !item.is_hidden_from_public)), // Filter hidden items
       getDriveTopDonors(id),
       getDriveRecentDonations(id)
     ]);
@@ -428,24 +434,26 @@ export async function getServerSideProps(context) {
     const childrenWithItemsData = await Promise.all(
       (serializableCoreDriveData.children || []).map(async (child) => {
         const childSpecificItems = await getChildItems(child.child_id);
-        const processedChildItems = (childSpecificItems || []).map(item => ({
-          ...item,
-          selected_rye_variant_id: item.selected_rye_variant_id || null,
-          selected_rye_marketplace: item.selected_rye_marketplace || null,
-        }));
+        const publiclyVisibleChildItems = (childSpecificItems || [])
+          .filter(item => !item.is_hidden_from_public) // Filter hidden child items
+          .map(item => ({
+            ...item,
+            selected_rye_variant_id: item.selected_rye_variant_id || null,
+            selected_rye_marketplace: item.selected_rye_marketplace || null,
+          }));
         return {
           ...child,
-          items: processedChildItems,
-          items_needed_count: processedChildItems.filter(item => item.remaining > 0).length || 0,
+          items: publiclyVisibleChildItems,
+          items_needed_count: publiclyVisibleChildItems.filter(item => item.remaining > 0).length || 0,
         };
       })
     );
 
     const finalDriveData = {
       ...serializableCoreDriveData,
-      items: driveSpecificItemsData,
-      children: childrenWithItemsData,
-      totalNeeded: Number(aggregateData.totalNeeded) || 0,
+      items: driveSpecificItemsData, // Already filtered
+      children: childrenWithItemsData, // Children's items are now filtered
+      totalNeeded: Number(aggregateData.totalNeeded) || 0, // Reflects non-hidden items
       totalPurchased: Number(aggregateData.totalPurchased) || 0,
       donorsCount: Number(aggregateData.donorsCount) || 0,
       id: String(serializableCoreDriveData.drive_id),

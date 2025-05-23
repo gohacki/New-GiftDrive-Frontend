@@ -4,8 +4,8 @@ import axios from 'axios';
 import PropTypes from 'prop-types';
 import DriveItemCard from './DriveItemCard';
 import AddItemBlade from '../Blades/AddItemBlade';
-
-// REMOVED: const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+import { toast } from 'react-toastify';
+import ConfirmActionModal from '../Modals/ConfirmActionModal'; // Import the new modal
 
 const DriveItemList = ({ driveId }) => {
   const [driveItems, setDriveItems] = useState([]);
@@ -14,7 +14,17 @@ const DriveItemList = ({ driveId }) => {
   const [isAddItemBladeOpen, setIsAddItemBladeOpen] = useState(false);
   const [editingDriveItem, setEditingDriveItem] = useState(null);
 
+  // State for the confirmation modal
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmModalProps, setConfirmModalProps] = useState({
+    title: '',
+    message: '',
+    options: [],
+    itemName: '',
+  });
+
   const fetchDriveItems = async () => {
+    // ... (fetchDriveItems logic remains the same) ...
     if (!driveId) {
       setLoading(false);
       setError("Drive ID is missing, cannot fetch items.");
@@ -23,15 +33,17 @@ const DriveItemList = ({ driveId }) => {
     setLoading(true);
     setError(null);
     try {
-      // UPDATED to relative path
       const response = await axios.get(`/api/drives/${driveId}/items`, {
         withCredentials: true,
       });
-      setDriveItems(response.data);
+      setDriveItems(response.data.map(item => ({
+        ...item,
+        is_hidden_from_public: Boolean(item.is_hidden_from_public)
+      })));
     } catch (err) {
       console.error(`Error fetching drive items for drive ${driveId}:`, err);
       setError('Failed to load drive items.');
-      setDriveItems([]); // Clear items on error
+      setDriveItems([]);
     } finally {
       setLoading(false);
     }
@@ -39,48 +51,118 @@ const DriveItemList = ({ driveId }) => {
 
   useEffect(() => {
     fetchDriveItems();
-  }, [driveId]); // Re-fetch if driveId changes
+  }, [driveId]);
 
-  const handleDeleteItem = async (driveItemId) => {
-    if (!driveId || !driveItemId) return;
-    if (confirm('Remove this item from the drive?')) {
-      try {
-        // UPDATED to relative path
-        await axios.delete(`/api/drives/${driveId}/items/${driveItemId}`, {
-          withCredentials: true,
-        });
-        setDriveItems((prev) =>
-          prev.filter((item) => item.drive_item_id !== driveItemId)
-        );
-        // Or refetch for absolute consistency: fetchDriveItems();
-      } catch (err) {
-        console.error(`Error deleting drive item ${driveItemId}:`, err);
-        alert('Could not delete drive item. Please try again.'); // Or use toast
+  const handleApiAction = async (method, url, data, successMessage, itemName = "Item") => {
+    // ... (handleApiAction logic remains the same) ...
+    try {
+      await axios[method](url, data, { withCredentials: true });
+      toast.success(successMessage);
+      fetchDriveItems();
+    } catch (err) {
+      console.error(`Error with ${method} ${url} for item "${itemName}":`, err.response?.data || err.message || err);
+      toast.error(err.response?.data?.error || `Operation failed for "${itemName}": ${err.message}`);
+    }
+  };
+
+  const handleDeleteItem = async (itemToDelete) => {
+    if (!driveId || !itemToDelete?.drive_item_id) {
+      toast.error("Cannot delete item: Missing drive or item ID.");
+      return;
+    }
+
+    const itemName = itemToDelete.base_item_name || 'Item';
+    console.log("[DriveItemList] Attempting to delete item:", itemToDelete);
+
+    try {
+      await axios.delete(`/api/drives/${driveId}/items/${itemToDelete.drive_item_id}`, {
+        withCredentials: true,
+      });
+      toast.success(`"${itemName}" removed successfully.`);
+      fetchDriveItems();
+    } catch (err) {
+      console.error(`Error deleting drive item ${itemToDelete.drive_item_id} ("${itemName}"): `, err.response?.data || err.message || err);
+
+      if (err.response && err.response.status === 409 && err.response.data?.type === "confirm_action_on_purchased_item") {
+        const details = err.response.data.details;
+        const purchasedQty = Number(details?.purchased_qty || 0);
+        const neededQty = Number(details?.needed_qty || 0);
+
+        let modalMessage = `A donor has already purchased ${purchasedQty} of "${itemName}", so it cannot be fully removed.`;
+        const modalOptions = [];
+
+        if (details?.can_hide === true) {
+          modalOptions.push({
+            label: "Hide Item",
+            action: () => handleHideItem(itemToDelete.drive_item_id, true, itemName),
+            style: 'secondary',
+          });
+        }
+        if (details?.can_reduce_needed === true && purchasedQty < neededQty) {
+          modalMessage += `\n\nThe remaining ${neededQty - purchasedQty} unpurchased item(s) can be removed from the 'needed' quantity.`;
+          modalOptions.push({
+            label: `Set Needed to ${purchasedQty} & Hide`,
+            action: () => handleReduceNeeded(itemToDelete.drive_item_id, itemName),
+            style: 'primary',
+          });
+        }
+
+        if (modalOptions.length > 0) {
+          setConfirmModalProps({
+            title: `Action Required for "${itemName}"`,
+            message: modalMessage,
+            options: modalOptions,
+            itemName: itemName,
+          });
+          setIsConfirmModalOpen(true);
+        } else {
+          toast.info(modalMessage + "\nNo further actions available for this item currently.");
+        }
+
+      } else {
+        toast.error(err.response?.data?.error || `Could not delete "${itemName}".`);
       }
     }
   };
 
+  const handleHideItem = async (driveItemId, hide = true, itemName = "Item") => {
+    const action = hide ? 'hide' : 'unhide';
+    await handleApiAction('patch', `/api/drives/${driveId}/items/${driveItemId}`,
+      { action },
+      `${itemName} ${hide ? 'hidden' : 'unhidden'} successfully.`,
+      itemName
+    );
+  };
+
+  const handleReduceNeeded = async (driveItemId, itemName = "Item") => {
+    await handleApiAction('patch', `/api/drives/${driveId}/items/${driveItemId}`,
+      { action: 'reduce_needed_to_purchased' },
+      `Needed quantity for ${itemName} reduced. The item has also been hidden.`,
+      itemName
+    );
+  };
+
   const handleUpdateQuantity = async (driveItemId, newQuantity) => {
-    if (!driveId || !driveItemId || newQuantity < 1) return; // Basic validation
-    try {
-      // UPDATED to relative path
-      // Assuming your API expects a PUT request with a quantity in the body
-      await axios.put(
-        `/api/drives/${driveId}/items/${driveItemId}`,
-        { quantity: newQuantity }, // Payload
-        { withCredentials: true }
-      );
-      // For faster UI, update local state, then optionally refetch or trust optimistic update
-      setDriveItems(prevItems =>
-        prevItems.map(item =>
-          item.drive_item_id === driveItemId ? { ...item, needed: newQuantity } : item
-        )
-      );
-      // Or for full consistency: fetchDriveItems();
-    } catch (err) {
-      console.error(`Error updating quantity for drive item ${driveItemId}:`, err);
-      alert('Could not update quantity. Please try again.'); // Or use toast
+    // ... (handleUpdateQuantity logic remains the same) ...
+    if (!driveId || !driveItemId || newQuantity < 0) return;
+
+    const itemToUpdate = driveItems.find(item => item.drive_item_id === driveItemId);
+    const itemName = itemToUpdate?.base_item_name || "Item";
+
+    if (itemToUpdate && newQuantity < itemToUpdate.purchased) {
+      toast.error(`Cannot set needed quantity (${newQuantity}) for "${itemName}" below the already purchased quantity (${itemToUpdate.purchased}).`);
+      return;
     }
+    if (itemToUpdate && itemToUpdate.is_hidden_from_public) {
+      toast.warn(`Quantity for "${itemName}" cannot be updated as it is hidden. Please unhide it first.`);
+      return;
+    }
+
+    await handleApiAction('put', `/api/drives/${driveId}/items/${driveItemId}`,
+      { quantity: newQuantity },
+      `Quantity for "${itemName}" updated successfully.`,
+      itemName
+    );
   };
 
   const handleOpenAddBlade = (e) => {
@@ -92,6 +174,9 @@ const DriveItemList = ({ driveId }) => {
   const handleOpenEditBlade = (itemToEdit, eventObject) => {
     if (eventObject && typeof eventObject.stopPropagation === 'function') {
       eventObject.stopPropagation();
+    }
+    if (itemToEdit.is_hidden_from_public) {
+      toast.info("This item is hidden. Please unhide it to make further edits to its details (except unhiding or removing).");
     }
     setEditingDriveItem(itemToEdit);
     setIsAddItemBladeOpen(true);
@@ -130,10 +215,11 @@ const DriveItemList = ({ driveId }) => {
             <DriveItemCard
               key={itemInMap.drive_item_id}
               item={itemInMap}
-              // driveId={driveId} // Not directly used by DriveItemCard but good to keep if its internals might change
-              onDeleteItem={handleDeleteItem}
-              onUpdateQuantity={handleUpdateQuantity} // Pass the updated handler
+              onDeleteItem={handleDeleteItem} // Still passes the item object
+              onUpdateQuantity={handleUpdateQuantity}
               onEditItem={handleOpenEditBlade}
+              onHideItem={handleHideItem}
+              onReduceNeeded={handleReduceNeeded} // For explicit "reduce needed" if you add a button
             />
           ))}
         </div>
@@ -145,6 +231,15 @@ const DriveItemList = ({ driveId }) => {
         existingDriveItem={editingDriveItem}
         onSave={handleBladeSave}
         onClose={handleBladeClose}
+      />
+
+      <ConfirmActionModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        title={confirmModalProps.title}
+        message={confirmModalProps.message}
+        options={confirmModalProps.options}
+        itemName={confirmModalProps.itemName}
       />
     </div>
   );
