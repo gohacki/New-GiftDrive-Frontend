@@ -1,9 +1,9 @@
 // pages/visible/profile.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useSession, signOut } from 'next-auth/react'; // Use signOut from next-auth
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import Image from 'next/image'; // Import Next.js Image
+import Image from 'next/image';
 import Navbar from '../../components/Navbars/AuthNavbar';
 import Footer from '../../components/Footers/Footer';
 import { formatCurrency } from '../../lib/utils';
@@ -13,6 +13,112 @@ import { toast } from 'react-toastify';
 import AuthModal from '../../components/auth/AuthModal';
 import OrderDetailDisplay from '../../components/Orders/OrderDetailDisplay';
 import StatusDisplay from '../../components/Cards/StatusDisplay';
+
+// Change Password Form Component (from previous step)
+const ChangePasswordForm = () => {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formMessage, setFormMessage] = useState({ type: '', text: '' });
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setFormMessage({ type: '', text: '' });
+
+    if (newPassword !== confirmNewPassword) {
+      setFormMessage({ type: 'error', text: 'New passwords do not match.' });
+      toast.error('New passwords do not match.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setFormMessage({ type: 'error', text: 'New password must be at least 6 characters long.' });
+      toast.error('New password must be at least 6 characters long.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await axios.post('/api/account/change-password', {
+        currentPassword,
+        newPassword,
+      }, { withCredentials: true });
+
+      setFormMessage({ type: 'success', text: response.data.message });
+      toast.success(response.data.message);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+    } catch (err) {
+      const apiError = err.response?.data?.error || err.response?.data?.errors?.[0]?.msg || 'Failed to change password.';
+      setFormMessage({ type: 'error', text: apiError });
+      toast.error(apiError);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mt-8 p-6 border border-gray-200 rounded-lg shadow-sm bg-gray-50">
+      <h3 className="text-xl font-semibold text-gray-700 mb-4">Change Password</h3>
+      {formMessage.text && (
+        <div className={`mb-4 p-3 text-sm rounded ${formMessage.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+          {formMessage.text}
+        </div>
+      )}
+      <form onSubmit={handleChangePassword} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="currentPassword">
+            Current Password
+          </label>
+          <input
+            type="password"
+            id="currentPassword"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-ggreen focus:border-ggreen"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="newPassword">
+            New Password
+          </label>
+          <input
+            type="password"
+            id="newPassword"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            required
+            minLength="6"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-ggreen focus:border-ggreen"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="confirmNewPassword">
+            Confirm New Password
+          </label>
+          <input
+            type="password"
+            id="confirmNewPassword"
+            value={confirmNewPassword}
+            onChange={(e) => setConfirmNewPassword(e.target.value)}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-ggreen focus:border-ggreen"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full sm:w-auto px-6 py-2.5 bg-ggreen text-white font-semibold rounded-md shadow-sm hover:bg-teal-700 transition-colors disabled:opacity-50"
+        >
+          {isSubmitting ? 'Changing...' : 'Change Password'}
+        </button>
+      </form>
+    </div>
+  );
+};
+
 
 const AccountPage = () => {
   const { data: session, status: authStatus, update: updateSession } = useSession();
@@ -26,11 +132,13 @@ const AccountPage = () => {
   const [isFetchingOrderDetails, setIsFetchingOrderDetails] = useState(false);
   const [detailsError, setDetailsError] = useState(null);
 
-  // Profile picture state
   const [profilePictureFile, setProfilePictureFile] = useState(null);
   const [profilePicturePreview, setProfilePicturePreview] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [currentProfilePicUrl, setCurrentProfilePicUrl] = useState(user?.profile_picture_url || '/img/default-avatar.svg');
+
+  // UPDATED: Use the provider from the session
+  const canChangePassword = user?.provider === 'credentials';
 
   useEffect(() => {
     if (user?.profile_picture_url) {
@@ -40,8 +148,7 @@ const AccountPage = () => {
     }
   }, [user?.profile_picture_url]);
 
-
-  const fetchOrderList = async () => { /* ... (existing logic) ... */
+  const fetchOrderList = async () => {
     if (!user || !user.id) return;
     setError(null);
     try {
@@ -62,7 +169,7 @@ const AccountPage = () => {
     }
   }, [user, authStatus, router]);
 
-  const handleViewOrderDetails = async (ryeOrderId) => { /* ... (existing logic) ... */
+  const handleViewOrderDetails = async (ryeOrderId) => {
     if (!ryeOrderId || isFetchingOrderDetails) return;
     setIsFetchingOrderDetails(true);
     setDetailsError(null);
@@ -79,7 +186,7 @@ const AccountPage = () => {
     }
   };
 
-  const closeOrderDetailModal = () => { /* ... (existing logic) ... */
+  const closeOrderDetailModal = () => {
     setIsOrderDetailModalOpen(false);
     setSelectedOrderDetails(null);
     setDetailsError(null);
@@ -88,6 +195,17 @@ const AccountPage = () => {
   const handleProfilePictureChange = (event) => {
     const file = event.target.files[0];
     if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("File is too large. Maximum size is 2MB.");
+        event.target.value = null;
+        return;
+      }
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error("Invalid file type. Please select a JPG, PNG, GIF, or WEBP image.");
+        event.target.value = null;
+        return;
+      }
       setProfilePictureFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -115,10 +233,9 @@ const AccountPage = () => {
         withCredentials: true,
       });
       toast.success(response.data.message || 'Profile picture updated!');
-      setCurrentProfilePicUrl(response.data.profile_picture_url); // Update displayed image
-      setProfilePictureFile(null); // Reset file input state
-      setProfilePicturePreview(null); // Reset preview
-      // Important: Trigger session update to reflect new URL globally
+      setCurrentProfilePicUrl(response.data.profile_picture_url + `?v=${new Date().getTime()}`);
+      setProfilePictureFile(null);
+      setProfilePicturePreview(null);
       await updateSession({ profile_picture_url: response.data.profile_picture_url });
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to upload profile picture.');
@@ -128,8 +245,7 @@ const AccountPage = () => {
     }
   };
 
-
-  if (authStatus === "loading") { /* ... (existing logic) ... */
+  if (authStatus === "loading") {
     return (
       <>
         <Navbar transparent />
@@ -140,7 +256,8 @@ const AccountPage = () => {
       </>
     );
   }
-  if (authStatus === "unauthenticated" || !user) { /* ... (existing logic) ... */
+  if (authStatus === "unauthenticated" || !user) {
+    if (typeof window !== 'undefined') router.push('/auth/login');
     return (
       <>
         <Navbar transparent />
@@ -160,13 +277,13 @@ const AccountPage = () => {
           <div className="container mx-auto px-4">
             <div className="bg-white shadow-xl rounded-lg p-6">
               <div className="flex flex-col items-center mb-10">
-                {/* Profile Picture Display and Upload */}
                 <div className="relative mb-6">
                   <Image
                     src={profilePicturePreview || currentProfilePicUrl}
                     alt="Profile Picture"
                     width={120}
                     height={120}
+                    key={currentProfilePicUrl}
                     className="rounded-full object-cover shadow-md border-2 border-gray-200"
                     onError={(e) => { e.currentTarget.src = '/img/default-avatar.svg'; }}
                   />
@@ -177,7 +294,7 @@ const AccountPage = () => {
                     <input
                       type="file"
                       id="profilePictureInput"
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
                       onChange={handleProfilePictureChange}
                       className="hidden"
                     />
@@ -193,7 +310,7 @@ const AccountPage = () => {
                       {isUploading ? 'Uploading...' : 'Save Picture'}
                     </button>
                     <button
-                      onClick={() => { setProfilePictureFile(null); setProfilePicturePreview(null); }}
+                      onClick={() => { setProfilePictureFile(null); setProfilePicturePreview(null); document.getElementById('profilePictureInput').value = null; }}
                       disabled={isUploading}
                       className="ml-2 px-4 py-2 bg-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-400 disabled:opacity-50"
                     >
@@ -209,6 +326,11 @@ const AccountPage = () => {
                   <i className="fas fa-envelope mr-2 text-lg text-gray-600"></i>
                   {user.email}
                 </div>
+                {!user.email_verified_at && (
+                  <div className="text-xs text-yellow-600 bg-yellow-100 border border-yellow-300 px-2 py-1 rounded-full mb-2">
+                    Email not verified
+                  </div>
+                )}
                 {user.is_org_admin && user.org_id && (
                   <Link href="/admin/dashboard" className="mt-2 text-blue-500 hover:underline text-sm">
                     Go to Organization Dashboard
@@ -227,8 +349,19 @@ const AccountPage = () => {
                 </button>
               </div>
 
+              {/* UPDATED: Conditionally render ChangePasswordForm */}
+              {canChangePassword ? (
+                <ChangePasswordForm />
+              ) : (
+                <div className="mt-8 p-6 border border-gray-200 rounded-lg shadow-sm bg-gray-50 text-center">
+                  <p className="text-sm text-gray-600">
+                    Password management is not available for accounts created via social login ({user.provider}).
+                  </p>
+                </div>
+              )}
+
+
               <div className="mt-10 py-10 border-t border-gray-200">
-                {/* ... (Order History JSX remains the same) ... */}
                 <h2 className="text-2xl font-semibold text-gray-800 mb-4">Your Order History</h2>
                 <StatusDisplay isLoading={authStatus === "loading" && !orders.length} error={error} />
 
@@ -285,7 +418,6 @@ const AccountPage = () => {
       <Footer />
 
       <AuthModal isOpen={isOrderDetailModalOpen} onClose={closeOrderDetailModal}>
-        {/* ... (Modal content JSX remains the same) ... */}
         {detailsError && <p className="text-red-600 text-sm mb-2 text-center">{detailsError}</p>}
         <OrderDetailDisplay
           orderDetails={selectedOrderDetails}

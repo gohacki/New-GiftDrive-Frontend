@@ -5,10 +5,8 @@ import { useRouter } from 'next/router';
 import Auth from 'layouts/Auth.js'; // Your existing layout
 import { signIn, useSession } from 'next-auth/react'; // Import signIn and useSession from next-auth
 
-// const apiUrl = process.env.NEXT_PUBLIC_API_URL; // For social logins if they point to your backend initially
-
 export default function Login() {
-  const { data: session, status: authStatus } = useSession(); // Get session status
+  const { data: session, status: authStatus } = useSession();
   const router = useRouter();
 
   const [email, setEmail] = useState('');
@@ -18,81 +16,68 @@ export default function Login() {
 
   const handleGoogleLogin = () => {
     setIsSubmitting(true);
-    // Provide a relative path from the root of your site.
-    // NextAuth will prepend NEXTAUTH_URL.
     const callbackUrlAfterLogin = router.query.callbackUrl || '/visible/profile';
     signIn('google', { callbackUrl: callbackUrlAfterLogin });
   };
 
   const handleFacebookLogin = () => {
-    setIsSubmitting(true); // Show loading state
-    signIn('facebook', { callbackUrl: router.query.callbackUrl || '../visible/profile' });
+    setIsSubmitting(true);
+    const callbackUrlAfterLogin = router.query.callbackUrl || '/visible/profile';
+    signIn('facebook', { callbackUrl: callbackUrlAfterLogin });
   };
 
   useEffect(() => {
-    // Redirect if user is already authenticated
     if (authStatus === "authenticated" && session?.user) {
-      console.log("Login page: User already authenticated, redirecting...");
-      const callbackUrl = router.query.callbackUrl || '../visible/profile';
-      router.push(typeof callbackUrl === 'string' ? callbackUrl : '../visible/profile');
+      const callbackUrl = router.query.callbackUrl || '/visible/profile';
+      router.push(typeof callbackUrl === 'string' ? callbackUrl : '/visible/profile');
     }
-    // If NextAuth.js returns an error in the URL query (e.g., ?error=CredentialsSignin)
-    if (router.query.error && !localError) { // Check !localError to avoid setting it multiple times
-      // You can map specific NextAuth errors to more user-friendly messages
-      // For now, just display the error code or a generic message.
+    if (router.query.error && !localError) {
       let errorMessage = "Login failed. Please check your credentials or try again.";
       if (router.query.error === "CredentialsSignin") {
         errorMessage = "Invalid email or password.";
       } else if (router.query.error === "OAuthAccountNotLinked") {
-        errorMessage = "This email is already associated with another account. Please sign in using the original method.";
+        errorMessage = "This email is already associated with another account. Please sign in using the original method or reset your password if you used credentials.";
+      } else if (router.query.error === "EmailCreateAccount") {
+        errorMessage = "This email address is associated with an account created via email/password. Please log in with your password or use the 'Forgot Password' link.";
       } else if (router.query.error) {
         errorMessage = `Login error: ${router.query.error}. Please try again.`;
       }
       setLocalError(errorMessage);
     }
-
-  }, [session, authStatus, router, localError]); // Added localError to dependencies
+  }, [session, authStatus, router, localError]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLocalError('');
     setIsSubmitting(true);
 
-    // Use signIn from next-auth for credentials
     const result = await signIn('credentials', {
-      redirect: false, // We handle redirect/error manually based on result
+      redirect: false,
       email: email,
       password: password,
-      // callbackUrl: router.query.callbackUrl || '../visible/profile' // Can specify callback here too
     });
 
     setIsSubmitting(false);
 
     if (result?.error) {
-      // NextAuth sets result.error for common errors like "CredentialsSignin"
-      // The useEffect above can also catch errors passed in URL by NextAuth if not handled here
       setLocalError(result.error === "CredentialsSignin" ? "Invalid email or password." : result.error);
       console.error('Login failed via credentials:', result.error);
     } else if (result?.ok && !result.error) {
-      // Successful sign-in, the useEffect will handle redirection when session status updates
-      console.log("Credentials sign-in successful, waiting for session update and redirect...");
-      // router.push(router.query.callbackUrl || '../visible/profile'); // Or redirect explicitly
+      // Success handled by useEffect
     } else if (!result?.ok) {
       setLocalError("Login attempt failed. Please try again.");
     }
   };
 
-  // If authStatus is loading and no session yet, show loading for the whole page
   if (authStatus === "loading" && !session) {
     return (
-      <Auth> {/* Ensure layout is applied for consistency */}
+      <Auth>
         <div className="min-h-screen bg-secondary_green flex items-center justify-center px-4">
           <p className="text-gray-700 text-lg">Loading session...</p>
         </div>
       </Auth>
     );
   }
-
 
   return (
     <div className="min-h-screen bg-secondary_green flex items-center justify-center px-4">
@@ -133,7 +118,7 @@ export default function Login() {
           </div>
           <div className="flex-auto px-4 lg:px-10 py-10">
             <div className="text-gray-600 text-center mb-3 font-bold">
-              <small>Sign In Below</small>
+              <small>Or sign in with credentials</small> {/* Updated text */}
             </div>
             <form onSubmit={handleSubmit}>
               <div className="relative w-full mb-3">
@@ -168,11 +153,15 @@ export default function Login() {
         </div>
         <div className="flex flex-wrap mt-6 relative">
           <div className="w-1/2">
-            {/* TODO: Implement password reset flow if needed */}
-            <a href="#forgot-password" onClick={(e) => e.preventDefault()} className="text-gray-800"><small>Forgot password?</small></a>
+            {/* UPDATED LINK */}
+            <Link href="/auth/forgot-password" className="text-gray-800 hover:text-ggreen">
+              <small>Forgot password?</small>
+            </Link>
           </div>
           <div className="w-1/2 text-right">
-            <Link href="/auth/register" className="text-gray-800"><small>Create new account</small></Link>
+            <Link href="/auth/register" className="text-gray-800 hover:text-ggreen">
+              <small>Create new account</small>
+            </Link>
           </div>
         </div>
       </div>
@@ -180,4 +169,4 @@ export default function Login() {
   );
 }
 
-Login.layout = Auth; // Apply the Auth layout
+Login.layout = Auth;
