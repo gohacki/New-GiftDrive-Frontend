@@ -8,7 +8,6 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'giveagift-assets.nyc3.cdn.digitaloceanspaces.com',
-        // This is likely for your CDN-served assets
       },
       {
         protocol: 'https',
@@ -20,25 +19,50 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'lh3.googleusercontent.com', // For Google profile pictures
+        hostname: 'lh3.googleusercontent.com',
       },
       {
         protocol: 'https',
-        hostname: 'graph.facebook.com', // For Facebook profile pictures
+        hostname: 'graph.facebook.com',
       },
-      // For profile pictures uploaded to Spaces (e.g., my-bucket.nyc3.digitaloceanspaces.com)
       {
         protocol: 'https',
         hostname: `${process.env.DO_SPACES_BUCKET}.${process.env.DO_SPACES_ENDPOINT.replace(/^https?:\/\//, '').split('/')[0]}`,
       },
-      // ADD THIS NEW PATTERN for URLs like: https://nyc3.digitaloceanspaces.com/your-bucket-name/path/to/image.png
       {
         protocol: 'https',
-        hostname: 'nyc3.digitaloceanspaces.com', // Add the direct endpoint hostname
-        // You might want to restrict the pathname if all images from this host follow a pattern
-        // pathname: `/${process.env.DO_SPACES_BUCKET}/**`, // Example: allows /your-bucket-name/images/...
+        hostname: 'nyc3.digitaloceanspaces.com',
       },
     ],
+  },
+  webpack: (config, { isServer }) => {
+    // Fix for 'net', 'tls', 'fs' module not found with mysql2 or other server-side libs
+    if (!isServer) {
+      // For client-side bundle, make these Node.js modules effectively empty
+      // or tell Webpack they are external and will be provided (which they won't be in browser).
+      // Aliasing to `false` is often more effective for complete exclusion.
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        net: false,
+        tls: false,
+        fs: false,
+        // You might also need to add 'mysql2' itself here if problems persist with it
+        // 'mysql2': false, // Uncomment this as a last resort if 'net' issues within mysql2 persist
+      };
+
+      // The externals approach:
+      // const existingExternals = Array.isArray(config.externals) ? config.externals : [];
+      // config.externals = [
+      //   ...existingExternals,
+      //   {
+      //     net: 'net',
+      //     tls: 'tls',
+      //     fs: 'fs',
+      //   },
+      // ];
+    }
+
+    return config;
   },
 };
 
