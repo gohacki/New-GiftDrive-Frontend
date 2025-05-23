@@ -2,25 +2,17 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]";
 import pool from "../../../config/database";
-import s3 from "../../../config/spaces"; // Your S3 client
-import formidable from 'formidable'; // For parsing multipart/form-data
+import s3 from "../../../config/spaces";
+import formidable from 'formidable';
 import path from 'path';
-import fs from 'fs'; // Needed for formidable to temporarily save file
+import fs from 'fs';
 
-// Helper to disable default body parser for file uploads
-export const config = {
-    api: {
-        bodyParser: false,
-    },
-};
-
-// Helper to parse form with formidable
-const parseForm = (req) => {
+export const config = { api: { bodyParser: false } };
+const parseForm = (req) => { /* ... same parseForm helper ... */
     return new Promise((resolve, reject) => {
-        const form = formidable({ multiples: false }); // Don't allow multiple files for 'photo'
+        const form = formidable({ multiples: false });
         form.parse(req, (err, fields, files) => {
             if (err) return reject(err);
-            // formidable nests fields in arrays, convert to single values if not an array
             const singleFields = {};
             for (const key in fields) {
                 singleFields[key] = Array.isArray(fields[key]) ? fields[key][0] : fields[key];
@@ -30,77 +22,88 @@ const parseForm = (req) => {
     });
 };
 
-
 export default async function handler(req, res) {
     if (req.method === 'GET') {
-        // --- Logic for GET / (List all drives with aggregation) ---
         try {
             const [drives] = await pool.query(`
-                SELECT d.*, o.city AS org_city, o.state AS org_state
+                SELECT d.drive_id, d.org_id, d.name, d.description, d.photo, 
+                       d.start_date, d.end_date, d.created_at,
+                       o.city AS org_city, o.state AS org_state
                 FROM drives d
                 JOIN organizations o ON d.org_id = o.org_id
                 ORDER BY d.start_date DESC
             `);
 
-            const driveData = await Promise.all(
-                drives.map(async (drive) => {
-                    const driveId = drive.drive_id;
-                    // Your existing aggregation logic
-                    const [[driveItemsNeededRow]] = await pool.query(
-                        'SELECT COALESCE(SUM(quantity), 0) AS total_drive_needed FROM drive_items WHERE drive_id = ? AND is_active = 1',
-                        [driveId]
-                    );
-                    const totalDriveNeeded = Number(driveItemsNeededRow.total_drive_needed) || 0;
+            if (drives.length === 0) {
+                return res.status(200).json([]);
+            }
 
-                    const [[childItemsNeededRow]] = await pool.query(
-                        `SELECT COALESCE(SUM(ci.quantity), 0) AS total_child_needed
-                         FROM unique_children uc
-                         JOIN child_items ci ON uc.child_id = ci.child_id
-                         WHERE uc.drive_id = ? AND ci.is_active = 1`,
-                        [driveId]
-                    );
-                    const totalChildNeeded = Number(childItemsNeededRow.total_child_needed) || 0;
-                    const totalNeeded = totalDriveNeeded + totalChildNeeded;
+            const driveIds = drives.map(d => d.drive_id);
 
-                    const [[driveItemsPurchasedRow]] = await pool.query(
-                        `SELECT COALESCE(SUM(oi.quantity), 0) AS total_drive_purchased
-                         FROM order_items oi JOIN orders o ON oi.order_id = o.order_id
-                         WHERE oi.drive_id = ? AND oi.child_id IS NULL AND o.status NOT IN ('cancelled', 'failed', 'refunded')`,
-                        [driveId]
-                    );
-                    const totalDrivePurchased = Number(driveItemsPurchasedRow.total_drive_purchased) || 0;
-
-                    const [[childItemsPurchasedRow]] = await pool.query(
-                        `SELECT COALESCE(SUM(oi.quantity), 0) AS total_child_purchased
-                         FROM order_items oi
-                         JOIN unique_children uc ON oi.child_id = uc.child_id
-                         JOIN orders o ON oi.order_id = o.order_id
-                         WHERE uc.drive_id = ? AND o.status NOT IN ('cancelled', 'failed', 'refunded')`,
-                        [driveId]
-                    );
-                    const totalChildPurchased = Number(childItemsPurchasedRow.total_child_purchased) || 0;
-                    const totalPurchased = totalDrivePurchased + totalChildPurchased;
-
-                    return { ...drive, totalNeeded, totalPurchased };
-                })
+            // Fetch all needed aggregates in fewer queries
+            const [driveItemsNeededRows] = await pool.query(
+                'SELECT drive_id, COALESCE(SUM(quantity), 0) AS total_drive_needed FROM drive_items WHERE drive_id IN (?) AND is_active = 1 GROUP BY drive_id',
+                [driveIds]
             );
+            const [childItemsNeededRows] = await pool.query(
+                `SELECT uc.drive_id, COALESCE(SUM(ci.quantity), 0) AS total_child_needed
+                 FROM unique_children uc
+                 JOIN child_items ci ON uc.child_id = ci.child_id
+                 WHERE uc.drive_id IN (?) AND ci.is_active = 1 GROUP BY uc.drive_id`,
+                [driveIds]
+            );
+            const [driveItemsPurchasedRows] = await pool.query(
+                `SELECT oi.drive_id, COALESCE(SUM(oi.quantity), 0) AS total_drive_purchased
+                 FROM order_items oi JOIN orders o ON oi.order_id = o.order_id
+                 WHERE oi.drive_id IN (?) AND oi.child_id IS NULL AND o.status NOT IN ('cancelled', 'failed', 'refunded') GROUP BY oi.drive_id`,
+                [driveIds]
+            );
+            const [childItemsPurchasedRows] = await pool.query(
+                `SELECT uc.drive_id, COALESCE(SUM(oi.quantity), 0) AS total_child_purchased
+                 FROM order_items oi
+                 JOIN unique_children uc ON oi.child_id = uc.child_id
+                 JOIN orders o ON oi.order_id = o.order_id
+                 WHERE uc.drive_id IN (?) AND o.status NOT IN ('cancelled', 'failed', 'refunded') GROUP BY uc.drive_id`,
+                [driveIds]
+            );
+
+            // Map aggregates to drives
+            const driveItemsNeededMap = new Map(driveItemsNeededRows.map(r => [r.drive_id, Number(r.total_drive_needed) || 0]));
+            const childItemsNeededMap = new Map(childItemsNeededRows.map(r => [r.drive_id, Number(r.total_child_needed) || 0]));
+            const driveItemsPurchasedMap = new Map(driveItemsPurchasedRows.map(r => [r.drive_id, Number(r.total_drive_purchased) || 0]));
+            const childItemsPurchasedMap = new Map(childItemsPurchasedRows.map(r => [r.drive_id, Number(r.total_child_purchased) || 0]));
+
+            const driveData = drives.map(drive => {
+                const totalDriveNeeded = driveItemsNeededMap.get(drive.drive_id) || 0;
+                const totalChildNeeded = childItemsNeededMap.get(drive.drive_id) || 0;
+                const totalNeeded = totalDriveNeeded + totalChildNeeded;
+
+                const totalDrivePurchased = driveItemsPurchasedMap.get(drive.drive_id) || 0;
+                const totalChildPurchased = childItemsPurchasedMap.get(drive.drive_id) || 0;
+                const totalPurchased = totalDrivePurchased + totalChildPurchased;
+
+                return { ...drive, totalNeeded, totalPurchased };
+            });
+
             return res.status(200).json(driveData);
         } catch (error) {
             console.error('Error fetching drives for list:', error);
             return res.status(500).json({ error: 'Internal server error fetching drives' });
         }
     } else if (req.method === 'POST') {
-        // --- Logic for POST / (Create new drive) ---
+        // ... (Your POST logic remains the same, but ensure it releases connections if using pool.getConnection())
         const session = await getServerSession(req, res, authOptions);
         if (!session || !session.user || !session.user.org_id) {
             return res.status(401).json({ message: 'Not authenticated or not an organization admin.' });
         }
-        // Add role check if needed: if (!session.user.is_org_admin) return res.status(403).json(...)
 
+        let tempFilePath = null; // To track uploaded file for cleanup on error
         try {
             const { fields, files } = await parseForm(req);
             const { name, description, start_date, end_date } = fields;
             const photoFile = files.photo ? (Array.isArray(files.photo) ? files.photo[0] : files.photo) : null;
+            tempFilePath = photoFile?.filepath;
+
 
             if (!name || !description || !start_date || !end_date) {
                 return res.status(400).json({ error: 'Name, description, start date, and end date are required.' });
@@ -108,8 +111,7 @@ export default async function handler(req, res) {
 
             let photoUrl = null;
             if (photoFile) {
-                // Validate file type and size here if not handled by formidable's options
-                const allowedTypes = /jpeg|jpg|png|gif/;
+                const allowedTypes = /jpeg|jpg|png|gif|webp/;
                 const extname = allowedTypes.test(path.extname(photoFile.originalFilename).toLowerCase());
                 const mimetype = allowedTypes.test(photoFile.mimetype);
 
@@ -123,15 +125,15 @@ export default async function handler(req, res) {
                 const s3Key = `images/drives/${Date.now().toString()}${path.extname(photoFile.originalFilename)}`;
                 const fileStream = fs.createReadStream(photoFile.filepath);
 
-                await s3.putObject({ // Using direct s3.putObject
+                await s3.putObject({
                     Bucket: process.env.DO_SPACES_BUCKET,
                     Key: s3Key,
                     Body: fileStream,
                     ACL: 'public-read',
                     ContentType: photoFile.mimetype,
                 });
-                photoUrl = `https://${process.env.DO_SPACES_BUCKET}.${process.env.DO_SPACES_ENDPOINT}/${s3Key}`;
-                fs.unlinkSync(photoFile.filepath); // Clean up temp file
+                let endpoint = process.env.DO_SPACES_ENDPOINT.replace(/^https?:\/\//, '');
+                photoUrl = `https://${process.env.DO_SPACES_BUCKET}.${endpoint}/${s3Key}`;
             }
 
             const [result] = await pool.query(
@@ -143,10 +145,18 @@ export default async function handler(req, res) {
 
         } catch (error) {
             console.error('Error adding new drive:', error);
-            if (error.message.includes('Invalid file type') || error.message.includes('File is too large')) {
+            if (error.message?.includes('Invalid file type') || error.message?.includes('File is too large')) {
                 return res.status(400).json({ error: error.message });
             }
             return res.status(500).json({ error: 'Internal server error creating drive.' });
+        } finally {
+            if (tempFilePath) { // Clean up temp file if it exists
+                try {
+                    fs.unlinkSync(tempFilePath);
+                } catch (unlinkErr) {
+                    console.warn("Error cleaning up temp file:", unlinkErr);
+                }
+            }
         }
     } else {
         res.setHeader('Allow', ['GET', 'POST']);
