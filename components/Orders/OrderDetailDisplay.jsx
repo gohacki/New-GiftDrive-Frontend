@@ -1,5 +1,5 @@
 // src/components/Orders/OrderDetailDisplay.jsx
-import React, { useState } from 'react';
+import React from 'react';
 import Image from 'next/image';
 import PropTypes from 'prop-types';
 
@@ -33,8 +33,7 @@ const getStatusColor = (status) => {
     return 'text-gray-600 bg-gray-100'; // Default
 };
 
-export default function OrderDetailDisplay({ orderDetails, onClose, isLoading, onReturnRequest }) {
-    const [selectedItemsForReturn, setSelectedItemsForReturn] = useState(new Set());
+export default function OrderDetailDisplay({ orderDetails, onClose, isLoading }) {
 
     if (isLoading) {
         return (
@@ -54,7 +53,7 @@ export default function OrderDetailDisplay({ orderDetails, onClose, isLoading, o
         id, status, createdAt, marketplace, marketplaceOrderIds = [],
         total, subtotal, tax, shipping,
         cart,
-        shipments = [], events = [], returns = []
+        shipments = [], events = []
     } = orderDetails;
 
     // --- FIX: Derive lineItems from the cart structure ---
@@ -87,28 +86,6 @@ export default function OrderDetailDisplay({ orderDetails, onClose, isLoading, o
         });
     }
     // --- END FIX ---
-
-    const isItemPotentiallyEligible = (itemId) => {
-        const isInExistingReturn = returns.some(ret =>
-            ret.lineItems?.some(li => (li.productId || li.variantId) === itemId)
-        );
-        return !isInExistingReturn;
-    };
-
-    const anyItemEligibleForReturn = lineItems.some(item => isItemPotentiallyEligible(item.productId || item.variantId));
-
-    const handleCheckboxChange = (itemId) => {
-        setSelectedItemsForReturn(prevSet => {
-            const newSet = new Set(prevSet);
-            if (newSet.has(itemId)) {
-                newSet.delete(itemId);
-            } else {
-                newSet.add(itemId);
-            }
-            console.log("Selected items for return:", newSet);
-            return newSet;
-        });
-    };
 
     return (
         <div className="mt-4 p-4 border rounded-md shadow-lg bg-white transition-all duration-300 ease-in-out max-h-[80vh] flex flex-col">
@@ -174,23 +151,8 @@ export default function OrderDetailDisplay({ orderDetails, onClose, isLoading, o
                                                 itemPriceDisplay = 'N/A';
                                             }
 
-                                            const isEligibleForReturn = isItemPotentiallyEligible(itemId);
-
                                             return (
                                                 <div key={`${itemId}-${lineIndex}`} className="flex items-center gap-3 text-sm border rounded p-2 bg-white shadow-sm hover:shadow-md transition-shadow">
-                                                    <div className='flex-shrink-0 w-5 flex justify-center items-center'>
-                                                        {isEligibleForReturn ? (
-                                                            <input
-                                                                type="checkbox"
-                                                                id={`return-item-${itemId}`}
-                                                                checked={selectedItemsForReturn.has(itemId)}
-                                                                onChange={() => handleCheckboxChange(itemId)}
-                                                                className="h-4 w-4 text-indigo-600 transition duration-150 ease-in-out rounded border-gray-300 focus:ring-indigo-500"
-                                                            />
-                                                        ) : (
-                                                            <span title="Item not eligible for return" className="text-gray-400 text-lg">✓</span>
-                                                        )}
-                                                    </div>
                                                     <div className='w-12 h-12 relative flex-shrink-0 border rounded bg-white'>
                                                         {itemImageUrl ? (
                                                             <Image src={itemImageUrl} alt={itemTitle.substring(0, 20)} fill style={{ objectFit: 'contain' }} sizes="48px" onError={(e) => e.currentTarget.src = '/placeholder-image.png'} />
@@ -232,31 +194,6 @@ export default function OrderDetailDisplay({ orderDetails, onClose, isLoading, o
                     </div>
                 )}
 
-                {returns.length > 0 && (
-                    <div className="mb-2">
-                        <h4 className="font-semibold text-base mb-1 text-gray-700 border-t pt-3">Returns</h4>
-                        {returns.map((ret, index) => (
-                            <div key={ret.id || index} className="text-sm border rounded p-2 bg-yellow-50 mb-1 shadow-sm">
-                                <p><strong>Return ID:</strong> <span className="font-mono text-xs">{ret.id}</span></p>
-                                <p><strong>Status:</strong>
-                                    <span className={`ml-2 inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusColor(ret.status)}`}>
-                                        {ret.status || 'N/A'}
-                                    </span>
-                                </p>
-                                {ret.shippingLabelUrl && <a href={ret.shippingLabelUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline block my-0.5 text-xs">View Shipping Label</a>}
-                                <p className="mt-1 font-medium text-gray-600 text-xs">Items in Return:</p>
-                                <ul className="list-disc list-inside ml-4 text-xs text-gray-500">
-                                    {ret.lineItems?.map((item, itemIndex) => (
-                                        <li key={itemIndex}>
-                                            ID: {item.productId || item.variantId}, Qty: {item.quantity}, Status: {item.status || 'N/A'}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
                 {events.length > 0 && (
                     <details className="group text-xs mt-2 border-t pt-2">
                         <summary className="font-medium text-gray-600 cursor-pointer group-open:mb-1 list-none">
@@ -276,31 +213,6 @@ export default function OrderDetailDisplay({ orderDetails, onClose, isLoading, o
                     </details>
                 )}
             </div>
-
-            {anyItemEligibleForReturn && (
-                <div className="mt-4 pt-3 border-t flex-shrink-0">
-                    <button
-                        onClick={() => {
-                            const itemsToSubmit = lineItems
-                                .filter(item => selectedItemsForReturn.has(item.productId || item.variantId))
-                                .map(item => ({
-                                    id: item.productId || item.variantId,
-                                    quantity: item.quantity
-                                }));
-
-                            if (itemsToSubmit.length > 0 && onReturnRequest) {
-                                onReturnRequest(id, marketplace, itemsToSubmit);
-                            } else if (!onReturnRequest) {
-                                console.error("onReturnRequest prop is missing from OrderDetailDisplay");
-                            }
-                        }}
-                        disabled={isLoading || selectedItemsForReturn.size === 0}
-                        className="w-full px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-md shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        Request Return for Selected Items ({selectedItemsForReturn.size})
-                    </button>
-                </div>
-            )}
         </div>
     );
 }
@@ -357,17 +269,6 @@ OrderDetailDisplay.propTypes = {
             createdAt: PropTypes.string,
             reason: PropTypes.string,
             amount: moneyType,
-        })),
-        returns: PropTypes.arrayOf(PropTypes.shape({
-            id: PropTypes.string,
-            status: PropTypes.string,
-            shippingLabelUrl: PropTypes.string,
-            lineItems: PropTypes.arrayOf(PropTypes.shape({
-                productId: PropTypes.string,
-                variantId: PropTypes.string,
-                quantity: PropTypes.number,
-                status: PropTypes.string,
-            })),
         })),
     }),
     onClose: PropTypes.func.isRequired,
