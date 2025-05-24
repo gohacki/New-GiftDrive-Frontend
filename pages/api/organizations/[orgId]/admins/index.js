@@ -1,6 +1,6 @@
 import pool from '../../../../../config/database';
 import { getServerSession } from "next-auth/next";
-import { authOptions } from '../../../../auth/[...nextauth]';
+import { authOptions } from '../../../auth/[...nextauth]';
 import { body, param, validationResult } from 'express-validator';
 import { runMiddleware } from '../../../../../lib/runMiddleware';
 import { sendEmail } from '../../../../../lib/emailService'; // Make sure this path is correct
