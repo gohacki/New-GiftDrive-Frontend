@@ -207,27 +207,27 @@ const EditChildModal = ({ child, onClose }) => {
       role="dialog" aria-modal="true" aria-labelledby="edit-child-modal-title"
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-auto p-4"
     >
-      <div className="bg-white rounded-lg shadow-lg p-6 max-w-3xl w-full mx-auto my-8">
-        <h2 id="edit-child-modal-title" className="text-2xl font-semibold mb-6 text-gray-800">
+      <div className="bg-white rounded-lg shadow-lg p-6 max-w-3xl w-full mx-auto my-8 border border-slate-200"> {/* Updated container */}
+        <h2 id="edit-child-modal-title" className="text-xl font-semibold text-slate-800 border-b border-slate-200 pb-3 mb-6"> {/* Updated title */}
           Manage Items for {child.child_name}
         </h2>
         <form onSubmit={handleSubmitForm}>
           {error && <div className="mb-4 text-red-600 bg-red-50 p-3 rounded" role="alert">{error}</div>}
 
           <div className="mb-6">
-            <h3 className="text-xl font-medium mb-3 text-gray-700">Current Items</h3>
+            <h3 className="text-lg font-medium mb-3 text-slate-700">Current Items</h3> {/* Updated section title */}
             {currentItems.length === 0 ? (
-              <p className="text-gray-600 italic">No items currently associated with this child.</p>
+              <p className="text-slate-500 italic">No items currently associated with this child.</p> {/* Updated empty state text */}
             ) : (
               <ul className="space-y-3">
                 {currentItems.map((item) => (
-                  <li key={item.child_item_id} className={`border p-3 rounded-md shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 ${item.is_hidden_from_public ? 'bg-gray-200 opacity-80' : 'bg-gray-50'}`}>
+                  <li key={item.child_item_id} className={`border border-slate-200 p-3 rounded-md shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 ${item.is_hidden_from_public ? 'bg-slate-100 opacity-80' : 'bg-white'}`}> {/* Updated li style */}
                     <div className="flex items-center gap-3 flex-grow">
-                      {item.item_photo && <Image src={item.item_photo} alt={item.item_name} width={56} height={56} className="w-14 h-14 object-contain rounded border bg-white" />}
+                      {item.item_photo && <Image src={item.item_photo} alt={item.item_name} width={56} height={56} className="w-14 h-14 object-contain rounded border border-slate-200 bg-white" />} {/* Updated image border */}
                       <div className="flex-grow min-w-0">
-                        <h4 className={`font-semibold truncate ${item.is_hidden_from_public ? 'text-gray-600' : 'text-gray-800'}`} title={item.item_name}>{item.item_name}</h4>
-                        <p className="text-xs text-gray-500">Price: ${Number(item.price).toFixed(2)}</p>
-                        <p className="text-xs text-gray-500">Purchased: {item.purchased}</p>
+                        <h4 className={`font-semibold truncate ${item.is_hidden_from_public ? 'text-slate-600' : 'text-slate-800'}`} title={item.item_name}>{item.item_name}</h4> {/* Updated item name text */}
+                        <p className="text-xs text-slate-500">Price: ${Number(item.price).toFixed(2)}</p> {/* Updated price/purchased text */}
+                        <p className="text-xs text-slate-500">Purchased: {item.purchased}</p> {/* Updated price/purchased text */}
                       </div>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-shrink-0">
@@ -236,15 +236,15 @@ const EditChildModal = ({ child, onClose }) => {
                           <input type="number" value={item.quantity}
                             onChange={(e) => handleQuantityChange(item.child_item_id, parseInt(e.target.value, 10))}
                             min={item.purchased > 0 ? item.purchased : 1}
-                            className="w-16 px-2 py-1 border border-gray-300 rounded text-sm text-center"
+                            className="w-16 px-2 py-1 border border-slate-300 rounded-md text-sm text-center shadow-sm focus:outline-none focus:border-ggreen focus:ring-1 focus:ring-ggreen" /* Updated quantity input */
                             disabled={isSubmitting || item.is_hidden_from_public} />
-                          <button type="button" onClick={() => handleSaveQuantity(item.child_item_id)} disabled={isSubmitting} className="p-1.5 text-green-600 hover:text-green-700"><CheckIcon className="h-5 w-5" /></button>
-                          <button type="button" onClick={() => { setEditingItemId(null); fetchChildItems(); }} disabled={isSubmitting} className="p-1.5 text-gray-500 hover:text-gray-700"><XMarkIcon className="h-5 w-5" /></button>
+                          <button type="button" onClick={() => handleSaveQuantity(item.child_item_id)} disabled={isSubmitting} className="p-1.5 text-ggreen hover:text-teal-700"><CheckIcon className="h-5 w-5" /></button> {/* Updated save icon */}
+                          <button type="button" onClick={() => { setEditingItemId(null); fetchChildItems(); }} disabled={isSubmitting} className="p-1.5 text-slate-500 hover:text-slate-700"><XMarkIcon className="h-5 w-5" /></button> {/* Updated cancel edit icon */}
                         </div>
                       ) : (
                         <div className="flex items-center gap-1">
-                          <span className="text-sm mr-1">Needed: {item.quantity}</span>
-                          {!item.is_hidden_from_public && <button type="button" onClick={() => setEditingItemId(item.child_item_id)} className="p-1.5 text-blue-600 hover:text-blue-700" title="Edit Quantity"><PencilSquareIcon className="h-5 w-5" /></button>}
+                          <span className="text-sm mr-1 text-slate-700">Needed: {item.quantity}</span> {/* Updated text color */}
+                          {!item.is_hidden_from_public && <button type="button" onClick={() => setEditingItemId(item.child_item_id)} className="p-1.5 text-slate-600 hover:text-slate-800" title="Edit Quantity"><PencilSquareIcon className="h-5 w-5" /></button>} {/* Updated edit icon */}
                         </div>
                       )}
                       <button type="button" onClick={() => toggleHideItem(item)} className="p-1.5 text-yellow-600 hover:text-yellow-700" title={item.is_hidden_from_public ? "Unhide Item" : "Hide Item"}>
@@ -259,22 +259,22 @@ const EditChildModal = ({ child, onClose }) => {
           </div>
 
           <div className="mb-6">
-            <h3 className="text-xl font-medium mb-3 text-gray-700">Available Items to Add</h3>
-            <input type="text" placeholder="Search catalog items..." value={searchTerm} onChange={handleSearchChange} className="w-full border border-gray-300 rounded p-2 mb-3 text-sm" />
+            <h3 className="text-lg font-medium mb-3 text-slate-700">Available Items to Add</h3> {/* Updated section title */}
+            <input type="text" placeholder="Search catalog items..." value={searchTerm} onChange={handleSearchChange} className="w-full border border-slate-300 rounded-md p-2 mb-3 text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:border-ggreen focus:ring-1 focus:ring-ggreen" /> {/* Updated search input */}
             {filteredAvailableItems.length === 0 ? (
-              <p className="text-gray-600 italic">No available items match your search or all catalog items are already added.</p>
+              <p className="text-slate-500 italic">No available items match your search or all catalog items are already added.</p> {/* Updated empty state text */}
             ) : (
-              <ul className="space-y-2 max-h-60 overflow-y-auto border rounded p-2">
+              <ul className="space-y-2 max-h-60 overflow-y-auto border border-slate-200 rounded p-2"> {/* Updated list container border */}
                 {filteredAvailableItems.map((item) => (
-                  <li key={item.item_id} className="flex items-center justify-between bg-gray-50 p-2 rounded hover:bg-gray-100">
+                  <li key={item.item_id} className="flex items-center justify-between bg-white border border-slate-200 p-2 rounded-md hover:bg-slate-50"> {/* Updated li style */}
                     <div className="flex items-center gap-2">
-                      {item.image_url && <Image src={item.image_url} alt={item.name} width={40} height={40} className="w-10 h-10 object-contain rounded border bg-white" />}
+                      {item.image_url && <Image src={item.image_url} alt={item.name} width={40} height={40} className="w-10 h-10 object-contain rounded border border-slate-200 bg-white" />} {/* Updated image border */}
                       <div>
-                        <h4 className="text-sm font-medium text-gray-800">{item.name}</h4>
-                        <p className="text-xs text-gray-500">${Number(item.price).toFixed(2)} ({item.marketplace})</p>
+                        <h4 className="text-sm font-medium text-slate-800">{item.name}</h4> {/* Updated item name text */}
+                        <p className="text-xs text-slate-500">${Number(item.price).toFixed(2)} ({item.marketplace})</p> {/* Updated price text */}
                       </div>
                     </div>
-                    <button type="button" onClick={() => handleAddItem(item)} className="text-sm bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition-colors disabled:opacity-50" disabled={isSubmitting}>
+                    <button type="button" onClick={() => handleAddItem(item)} className="text-xs bg-ggreen text-white px-2.5 py-1 rounded-md hover:bg-teal-700 transition-colors disabled:opacity-50" disabled={isSubmitting}> {/* Updated add button */}
                       <PlusCircleIcon className="h-5 w-5 inline mr-1" />Add
                     </button>
                   </li>
@@ -284,10 +284,10 @@ const EditChildModal = ({ child, onClose }) => {
           </div>
 
           <div className="flex justify-end space-x-4 mt-8">
-            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium" disabled={isSubmitting}>
+            <button type="button" onClick={onClose} className="px-5 py-2 bg-slate-200 text-slate-700 rounded-md hover:bg-slate-300 text-sm font-medium" disabled={isSubmitting}> {/* Updated cancel button */}
               Cancel
             </button>
-            <button type="submit" disabled={isSubmitting} className="px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium disabled:opacity-50">
+            <button type="submit" disabled={isSubmitting} className="px-5 py-2 bg-ggreen text-white rounded-md hover:bg-teal-700 text-sm font-medium disabled:opacity-50"> {/* Updated submit button */}
               {isSubmitting ? 'Saving...' : 'Close & Finish'}
             </button>
           </div>

@@ -32,7 +32,7 @@ const DriveCard = ({ drive, onDelete, onUpdateDrive }) => {
 
   return (
     <div
-      className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+      className="bg-white p-6 rounded-lg shadow-lg border border-gray-200 hover:shadow-xl transition-shadow cursor-pointer"
       onClick={toggleDetails}
       role="button"
       aria-expanded={showDetails}
@@ -41,8 +41,8 @@ const DriveCard = ({ drive, onDelete, onUpdateDrive }) => {
     >
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-xl font-bold mb-2">{drive.name}</h3>
-          <p className="text-gray-600">{drive.description}</p>
+          <h3 className="text-xl font-bold mb-2 text-ggreen">{drive.name}</h3>
+          <p className="text-slate-600">{drive.description}</p>
         </div>
         <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
           <button
@@ -50,19 +50,19 @@ const DriveCard = ({ drive, onDelete, onUpdateDrive }) => {
             aria-expanded={showDetails}
             tabIndex={0}
             onKeyPress={toggleDetails}
-            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+            className="bg-ggreen text-white px-3 py-1 rounded-md text-xs hover:bg-teal-700"
           >
-            Manage
+            {showDetails ? 'Hide' : 'Manage'}
           </button>
           <button
             onClick={handleEdit}
-            className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+            className="bg-slate-500 text-white px-3 py-1 rounded-md text-xs hover:bg-slate-600"
           >
             Edit
           </button>
           <button
             onClick={handleDelete}
-            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+            className="bg-red-500 text-white px-3 py-1 rounded-md text-xs hover:bg-red-600"
           >
             Delete
           </button>
@@ -71,7 +71,7 @@ const DriveCard = ({ drive, onDelete, onUpdateDrive }) => {
 
       {/* Expanded Details: Show both drive items and children */}
       {showDetails && (
-        <div className="mt-6">
+        <div className="mt-6 text-slate-700">
           <p>
             <strong>Start Date:</strong>{' '}
             {new Date(drive.start_date).toLocaleDateString()}
@@ -81,11 +81,11 @@ const DriveCard = ({ drive, onDelete, onUpdateDrive }) => {
             {new Date(drive.end_date).toLocaleDateString()}
           </p>
           <div className="mt-4">
-            <h4 className="text-lg font-semibold">Drive Items</h4>
+            <h4 className="text-lg font-semibold text-slate-700">Drive Items</h4>
             <DriveItemList driveId={drive.drive_id} />
           </div>
           <div className="mt-4">
-            <h4 className="text-lg font-semibold">Children with Items</h4>
+            <h4 className="text-lg font-semibold text-slate-700">Children with Items</h4>
             <ChildList driveId={drive.drive_id} />
           </div>
         </div>

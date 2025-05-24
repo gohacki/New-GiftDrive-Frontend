@@ -127,17 +127,17 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
       aria-labelledby="add-drive-modal-title"
       ref={modalRef}
     >
-      <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full relative">
+      <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full relative border border-slate-200"> {/* Updated container */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-gray-600 hover:text-gray-800 text-2xl"
+          className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 text-2xl" /* Updated close button */
           aria-label="Close modal"
           disabled={isSubmitting}
         >
           ×
         </button>
 
-        <h2 id="add-drive-modal-title" className="text-xl font-semibold mb-4">
+        <h2 id="add-drive-modal-title" className="text-slate-800 text-xl font-semibold border-b border-slate-200 pb-3 mb-4"> {/* Updated title */}
           Add New Drive
         </h2>
 
@@ -149,20 +149,20 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="mb-4">
-            <label htmlFor="drive-name" className="block font-medium mb-1">Drive Name <span className="text-red-500">*</span></label>
+            <label htmlFor="drive-name" className="block text-sm font-medium text-slate-700 mb-1">Drive Name <span className="text-red-500">*</span></label> {/* Updated label */}
             <input
               type="text" id="drive-name" name="name" value={driveData.name} onChange={handleInputChange}
-              className={`w-full border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded p-2 focus:ring-ggreen focus:border-ggreen`}
+              className={`w-full border ${errors.name ? 'border-red-500' : 'border-slate-300'} rounded-md p-2 text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:border-ggreen focus:ring-1 focus:ring-ggreen`} /* Updated input */
               required minLength={3} aria-invalid={!!errors.name} aria-describedby={errors.name ? 'drive-name-error' : undefined}
             />
             {errors.name && <p id="drive-name-error" className="text-red-500 text-xs mt-1">{errors.name}</p>}
           </div>
 
           <div className="mb-4">
-            <label htmlFor="drive-description" className="block font-medium mb-1">Description</label>
+            <label htmlFor="drive-description" className="block text-sm font-medium text-slate-700 mb-1">Description</label> {/* Updated label */}
             <textarea
               id="drive-description" name="description" value={driveData.description} onChange={handleInputChange}
-              className={`w-full border ${errors.description ? 'border-red-500' : 'border-gray-300'} rounded p-2 focus:ring-ggreen focus:border-ggreen`}
+              className={`w-full border ${errors.description ? 'border-red-500' : 'border-slate-300'} rounded-md p-2 text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:border-ggreen focus:ring-1 focus:ring-ggreen`} /* Updated textarea */
               maxLength={500} aria-invalid={!!errors.description} aria-describedby={errors.description ? 'drive-description-error' : undefined}
               rows="3"
             />
@@ -170,35 +170,36 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
           </div>
 
           <div className="mb-4">
-            <label htmlFor="drive-photo" className="block font-medium mb-1">Photo (Optional)</label>
+            <label htmlFor="drive-photo" className="block text-sm font-medium text-slate-700 mb-1">Photo (Optional)</label> {/* Updated label */}
             <input
               type="file" id="drive-photo" name="photo" accept="image/*" onChange={handleFileChange}
-              className={`w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-ggreen file:text-white hover:file:bg-teal-700 ${errors.photo ? 'border-red-500' : 'border-gray-300'}`}
+              className={`w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-ggreen file:text-white hover:file:bg-teal-700 ${errors.photo ? 'border-red-500' : 'border-slate-300'}`} /* Ensure border-slate-300 if needed, keeping file button style */
               aria-invalid={!!errors.photo} aria-describedby={errors.photo ? 'drive-photo-error' : undefined}
             />
             {errors.photo && <p id="drive-photo-error" className="text-red-500 text-xs mt-1">{errors.photo}</p>}
             {previewPhotoUrl && (
               <div className="mt-2">
+                {/* Photo Preview Label can be added here if needed, e.g., <p className="text-xs text-slate-500 mb-1">Preview:</p> */}
                 <Image src={previewPhotoUrl} alt="Drive Preview" width={128} height={128} className="w-32 h-32 object-cover rounded shadow" />
               </div>
             )}
           </div>
 
           <div className="mb-4">
-            <label htmlFor="start-date" className="block font-medium mb-1">Start Date <span className="text-red-500">*</span></label>
+            <label htmlFor="start-date" className="block text-sm font-medium text-slate-700 mb-1">Start Date <span className="text-red-500">*</span></label> {/* Updated label */}
             <input
               type="date" id="start-date" name="start_date" value={driveData.start_date} onChange={handleInputChange}
-              className={`w-full border ${errors.start_date ? 'border-red-500' : 'border-gray-300'} rounded p-2 focus:ring-ggreen focus:border-ggreen`}
+              className={`w-full border ${errors.start_date ? 'border-red-500' : 'border-slate-300'} rounded-md p-2 text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:border-ggreen focus:ring-1 focus:ring-ggreen`} /* Updated input */
               required aria-invalid={!!errors.start_date} aria-describedby={errors.start_date ? 'start-date-error' : undefined}
             />
             {errors.start_date && <p id="start-date-error" className="text-red-500 text-xs mt-1">{errors.start_date}</p>}
           </div>
 
           <div className="mb-4">
-            <label htmlFor="end-date" className="block font-medium mb-1">End Date <span className="text-red-500">*</span></label>
+            <label htmlFor="end-date" className="block text-sm font-medium text-slate-700 mb-1">End Date <span className="text-red-500">*</span></label> {/* Updated label */}
             <input
               type="date" id="end-date" name="end_date" value={driveData.end_date} onChange={handleInputChange}
-              className={`w-full border ${errors.end_date ? 'border-red-500' : 'border-gray-300'} rounded p-2 focus:ring-ggreen focus:border-ggreen`}
+              className={`w-full border ${errors.end_date ? 'border-red-500' : 'border-slate-300'} rounded-md p-2 text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:border-ggreen focus:ring-1 focus:ring-ggreen`} /* Updated input */
               required min={driveData.start_date || undefined} aria-invalid={!!errors.end_date} aria-describedby={errors.end_date ? 'end-date-error' : undefined}
             />
             {errors.end_date && <p id="end-date-error" className="text-red-500 text-xs mt-1">{errors.end_date}</p>}
@@ -207,14 +208,14 @@ const AddDriveModal = ({ onClose, onAddDrive }) => {
           <div className="flex justify-end space-x-4 mt-6">
             <button
               type="button" onClick={onClose}
-              className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+              className="px-4 py-2 bg-slate-200 text-slate-700 rounded-md hover:bg-slate-300 text-sm font-medium" /* Updated cancel button */
               disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+              className="px-4 py-2 bg-ggreen text-white rounded-md hover:bg-teal-700 text-sm font-medium shadow-sm disabled:opacity-60 cursor-not-allowed" /* Updated submit button */
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Adding...' : 'Add Drive'}

@@ -89,14 +89,14 @@ const AddChildModal = ({ onClose, onAddChild, driveId }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Add Child to Drive</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+      <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full border border-slate-200"> {/* Updated container */}
+        <div className="flex justify-between items-center border-b border-slate-200 pb-3 mb-4"> {/* Updated header */}
+          <h2 className="text-xl font-semibold text-slate-800">Add Child to Drive</h2> {/* Updated title */}
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-2xl">×</button> {/* Updated close button */}
         </div>
 
         {isLoading && !defaultChildren.length && !defaultItems.length && (
-          <p className="text-center py-4">Loading available children and items...</p>
+          <p className="text-center py-4 text-slate-600">Loading available children and items...</p> {/* Updated loading text */}
         )}
         {error && (
           <div className="mb-4 p-3 bg-red-100 text-red-700 border border-red-300 rounded text-sm">
@@ -107,12 +107,12 @@ const AddChildModal = ({ onClose, onAddChild, driveId }) => {
         {!isLoading && (defaultChildren.length > 0 || defaultItems.length > 0) && (
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label htmlFor="select-child" className="block font-medium mb-1">Select Child:</label>
+              <label htmlFor="select-child" className="block text-sm font-medium text-slate-700 mb-1">Select Child:</label> {/* Updated label */}
               <select
                 id="select-child"
                 value={selectedChildId || ''}
                 onChange={(e) => setSelectedChildId(e.target.value)}
-                className="w-full border border-gray-300 rounded p-2 focus:ring-ggreen focus:border-ggreen"
+                className="w-full mt-1 border border-slate-300 rounded-md p-2 text-sm shadow-sm focus:outline-none focus:border-ggreen focus:ring-1 focus:ring-ggreen" /* Updated select */
                 required
                 disabled={defaultChildren.length === 0}
               >
@@ -129,8 +129,8 @@ const AddChildModal = ({ onClose, onAddChild, driveId }) => {
 
             {defaultItems.length > 0 && (
               <div className="mb-4">
-                <label className="block font-medium mb-1">Select Items Needed (Optional):</label>
-                <div className="space-y-2 max-h-60 overflow-y-auto border p-2 rounded">
+                <label className="block text-sm font-medium text-slate-700 mb-1">Select Items Needed (Optional):</label> {/* Updated label */}
+                <div className="space-y-2 max-h-60 overflow-y-auto border border-slate-300 p-2 rounded"> {/* Updated checkbox area border */}
                   {defaultItems.map((item) => (
                     <div key={item.item_id} className="flex items-center space-x-2">
                       <input
@@ -139,9 +139,9 @@ const AddChildModal = ({ onClose, onAddChild, driveId }) => {
                         value={item.item_id.toString()} // Value as string for consistent comparison
                         checked={selectedItemIds.includes(item.item_id.toString())}
                         onChange={handleItemSelection}
-                        className="w-4 h-4 text-ggreen focus:ring-ggreen border-gray-300 rounded"
+                        className="w-4 h-4 text-ggreen focus:ring-ggreen border-slate-300 rounded" /* Updated checkbox border */
                       />
-                      <label htmlFor={`item-${item.item_id}`}>
+                      <label htmlFor={`item-${item.item_id}`} className="text-slate-700 text-sm"> {/* Updated checkbox label text */}
                         {item.name} - ${Number(item.price).toFixed(2)}
                       </label>
                     </div>
@@ -154,14 +154,14 @@ const AddChildModal = ({ onClose, onAddChild, driveId }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+                className="px-4 py-2 bg-slate-200 text-slate-700 rounded-md hover:bg-slate-300 text-sm font-medium" /* Updated cancel button */
                 disabled={isLoading}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                className="px-4 py-2 bg-ggreen text-white rounded-md hover:bg-teal-700 text-sm font-medium shadow-sm disabled:opacity-60 cursor-not-allowed" /* Updated submit button */
                 disabled={isLoading || !selectedChildId}
               >
                 {isLoading ? 'Adding...' : 'Add Child'}
@@ -170,7 +170,7 @@ const AddChildModal = ({ onClose, onAddChild, driveId }) => {
           </form>
         )}
         {!isLoading && defaultChildren.length === 0 && defaultItems.length === 0 && !error && (
-          <p className="text-center text-gray-500 py-4">No default children or items available to select.</p>
+          <p className="text-center text-slate-500 py-4">No default children or items available to select.</p> {/* Updated empty state text */}
         )}
       </div>
     </div>

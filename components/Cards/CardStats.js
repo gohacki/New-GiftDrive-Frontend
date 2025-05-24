@@ -15,11 +15,11 @@ export default function CardStats({
 }) {
   return (
     <>
-      <div className="relative flex flex-col min-w-0 break-words bg-white rounded mb-6 xl:mb-0 shadow-lg">
-        <div className="flex-auto p-4">
+      <div className="relative flex flex-col min-w-0 break-words bg-white p-6 rounded-lg shadow-lg border border-gray-200 mb-6 xl:mb-0">
+        <div className="flex-auto"> {/* Adjusted padding is now on the parent div */}
           <div className="flex flex-wrap">
             <div className="relative w-full pr-4 max-w-full flex-grow flex-1">
-              <h5 className="uppercase text-slate-400 mb-1 text-xs font-semibold">
+              <h5 className="uppercase text-slate-500 mb-1 text-xs font-bold"> {/* Changed text color and font weight */}
                 {statSubtitle}
               </h5>
               <span className="font-semibold text-xl text-slate-700">
@@ -37,7 +37,7 @@ export default function CardStats({
               </div>
             </div>
           </div>
-          <p className="text-sm text-slate-400 mt-4">
+          <p className="text-sm text-slate-500 mt-4"> {/* Changed text color */}
             <span className={statPercentColor + " mr-2"}>
               <i
                 className={

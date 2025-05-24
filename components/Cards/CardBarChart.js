@@ -9,8 +9,8 @@ const CardBarChart = ({ title, subtitle, data, labels, backgroundColor }) => {
       {
         label: subtitle || "",
         data: data,
-        backgroundColor: backgroundColor || "#ed64a6",
-        borderColor: backgroundColor || "#ed64a6",
+        backgroundColor: backgroundColor || "#059669", // Default to ggreen
+        borderColor: backgroundColor || "#059669", // Default to ggreen
         borderWidth: 1,
         barThickness: 8,
       },
@@ -23,7 +23,7 @@ const CardBarChart = ({ title, subtitle, data, labels, backgroundColor }) => {
     plugins: {
       legend: {
         labels: {
-          color: "rgba(0,0,0,.4)",
+          color: "#4A5568", // text-slate-600
         },
         align: "end",
         position: "bottom",
@@ -48,13 +48,13 @@ const CardBarChart = ({ title, subtitle, data, labels, backgroundColor }) => {
       y: {
         display: true,
         ticks: {
-          color: "rgba(0,0,0,.4)",
+          color: "#64748B", // text-slate-500
         },
         grid: {
           borderDash: [2],
           borderDashOffset: [2],
-          color: "rgba(33, 37, 41, 0.3)",
-          zeroLineColor: "rgba(33, 37, 41, 0.3)",
+          color: "#E2E8F0", // text-slate-200
+          zeroLineColor: "#E2E8F0", // text-slate-200
           zeroLineBorderDash: [2],
           zeroLineBorderDashOffset: [2],
         },

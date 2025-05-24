@@ -100,7 +100,7 @@ export default function Dashboard() {
     return (
       <Admin>
         <div className="flex justify-center items-center h-screen -mt-24">
-          <p className="text-xl text-blueGray-600">Loading dashboard...</p>
+          <p className="text-xl text-slate-600">Loading dashboard...</p>
         </div>
       </Admin>
     );
@@ -125,7 +125,7 @@ export default function Dashboard() {
     return (
       <Admin>
         <div className="pt-10 p-6 text-center">
-          <p className="text-xl text-blueGray-600">Access Denied or User Data Error.</p>
+          <p className="text-xl text-slate-600">Access Denied or User Data Error.</p>
           <Link href="/auth/login" className="text-ggreen hover:underline mt-4 inline-block">
             Return to Login
           </Link>
@@ -139,8 +139,8 @@ export default function Dashboard() {
       <Admin> {/* Ensure Admin layout is applied */}
         <div className="pt-10 p-6 text-center">
           <div className="bg-white p-8 rounded-lg shadow-lg inline-block">
-            <h2 className="text-2xl font-semibold text-blueGray-700 mb-4">Welcome to Your Dashboard!</h2>
-            <p className="text-blueGray-600 mb-6">
+            <h2 className="text-2xl font-semibold text-slate-700 mb-4">Welcome to Your Dashboard!</h2>
+            <p className="text-slate-600 mb-6">
               You haven&apos;t set up any drives yet. Drives are how you collect items for those in need.
             </p>
             <Link href="/admin/currentDrives"
@@ -158,8 +158,8 @@ export default function Dashboard() {
     return (
       <Admin>
         <div className="pt-10 p-6 text-center">
-          <p className="text-xl text-blueGray-600">Loading statistics for your drives...</p>
-          <p className="text-sm text-blueGray-500 mt-2">If this persists, ensure your drives have associated children and items, and that purchases have been made for the selected date range.</p>
+          <p className="text-xl text-slate-600">Loading statistics for your drives...</p>
+          <p className="text-sm text-slate-500 mt-2">If this persists, ensure your drives have associated children and items, and that purchases have been made for the selected date range.</p>
         </div>
       </Admin>
     );
@@ -199,22 +199,22 @@ export default function Dashboard() {
   return (
     <> {/* Admin layout handles its own structure, so this fragment is fine */}
       {/* Date Pickers are part of the content for this page, so they stay here */}
-      <div className="flex flex-wrap justify-end p-4 mb-4 bg-blueGray-800 rounded -mt-4 md:-mt-12 -mx-4 md:-mx-10 ">
+      <div className="flex flex-wrap justify-end p-4 mb-6 bg-slate-50 rounded-lg shadow-md">
         <div className="mr-4">
-          <label className="block text-xs font-bold uppercase text-blueGray-100 mb-1">Start Date</label>
+          <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Start Date</label>
           <DatePicker
             selected={startDate}
             onChange={(date) => setStartDate(date)}
-            className="border-0 px-3 py-2 placeholder-blueGray-300 text-blueGray-600 bg-white rounded text-sm shadow focus:outline-none focus:ring w-full"
+            className="border border-gray-300 px-3 py-2 placeholder-slate-400 text-slate-700 bg-white rounded text-sm shadow focus:outline-none focus:ring-2 focus:ring-ggreen focus:border-ggreen w-full"
             dateFormat="MM/dd/yyyy"
           />
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase text-blueGray-100 mb-1">End Date</label>
+          <label className="block text-xs font-bold uppercase text-slate-700 mb-1">End Date</label>
           <DatePicker
             selected={endDate}
             onChange={(date) => setEndDate(date)}
-            className="border-0 px-3 py-2 placeholder-blueGray-300 text-blueGray-600 bg-white rounded text-sm shadow focus:outline-none focus:ring w-full"
+            className="border border-gray-300 px-3 py-2 placeholder-slate-400 text-slate-700 bg-white rounded text-sm shadow focus:outline-none focus:ring-2 focus:ring-ggreen focus:border-ggreen w-full"
             dateFormat="MM/dd/yyyy"
           />
         </div>
@@ -310,8 +310,8 @@ export default function Dashboard() {
         ) : (
           <div className="w-full xl:w-6/12 mb-12 xl:mb-0 px-4">
             <div className="relative flex flex-col min-w-0 break-words bg-white w-full h-full shadow-lg rounded p-4 text-center justify-center items-center">
-              <i className="fas fa-users text-blueGray-300 text-4xl mb-3"></i>
-              <p className="text-blueGray-500 text-sm">
+              <i className="fas fa-users text-slate-400 text-4xl mb-3"></i>
+              <p className="text-slate-500 text-sm">
                 No donees found in active drives for the selected period.
               </p>
               <Link href="/admin/currentDrives" className="text-ggreen hover:underline mt-2 text-sm">
@@ -337,8 +337,8 @@ export default function Dashboard() {
         ) : (
           <div className="w-full xl:w-6/12 mb-12 xl:mb-0 px-4">
             <div className="relative flex flex-col min-w-0 break-words bg-white w-full h-full shadow-lg rounded p-4 text-center justify-center items-center">
-              <i className="fas fa-box-open text-blueGray-300 text-4xl mb-3"></i>
-              <p className="text-blueGray-500 text-sm">
+              <i className="fas fa-box-open text-slate-400 text-4xl mb-3"></i>
+              <p className="text-slate-500 text-sm">
                 No items needed in active drives to display gift status.
               </p>
             </div>
@@ -354,15 +354,13 @@ export default function Dashboard() {
               subtitle="Value of items purchased over time"
               data={donationsOverTime.map(d => d.totalValue)}
               labels={donationsOverTime.map(d => new Date(d.date).toLocaleDateString())}
-              borderColor="#4c51bf"
-              backgroundColor="rgba(76, 81, 191, 0.1)"
             />
           </div>
         ) : (
           <div className="w-full xl:w-8/12 mb-12 xl:mb-0 px-4">
             <div className="relative flex flex-col min-w-0 break-words bg-white w-full h-full shadow-lg rounded p-4 text-center justify-center items-center">
-              <i className="fas fa-chart-line text-blueGray-300 text-4xl mb-3"></i>
-              <p className="text-blueGray-500 text-sm">
+              <i className="fas fa-chart-line text-slate-400 text-4xl mb-3"></i>
+              <p className="text-slate-500 text-sm">
                 No donation activity data available for the selected period.
               </p>
             </div>
@@ -375,14 +373,13 @@ export default function Dashboard() {
               subtitle="By total donation value"
               data={topDonors.map((donor) => donor.amount)}
               labels={topDonors.map((donor) => donor.name)}
-              backgroundColor="#ed64a6"
             />
           </div>
         ) : (
           <div className="w-full xl:w-4/12 px-4">
             <div className="relative flex flex-col min-w-0 break-words bg-white w-full h-full shadow-lg rounded p-4 text-center justify-center items-center">
-              <i className="fas fa-trophy text-blueGray-300 text-4xl mb-3"></i>
-              <p className="text-blueGray-500 text-sm">
+              <i className="fas fa-trophy text-slate-400 text-4xl mb-3"></i>
+              <p className="text-slate-500 text-sm">
                 No donor data available for the selected period.
               </p>
             </div>

@@ -17,8 +17,8 @@ const CardLineChart = ({
         label: subtitle || "",
         data: data,
         fill: false,
-        borderColor: borderColor || "#4c51bf",
-        backgroundColor: backgroundColor || "#4c51bf",
+        borderColor: borderColor || "#059669", // Default to ggreen
+        backgroundColor: backgroundColor || "#059669", // Default to ggreen for points
       },
     ],
   };
@@ -29,7 +29,7 @@ const CardLineChart = ({
     plugins: {
       legend: {
         labels: {
-          color: "#fff",
+          color: "#4A5568", // text-slate-600
         },
         position: "bottom",
       },
@@ -41,7 +41,7 @@ const CardLineChart = ({
     scales: {
       x: {
         ticks: {
-          color: "#fff",
+          color: "#64748B", // text-slate-500
         },
         grid: {
           display: false,
@@ -49,10 +49,10 @@ const CardLineChart = ({
       },
       y: {
         ticks: {
-          color: "#fff",
+          color: "#64748B", // text-slate-500
         },
         grid: {
-          color: "rgba(255,255,255,0.2)",
+          color: "#E2E8F0", // text-slate-200
         },
       },
     },

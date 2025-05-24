@@ -52,7 +52,7 @@ const Sidebar = () => {
 
           {/* Toggler */}
           <button
-            className="cursor-pointer text-black opacity-50 md:hidden px-3 py-1 text-xl leading-none bg-transparent rounded border border-solid border-transparent"
+            className="cursor-pointer text-slate-700 hover:text-ggreen md:hidden px-3 py-1 text-xl leading-none bg-transparent rounded border border-solid border-transparent"
             type="button"
             onClick={() => setCollapseShow("bg-white m-2 py-3 px-6")}
           >
@@ -60,7 +60,7 @@ const Sidebar = () => {
           </button>
 
           {/* Brand */}
-          <Link href="/" className="text-black text-sm font-bold leading-relaxed py-2 whitespace-nowrap uppercase flex items-center">
+          <Link href="/" className="text-ggreen text-sm font-bold leading-relaxed py-2 whitespace-nowrap uppercase flex items-center">
             {/* Next.js Image component for optimization */}
             <Image
               src="https://giveagift-assets.nyc3.cdn.digitaloceanspaces.com/images/GiftDriveLogo.png"
@@ -96,7 +96,7 @@ const Sidebar = () => {
                 <div className="w-6/12">
                   <Link
                     href="/"
-                    className="md:block text-left md:pb-2 text-slate-600 mr-0 inline-block whitespace-nowrap text-sm uppercase font-bold p-4 px-0"
+                    className="md:block text-left md:pb-2 text-slate-700 mr-0 inline-block whitespace-nowrap text-sm uppercase font-bold p-4 px-0" /* Updated text color */
                   >
                     Organization Dashboard
                   </Link>
@@ -104,7 +104,7 @@ const Sidebar = () => {
                 <div className="w-6/12 flex justify-end">
                   <button
                     type="button"
-                    className="cursor-pointer text-black opacity-50 md:hidden px-3 py-1 text-xl leading-none bg-transparent rounded border border-solid border-transparent"
+                    className="cursor-pointer text-slate-700 hover:text-ggreen md:hidden px-3 py-1 text-xl leading-none bg-transparent rounded border border-solid border-transparent" /* Updated text color */
                     onClick={() => setCollapseShow("hidden")}
                   >
                     <FaTimes />
@@ -129,7 +129,7 @@ const Sidebar = () => {
             <hr className="my-4 md:min-w-full" />
 
             {/* Heading */}
-            <h6 className="md:min-w-full text-slate-500 text-xs uppercase font-bold block pt-1 pb-4 no-underline">
+            <h6 className="md:min-w-full text-ggreen text-xs uppercase font-bold block pt-1 pb-4 no-underline tracking-wider"> {/* Updated text color and added tracking */}
               Admin Sections
             </h6>
 
@@ -142,8 +142,8 @@ const Sidebar = () => {
                     className={
                       "text-xs uppercase py-3 font-bold block " +
                       (router.pathname === section.href
-                        ? "text-sky-500 hover:text-sky-600"
-                        : "text-slate-700 hover:text-slate-500")
+                        ? "text-ggreen font-semibold bg-teal-100 rounded-md" /* Active state */
+                        : "text-slate-600 hover:text-ggreen hover:bg-teal-50 rounded-md") /* Inactive state */
                     }
                   >
                     {section.icon}

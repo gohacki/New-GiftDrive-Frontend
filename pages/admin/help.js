@@ -27,29 +27,29 @@ const HelpPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6 pt-32">
-      <h2 className="text-2xl font-semibold mb-4">Help & FAQ</h2>
+    <div className="p-6"> {/* Removed min-h-screen, bg-gray-100, pt-32 */}
+      <h2 className="text-2xl font-semibold mb-6 text-slate-800">Help & FAQ</h2> {/* Increased mb, changed color */}
 
       <div className="space-y-6">
         {faqItems.map((item, index) => (
           <div
             key={index}
-            className="bg-white p-4 rounded shadow-md hover:shadow-lg transition-shadow"
+            className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-slate-200" /* Added rounded-lg, border */
           >
-            <h3 className="text-lg font-medium">{item.question}</h3>
-            <p className="text-gray-600 mt-2">{item.answer}</p>
+            <h3 className="text-lg font-medium text-ggreen">{item.question}</h3> {/* Changed color */}
+            <p className="text-slate-600 mt-2">{item.answer}</p> {/* Changed color */}
           </div>
         ))}
       </div>
 
-      <div className="mt-10">
-        <h3 className="text-lg font-medium mb-2">Need Further Assistance?</h3>
-        <p className="text-gray-600">
+      <div className="mt-10 pt-6 border-t border-slate-200"> {/* Added pt and border-t for separation */}
+        <h3 className="text-lg font-semibold mb-2 text-slate-700">Need Further Assistance?</h3> {/* Changed color, increased font-semibold */}
+        <p className="text-slate-600"> {/* Changed color */}
           If your question isn&apos;t listed above, please reach out to our support team at:
         </p>
         <a
           href="mailto:support@example.com"
-          className="text-blue-500 hover:underline"
+          className="text-ggreen hover:underline hover:text-teal-700" /* Changed color and hover */
         >
           support@example.com
         </a>

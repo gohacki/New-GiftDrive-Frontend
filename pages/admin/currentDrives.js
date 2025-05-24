@@ -112,8 +112,8 @@ const CurrentDrives = () => {
 
   if (authStatus === "loading" || (isLoadingDrives && authStatus === "authenticated")) {
     return (
-      <div className="min-h-screen bg-gray-100 p-6 pt-32 text-center">
-        <p className="text-xl text-gray-700">Loading current drives...</p>
+      <div className="p-6 text-center"> {/* Removed min-h-screen, bg-gray-100, pt-32 */}
+        <p className="text-xl text-slate-600">Loading current drives...</p>
       </div>
     );
   }
@@ -121,10 +121,13 @@ const CurrentDrives = () => {
   // If pageError is set, display it (this handles auth errors or fetch errors)
   if (pageError) {
     return (
-      <div className="min-h-screen bg-gray-100 p-6 pt-32 text-center">
+      <div className="p-6 text-center"> {/* Removed min-h-screen, bg-gray-100, pt-32 */}
         <p className="text-xl text-red-500">{pageError}</p>
         {authStatus === "authenticated" && !user?.is_org_admin && (
-          <button onClick={() => router.push('/visible/profile')} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+          <button 
+            onClick={() => router.push('/visible/profile')} 
+            className="mt-4 px-4 py-2 bg-ggreen text-white rounded-md hover:bg-teal-700 shadow-sm"
+          >
             Go to Profile
           </button>
         )}
@@ -135,9 +138,12 @@ const CurrentDrives = () => {
   // If user is authenticated but not an org admin (and no other error occurred)
   if (authStatus === "authenticated" && user && !user.is_org_admin) {
     return (
-      <div className="min-h-screen bg-gray-100 p-6 pt-32 text-center">
-        <p className="text-xl text-yellow-700">You need to be an organization administrator to manage drives.</p>
-        <button onClick={() => router.push('/visible/profile')} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+      <div className="p-6 text-center"> {/* Removed min-h-screen, bg-gray-100, pt-32 */}
+        <p className="text-xl text-amber-600">You need to be an organization administrator to manage drives.</p>
+        <button 
+          onClick={() => router.push('/visible/profile')} 
+          className="mt-4 px-4 py-2 bg-ggreen text-white rounded-md hover:bg-teal-700 shadow-sm"
+        >
           Go to Profile
         </button>
       </div>
@@ -146,12 +152,12 @@ const CurrentDrives = () => {
 
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6 pt-32"> {/* Admin layout will add its own padding */}
+    <div className="p-6"> {/* Admin layout will add its own padding, removed min-h-screen, bg-gray-100, pt-32 */}
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold">Current Drives</h2>
+        <h2 className="text-2xl font-semibold text-slate-700">Current Drives</h2>
         <button
           onClick={triggerAddDriveModal}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          className="bg-ggreen text-white px-4 py-2 rounded-md hover:bg-teal-700 shadow-sm"
         >
           Add New Drive
         </button>
@@ -169,7 +175,7 @@ const CurrentDrives = () => {
           ))}
         </div>
       ) : (
-        <p className="text-center text-gray-500 mt-8">
+        <p className="text-center text-slate-500 mt-8"> {/* Changed text-gray-500 to text-slate-500 */}
           {user && user.is_org_admin ? "No current drives available." : "No drives to display."}
         </p>
       )}

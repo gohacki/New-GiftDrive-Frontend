@@ -94,18 +94,21 @@ const PastDrives = () => {
 
   if (authStatus === "loading" || (isLoadingDrives && authStatus === "authenticated")) {
     return (
-      <div className="min-h-screen bg-gray-100 p-6 pt-32 text-center">
-        <p className="text-xl text-gray-700">Loading past drives...</p>
+      <div className="p-6 text-center"> {/* Adjusted padding, removed bg and min-h */}
+        <p className="text-xl text-slate-600">Loading past drives...</p> {/* Adjusted text color */}
       </div>
     );
   }
 
   if (pageError) {
     return (
-      <div className="min-h-screen bg-gray-100 p-6 pt-32 text-center">
+      <div className="p-6 text-center"> {/* Adjusted padding, removed bg and min-h */}
         <p className="text-xl text-red-500">{pageError}</p>
         {authStatus === "authenticated" && !user?.is_org_admin && (
-          <button onClick={() => router.push('/visible/profile')} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+          <button 
+            onClick={() => router.push('/visible/profile')} 
+            className="mt-4 px-4 py-2 bg-ggreen text-white rounded-md hover:bg-teal-700 shadow-sm" /* Styled button */
+          >
             Go to Profile
           </button>
         )}
@@ -115,9 +118,12 @@ const PastDrives = () => {
 
   if (authStatus === "authenticated" && user && !user.is_org_admin) {
     return (
-      <div className="min-h-screen bg-gray-100 p-6 pt-32 text-center">
-        <p className="text-xl text-yellow-700">You need to be an organization administrator to view drives.</p>
-        <button onClick={() => router.push('/visible/profile')} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+      <div className="p-6 text-center"> {/* Adjusted padding, removed bg and min-h */}
+        <p className="text-xl text-amber-600">You need to be an organization administrator to view drives.</p> {/* Adjusted text color */}
+        <button 
+          onClick={() => router.push('/visible/profile')} 
+          className="mt-4 px-4 py-2 bg-ggreen text-white rounded-md hover:bg-teal-700 shadow-sm" /* Styled button */
+        >
           Go to Profile
         </button>
       </div>
@@ -126,8 +132,8 @@ const PastDrives = () => {
 
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6 pt-32">
-      <h2 className="text-2xl font-semibold mb-4">Past Drives</h2>
+    <div className="p-6"> {/* Adjusted padding, removed bg and min-h */}
+      <h2 className="text-2xl font-semibold text-slate-700 mb-6">Past Drives</h2> {/* Styled title */}
       {drives.length > 0 ? (
         <div className="grid grid-cols-1 gap-6">
           {drives.map((drive) => (
@@ -140,7 +146,7 @@ const PastDrives = () => {
           ))}
         </div>
       ) : (
-        <p className="text-center text-gray-600 mt-10">
+        <p className="text-center text-slate-500 mt-10"> {/* Adjusted text color */}
           {user && user.is_org_admin ? "No past drives available." : "No drives to display."}
         </p>
       )}

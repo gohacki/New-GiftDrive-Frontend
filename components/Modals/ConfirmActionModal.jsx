@@ -16,12 +16,12 @@ const ConfirmActionModal = ({
     const getButtonStyle = (style) => {
         switch (style) {
             case 'primary':
-                return 'bg-ggreen text-white hover:bg-teal-700';
+                return 'bg-ggreen text-white hover:bg-teal-700 focus:ring-ggreen';
             case 'danger':
-                return 'bg-red-600 text-white hover:bg-red-700';
+                return 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500';
             case 'secondary':
             default:
-                return 'bg-gray-200 text-gray-700 hover:bg-gray-300';
+                return 'bg-slate-200 text-slate-800 hover:bg-slate-300 focus:ring-slate-400 font-medium';
         }
     };
 
@@ -34,27 +34,27 @@ const ConfirmActionModal = ({
             aria-labelledby="confirm-action-modal-title"
         >
             <div
-                className="bg-white rounded-lg shadow-xl w-full max-w-md transform transition-all"
+                className="bg-white rounded-lg shadow-xl w-full max-w-md transform transition-all border border-slate-200" /* Added border */
                 onClick={(e) => e.stopPropagation()} // Prevent close when clicking inside modal
             >
                 <div className="p-6">
                     <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center">
                             <ExclamationTriangleIcon className="h-6 w-6 text-yellow-500 mr-3 flex-shrink-0" />
-                            <h3 id="confirm-action-modal-title" className="text-lg font-semibold text-gray-800">
+                            <h3 id="confirm-action-modal-title" className="text-lg font-semibold text-slate-800"> {/* Updated title color */}
                                 {title || `Action Required for "${itemName || 'Item'}"`}
                             </h3>
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                            className="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100" /* Updated close button */
                             aria-label="Close modal"
                         >
                             <XMarkIcon className="h-5 w-5" />
                         </button>
                     </div>
 
-                    <div className="text-sm text-gray-600 mb-6 whitespace-pre-line">
+                    <div className="text-sm text-slate-600 mb-6 whitespace-pre-line"> {/* Updated message color */}
                         {message}
                     </div>
 
@@ -73,7 +73,7 @@ const ConfirmActionModal = ({
                         ))}
                         <button
                             onClick={onClose}
-                            className="w-full sm:w-auto px-4 py-2.5 text-sm font-medium rounded-md shadow-sm bg-gray-100 text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400"
+                            className="w-full sm:w-auto px-4 py-2.5 text-sm font-medium rounded-md shadow-sm bg-slate-100 text-slate-700 hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400 font-medium" /* Updated cancel button */
                         >
                             Cancel
                         </button>
