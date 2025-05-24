@@ -52,7 +52,7 @@ export default async function handler(req, res) {
             return res.status(200).json(statistics);
         }
 
-        // Donee (Kid) Statistics - Needs consider hidden items for fulfillment status
+        // Donee (Kid) Statistics - Considers hidden items for fulfillment status
         const [childIdsRows] = await pool.query('SELECT child_id FROM unique_children WHERE drive_id IN (?)', [activeDriveIds]);
         const childIds = childIdsRows.map(row => row.child_id);
         statistics.totalKidsInActiveDrives = childIds.length;
@@ -85,8 +85,8 @@ export default async function handler(req, res) {
                     if (purchasedForPublic === 0) statistics.kidsUngifted++;
                     else if (purchasedForPublic >= neededForPublic) statistics.kidsFullyGifted++;
                     else statistics.kidsPartiallyGifted++;
-                } else { // Child has no publicly visible needs currently
-                    statistics.kidsUngifted++; // Or count them as "needs met/hidden"
+                } else {
+                    statistics.kidsUngifted++;
                 }
             });
         }
@@ -110,11 +110,12 @@ export default async function handler(req, res) {
              JOIN orders o ON oi.order_id = o.order_id
              LEFT JOIN drive_items di ON oi.source_drive_item_id = di.drive_item_id
              LEFT JOIN child_items ci ON oi.source_child_item_id = ci.child_item_id
+             LEFT JOIN unique_children uc_ci_purchased ON ci.child_id = uc_ci_purchased.child_id
              WHERE o.order_date BETWEEN ? AND ? 
                AND o.status NOT IN ('cancelled', 'failed', 'refunded')
                AND (
-                    (di.drive_id IN (?) AND di.is_hidden_from_public = FALSE) OR
-                    (ci.child_id IN (SELECT unique_children.child_id FROM unique_children WHERE unique_children.drive_id IN (?)) AND ci.is_hidden_from_public = FALSE)
+                    (di.drive_item_id IS NOT NULL AND di.drive_id IN (?) AND di.is_hidden_from_public = FALSE) OR
+                    (ci.child_item_id IS NOT NULL AND uc_ci_purchased.drive_id IN (?) AND ci.is_hidden_from_public = FALSE)
                    )
             `,
             [parsedStartDate, parsedEndDate, activeDriveIds, activeDriveIds]
@@ -129,60 +130,93 @@ export default async function handler(req, res) {
              JOIN carts c ON cc.cart_id = c.id
              LEFT JOIN drive_items di ON cc.source_drive_item_id = di.drive_item_id
              LEFT JOIN child_items ci ON cc.source_child_item_id = ci.child_item_id
-             LEFT JOIN unique_children uc ON ci.child_id = uc.child_id 
+             LEFT JOIN unique_children uc_cart ON ci.child_id = uc_cart.child_id 
              WHERE c.status = 'active' AND
                    ( 
                      (di.drive_id IN (?) AND di.is_active = 1 AND di.is_hidden_from_public = FALSE) OR
-                     (uc.drive_id IN (?) AND ci.is_active = 1 AND ci.is_hidden_from_public = FALSE)
+                     (uc_cart.drive_id IN (?) AND ci.is_active = 1 AND ci.is_hidden_from_public = FALSE)
                    )`,
             [activeDriveIds, activeDriveIds]
         );
         statistics.giftsInCarts = Number(giftsInCartsRow.total) || 0;
-        statistics.giftsUnpurchased = Math.max(0, statistics.totalItemsNeeded - statistics.giftsPurchased /* removed - statistics.giftsInCarts here if giftsInCarts already considers public items */);
+        statistics.giftsUnpurchased = Math.max(0, statistics.totalItemsNeeded - statistics.giftsPurchased);
 
+        // Financial & Donor Statistics - MODIFIED to exclude donations towards hidden items
+        const financialAndDonorParams = [parsedStartDate, parsedEndDate, activeDriveIds, activeDriveIds];
 
-        // Financial & Donor Statistics - THESE REMAIN UNCHANGED, reflecting ALL actual financial transactions
         const [[moneySpentRow]] = await pool.query(
             `SELECT COALESCE(SUM(oi.price * oi.quantity), 0) AS total
-             FROM order_items oi JOIN orders o ON oi.order_id = o.order_id
-             WHERE o.order_date BETWEEN ? AND ? AND o.status NOT IN ('cancelled', 'failed', 'refunded')
-             AND (oi.drive_id IN (?) OR oi.child_id IN (SELECT unique_children.child_id FROM unique_children WHERE unique_children.drive_id IN (?)))`,
-            [parsedStartDate, parsedEndDate, activeDriveIds, activeDriveIds]
-        ); // Corrected to use drive_id from order_items for drive-specific donations
+             FROM order_items oi
+             JOIN orders o ON oi.order_id = o.order_id
+             LEFT JOIN drive_items di ON oi.source_drive_item_id = di.drive_item_id
+             LEFT JOIN child_items ci ON oi.source_child_item_id = ci.child_item_id
+             LEFT JOIN unique_children uc_ci_money ON ci.child_id = uc_ci_money.child_id
+             WHERE o.order_date BETWEEN ? AND ?
+               AND o.status NOT IN ('cancelled', 'failed', 'refunded')
+               AND (
+                 (di.drive_item_id IS NOT NULL AND di.drive_id IN (?) AND di.is_hidden_from_public = FALSE) OR
+                 (ci.child_item_id IS NOT NULL AND uc_ci_money.drive_id IN (?) AND ci.is_hidden_from_public = FALSE)
+               )`,
+            financialAndDonorParams
+        );
         statistics.totalMoneySpent = Number(moneySpentRow.total) || 0;
 
         const [[uniqueDonorsRow]] = await pool.query(
             `SELECT COUNT(DISTINCT o.account_id) AS count
-             FROM orders o JOIN order_items oi ON o.order_id = oi.order_id
-             WHERE o.order_date BETWEEN ? AND ? AND o.status NOT IN ('cancelled', 'failed', 'refunded')
-             AND (oi.drive_id IN (?) OR oi.child_id IN (SELECT unique_children.child_id FROM unique_children WHERE unique_children.drive_id IN (?)))`,
-            [parsedStartDate, parsedEndDate, activeDriveIds, activeDriveIds]
+             FROM orders o
+             JOIN order_items oi ON o.order_id = o.order_id
+             LEFT JOIN drive_items di ON oi.source_drive_item_id = di.drive_item_id
+             LEFT JOIN child_items ci ON oi.source_child_item_id = ci.child_item_id
+             LEFT JOIN unique_children uc_ci_donors ON ci.child_id = uc_ci_donors.child_id
+             WHERE o.order_date BETWEEN ? AND ?
+               AND o.status NOT IN ('cancelled', 'failed', 'refunded')
+               AND (
+                 (di.drive_item_id IS NOT NULL AND di.drive_id IN (?) AND di.is_hidden_from_public = FALSE) OR
+                 (ci.child_item_id IS NOT NULL AND uc_ci_donors.drive_id IN (?) AND ci.is_hidden_from_public = FALSE)
+               )`,
+            financialAndDonorParams
         );
         statistics.uniqueDonorsCount = Number(uniqueDonorsRow.count) || 0;
         statistics.avgMoneyDonatedPerPerson = statistics.uniqueDonorsCount > 0 ? statistics.totalMoneySpent / statistics.uniqueDonorsCount : 0;
 
         const [topDonorsRows] = await pool.query(
             `SELECT acc.username AS name, SUM(oi.price * oi.quantity) AS amount
-             FROM orders o JOIN accounts acc ON o.account_id = acc.account_id
+             FROM orders o
+             JOIN accounts acc ON o.account_id = acc.account_id
              JOIN order_items oi ON o.order_id = oi.order_id
-             WHERE o.order_date BETWEEN ? AND ? AND o.status NOT IN ('cancelled', 'failed', 'refunded')
-             AND (oi.drive_id IN (?) OR oi.child_id IN (SELECT unique_children.child_id FROM unique_children WHERE unique_children.drive_id IN (?)))
+             LEFT JOIN drive_items di ON oi.source_drive_item_id = di.drive_item_id
+             LEFT JOIN child_items ci ON oi.source_child_item_id = ci.child_item_id
+             LEFT JOIN unique_children uc_ci_top_donors ON ci.child_id = uc_ci_top_donors.child_id
+             WHERE o.order_date BETWEEN ? AND ?
+               AND o.status NOT IN ('cancelled', 'failed', 'refunded')
+               AND (
+                 (di.drive_item_id IS NOT NULL AND di.drive_id IN (?) AND di.is_hidden_from_public = FALSE) OR
+                 (ci.child_item_id IS NOT NULL AND uc_ci_top_donors.drive_id IN (?) AND ci.is_hidden_from_public = FALSE)
+               )
              GROUP BY acc.account_id, acc.username ORDER BY amount DESC LIMIT 5`,
-            [parsedStartDate, parsedEndDate, activeDriveIds, activeDriveIds]
+            financialAndDonorParams
         );
         statistics.topDonors = topDonorsRows.map(r => ({ name: r.name, amount: parseFloat(r.amount) }));
 
         const [donationsOverTimeRows] = await pool.query(
             `SELECT DATE(o.order_date) as date, SUM(oi.price * oi.quantity) as totalValue
-             FROM orders o JOIN order_items oi ON o.order_id = oi.order_id
-             WHERE o.order_date BETWEEN ? AND ? AND o.status NOT IN ('cancelled', 'failed', 'refunded')
-             AND (oi.drive_id IN (?) OR oi.child_id IN (SELECT unique_children.child_id FROM unique_children WHERE unique_children.drive_id IN (?)))
+             FROM orders o
+             JOIN order_items oi ON o.order_id = o.order_id
+             LEFT JOIN drive_items di ON oi.source_drive_item_id = di.drive_item_id
+             LEFT JOIN child_items ci ON oi.source_child_item_id = ci.child_item_id
+             LEFT JOIN unique_children uc_ci_don_time ON ci.child_id = uc_ci_don_time.child_id
+             WHERE o.order_date BETWEEN ? AND ?
+               AND o.status NOT IN ('cancelled', 'failed', 'refunded')
+               AND (
+                 (di.drive_item_id IS NOT NULL AND di.drive_id IN (?) AND di.is_hidden_from_public = FALSE) OR
+                 (ci.child_item_id IS NOT NULL AND uc_ci_don_time.drive_id IN (?) AND ci.is_hidden_from_public = FALSE)
+               )
              GROUP BY DATE(o.order_date) ORDER BY DATE(o.order_date) ASC`,
-            [parsedStartDate, parsedEndDate, activeDriveIds, activeDriveIds]
+            financialAndDonorParams
         );
         statistics.donationsOverTime = donationsOverTimeRows.map(r => ({ date: r.date, totalValue: parseFloat(r.totalValue) }));
 
-        // Page View Statistics - Unchanged
+        // Page View Statistics - Unchanged, as they are not related to item visibility
         const [[pageViewsRow]] = await pool.query(
             'SELECT COALESCE(SUM(view_count), 0) AS total FROM page_views WHERE org_id = ? AND view_date BETWEEN ? AND ?',
             [orgId, parsedStartDate, parsedEndDate]
