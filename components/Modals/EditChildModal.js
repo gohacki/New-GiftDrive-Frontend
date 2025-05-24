@@ -217,7 +217,7 @@ const EditChildModal = ({ child, onClose }) => {
           <div className="mb-6">
             <h3 className="text-lg font-medium mb-3 text-slate-700">Current Items</h3> {/* Updated section title */}
             {currentItems.length === 0 ? (
-              <p className="text-slate-500 italic">No items currently associated with this child.</p> {/* Updated empty state text */}
+              <p className="text-slate-500 italic">No items currently associated with this child.</p>
             ) : (
               <ul className="space-y-3">
                 {currentItems.map((item) => (
@@ -262,7 +262,7 @@ const EditChildModal = ({ child, onClose }) => {
             <h3 className="text-lg font-medium mb-3 text-slate-700">Available Items to Add</h3> {/* Updated section title */}
             <input type="text" placeholder="Search catalog items..." value={searchTerm} onChange={handleSearchChange} className="w-full border border-slate-300 rounded-md p-2 mb-3 text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:border-ggreen focus:ring-1 focus:ring-ggreen" /> {/* Updated search input */}
             {filteredAvailableItems.length === 0 ? (
-              <p className="text-slate-500 italic">No available items match your search or all catalog items are already added.</p> {/* Updated empty state text */}
+              <p className="text-slate-500 italic">No available items match your search or all catalog items are already added.</p>
             ) : (
               <ul className="space-y-2 max-h-60 overflow-y-auto border border-slate-200 rounded p-2"> {/* Updated list container border */}
                 {filteredAvailableItems.map((item) => (

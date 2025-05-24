@@ -96,7 +96,7 @@ const AddChildModal = ({ onClose, onAddChild, driveId }) => {
         </div>
 
         {isLoading && !defaultChildren.length && !defaultItems.length && (
-          <p className="text-center py-4 text-slate-600">Loading available children and items...</p> {/* Updated loading text */}
+          <p className="text-center py-4 text-slate-600">Loading available children and items...</p>
         )}
         {error && (
           <div className="mb-4 p-3 bg-red-100 text-red-700 border border-red-300 rounded text-sm">
@@ -170,7 +170,7 @@ const AddChildModal = ({ onClose, onAddChild, driveId }) => {
           </form>
         )}
         {!isLoading && defaultChildren.length === 0 && defaultItems.length === 0 && !error && (
-          <p className="text-center text-slate-500 py-4">No default children or items available to select.</p> {/* Updated empty state text */}
+          <p className="text-center text-slate-500 py-4">No default children or items available to select.</p>
         )}
       </div>
     </div>
